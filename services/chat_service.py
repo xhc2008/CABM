@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils.api_utils import make_api_request, APIError, handle_api_error, parse_stream_data
+from utils.history_utils import HistoryManager
 from services.config_service import config_service
 
 class Message:
@@ -178,6 +179,14 @@ class ChatService:
         
         # 创建流式输出控制器
         self.stream_controller = StreamController(self.config_service)
+        
+        # 创建历史记录管理器
+        app_config = self.config_service.get_app_config()
+        history_dir = app_config["history_dir"]
+        self.history_manager = HistoryManager(history_dir)
+        
+        # 初始化时加载历史记录
+        self._load_history_on_startup()
     
     def add_message(self, role: str, content: str) -> Message:
         """
@@ -206,19 +215,30 @@ class ChatService:
             # 重建历史记录
             self.history = system_messages + other_messages
         
+        # 如果不是系统消息，保存到持久化历史记录
+        if role != "system":
+            character_id = self.config_service.current_character_id or "default"
+            self.history_manager.save_message(character_id, role, content)
+        
         return message
     
-    def clear_history(self, keep_system: bool = True) -> None:
+    def clear_history(self, keep_system: bool = True, clear_persistent: bool = False) -> None:
         """
         清空对话历史
         
         Args:
             keep_system: 是否保留system消息
+            clear_persistent: 是否清空持久化历史记录
         """
         if keep_system:
             self.history = [msg for msg in self.history if msg.role == "system"]
         else:
             self.history = []
+            
+        # 如果需要清空持久化历史记录
+        if clear_persistent:
+            character_id = self.config_service.current_character_id or "default"
+            self.history_manager.clear_history(character_id)
     
     def get_history(self) -> List[Message]:
         """获取对话历史"""
@@ -242,6 +262,23 @@ class ChatService:
         system_prompt = self.config_service.get_system_prompt(prompt_type)
         self.add_message("system", system_prompt)
     
+    def _load_history_on_startup(self):
+        """在启动时加载历史记录到内存"""
+        # 获取当前角色ID
+        character_id = self.config_service.current_character_id or "default"
+        
+        # 获取配置
+        app_config = self.config_service.get_app_config()
+        max_history = app_config["max_history_length"]
+        
+        # 加载历史记录
+        history_messages = self.history_manager.load_history(character_id, max_history, max_history * 2)
+        
+        # 转换为Message对象并添加到内存中
+        for msg in history_messages:
+            if msg["role"] != "system":  # 系统消息会通过set_system_prompt单独设置
+                self.history.append(Message.from_dict(msg))
+    
     def set_character(self, character_id: str) -> bool:
         """
         设置角色
@@ -254,8 +291,22 @@ class ChatService:
         """
         # 设置角色
         if self.config_service.set_character(character_id):
+            # 清空当前会话历史
+            self.history = []
+            
             # 设置系统提示词
             self.set_system_prompt("character")
+            
+            # 加载该角色的历史记录
+            app_config = self.config_service.get_app_config()
+            max_history = app_config["max_history_length"]
+            history_messages = self.history_manager.load_history(character_id, max_history, max_history * 2)
+            
+            # 转换为Message对象并添加到内存中
+            for msg in history_messages:
+                if msg["role"] != "system":  # 系统消息已通过set_system_prompt设置
+                    self.history.append(Message.from_dict(msg))
+                    
             return True
         
         return False
@@ -268,6 +319,22 @@ class ChatService:
             角色配置字典
         """
         return self.config_service.get_character_config()
+        
+    def load_persistent_history(self, count: Optional[int] = None) -> List[Dict[str, str]]:
+        """
+        加载持久化历史记录
+        
+        Args:
+            count: 加载的消息数量，如果为None则使用配置中的值
+            
+        Returns:
+            历史记录列表
+        """
+        character_id = self.config_service.current_character_id or "default"
+        if count is None:
+            count = self.config_service.get_app_config()["max_history_length"]
+        
+        return self.history_manager.load_history(character_id, count)
     
     def chat_completion(
         self, 
@@ -294,7 +361,9 @@ class ChatService:
         chat_config = self.config_service.get_chat_config()
         
         # 准备请求数据
-        messages = messages or self.format_messages()
+        if messages is None:
+            # 使用内存中的历史记录（已经包含了从持久化存储加载的记录）
+            messages = self.format_messages()
         
         request_data = {
             **chat_config,

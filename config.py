@@ -30,12 +30,9 @@ IMAGE_CONFIG = {
     "guidance_scale": 7.5,          # 引导比例
 }
 
-# 系统提示词配置
+# 通用提示词配置
 SYSTEM_PROMPTS = {
-    "default": "你是一个友好的AI助手，可以回答用户的问题并提供帮助。",
-    "creative": "你是一个富有创造力的AI，喜欢用生动的语言和比喻来表达想法。",
-    "professional": "你是一个专业的AI助手，提供准确、简洁的回答，注重事实和逻辑。",
-    "friendly": "你是一个亲切友好的AI伙伴，喜欢用轻松愉快的语气交流，偶尔会开些善意的玩笑。",
+    "default": "禁止使用markdown",
 }
 
 # 图像提示词配置
@@ -59,7 +56,8 @@ APP_CONFIG = {
     "static_folder": "static",
     "template_folder": "templates",
     "image_cache_dir": "static/images/cache",
-    "max_history_length": 20,  # 最大对话历史长度
+    "max_history_length": 4,  # 最大对话历史长度（内存中保存的消息数量，也是发送给AI的消息数量）
+    "history_dir": "data/history",  # 历史记录存储目录
 }
 
 def get_chat_config():
@@ -71,7 +69,7 @@ def get_image_config():
     return IMAGE_CONFIG.copy()
 
 def get_system_prompt(prompt_type="default"):
-    """获取系统提示词"""
+    """获取通用提示词"""
     return SYSTEM_PROMPTS.get(prompt_type, SYSTEM_PROMPTS["default"])
 
 def get_random_image_prompt():
@@ -106,7 +104,7 @@ def validate_config():
     missing_stream_keys = [key for key in required_stream_keys if key not in STREAM_CONFIG]
     
     # 验证应用配置
-    required_app_keys = ["debug", "port", "host", "image_cache_dir"]
+    required_app_keys = ["debug", "port", "host", "image_cache_dir", "history_dir", "max_history_length"]
     missing_app_keys = [key for key in required_app_keys if key not in APP_CONFIG]
     
     # 合并所有缺失的配置项

@@ -64,6 +64,10 @@ class ConfigService:
         # 创建模板目录
         template_dir = config.APP_CONFIG["template_folder"]
         os.makedirs(template_dir, exist_ok=True)
+        
+        # 创建历史记录目录
+        history_dir = config.APP_CONFIG["history_dir"]
+        os.makedirs(history_dir, exist_ok=True)
     
     def get_chat_config(self):
         """获取对话模型配置"""
@@ -82,7 +86,7 @@ class ConfigService:
         获取系统提示词
         
         Args:
-            prompt_type: 提示词类型，如果为"character"则使用当前角色的提示词
+            prompt_type: 提示词类型，如果为"character"则使用当前角色的提示词和通用提示词
             
         Returns:
             系统提示词
@@ -92,7 +96,8 @@ class ConfigService:
         
         if prompt_type == "character":
             character_config = self.get_character_config()
-            return character_config["prompt"]
+            general_prompt = config.get_system_prompt("default")
+            return f"{general_prompt}\n\n{character_config['prompt']}"
         
         return config.get_system_prompt(prompt_type)
     
