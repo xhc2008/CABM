@@ -2,7 +2,7 @@
 .env
 .kiro/
 .vscode/
-
+data/history/
 # Python缓存文件
 __pycache__/
 *.py[cod]
