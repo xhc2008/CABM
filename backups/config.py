@@ -13,17 +13,9 @@ CHAT_CONFIG = {
     "stream": True,       # 默认使用流式输出
 }
 
-# 决策模型配置（用于场景切换）
-DECISION_MODEL_CONFIG = {
-    "model": "Qwen/Qwen3-8B",  # 决策模型
-    "max_tokens": 256,    # 最大生成令牌数
-    "temperature": 0.2,   # 低温度，提高确定性
-    "stream": False,      # 不使用流式输出
-}
-
 # 流式输出配置
 STREAM_CONFIG = {
-    "output_speed": 2,           # 字符/秒
+    "output_speed": 30,           # 字符/秒
     "pause_on_paragraph": True,   # 段落结束时暂停
     "paragraph_delimiters": ["。", "！", "？", ".", "!", "?"],  # 段落分隔符
     "buffer_size": 1024,          # 缓冲区大小
@@ -66,7 +58,6 @@ APP_CONFIG = {
     "image_cache_dir": "static/images/cache",
     "max_history_length": 4,  # 最大对话历史长度（内存中保存的消息数量，也是发送给AI的消息数量）
     "history_dir": "data/history",  # 历史记录存储目录
-    "show_scene_name": True,  # 是否在前端显示场景名称
 }
 
 def get_chat_config():
@@ -94,19 +85,11 @@ def get_stream_config():
     """获取流式输出配置"""
     return STREAM_CONFIG.copy()
 
-def get_decision_model_config():
-    """获取决策模型配置"""
-    return DECISION_MODEL_CONFIG.copy()
-
 def validate_config():
     """验证配置完整性"""
     # 验证对话模型配置
     required_chat_keys = ["model", "max_tokens", "temperature"]
     missing_chat_keys = [key for key in required_chat_keys if key not in CHAT_CONFIG]
-    
-    # 验证决策模型配置
-    required_decision_keys = ["model", "max_tokens", "temperature"]
-    missing_decision_keys = [key for key in required_decision_keys if key not in DECISION_MODEL_CONFIG]
     
     # 验证图像模型配置
     required_image_keys = ["model", "image_size", "guidance_scale"]
@@ -121,11 +104,11 @@ def validate_config():
     missing_stream_keys = [key for key in required_stream_keys if key not in STREAM_CONFIG]
     
     # 验证应用配置
-    required_app_keys = ["debug", "port", "host", "image_cache_dir", "history_dir", "max_history_length", "show_scene_name"]
+    required_app_keys = ["debug", "port", "host", "image_cache_dir", "history_dir", "max_history_length"]
     missing_app_keys = [key for key in required_app_keys if key not in APP_CONFIG]
     
     # 合并所有缺失的配置项
-    all_missing = missing_chat_keys + missing_decision_keys + missing_image_keys + missing_stream_keys + missing_app_keys
+    all_missing = missing_chat_keys + missing_image_keys + missing_stream_keys + missing_app_keys
     
     if all_missing:
         raise ValueError(f"配置不完整，缺少以下配置项: {', '.join(all_missing)}")
@@ -138,11 +121,9 @@ if __name__ == "__main__":
         if validate_config():
             print("配置验证成功")
             print(f"对话模型: {get_chat_config()['model']}")
-            print(f"决策模型: {get_decision_model_config()['model']}")
             print(f"图像模型: {get_image_config()['model']}")
             print(f"默认系统提示词: {get_system_prompt()}")
             print(f"随机图像提示词: {get_random_image_prompt()}")
             print(f"流式输出速度: {get_stream_config()['output_speed']} 字符/秒")
-            print(f"显示场景名称: {'是' if get_app_config()['show_scene_name'] else '否'}")
     except ValueError as e:
         print(f"配置验证失败: {e}")

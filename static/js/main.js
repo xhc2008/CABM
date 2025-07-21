@@ -5,6 +5,8 @@ const chatPage = document.getElementById('chatPage');
 const startButton = document.getElementById('startButton');
 const exitButton = document.getElementById('exitButton');
 const backButton = document.getElementById('backButton');
+const sceneName = document.getElementById('sceneName');
+const sceneTransition = document.getElementById('sceneTransition');
 
 // 对话元素
 const characterName = document.getElementById('characterName');
@@ -187,6 +189,12 @@ async function sendMessage() {
                         
                         try {
                             const data = JSON.parse(jsonStr);
+                            
+                            // 处理场景切换
+                            if (data.scene_switch && data.scene_switch.scene_switched) {
+                                handleSceneSwitch(data.scene_switch);
+                                continue;
+                            }
                             
                             // 处理流式控制信息
                             if (data.stream_control) {
@@ -816,4 +824,37 @@ function continueOutput() {
             console.error('发送继续命令失败:', error);
         });
     }
+}
+
+// 处理场景切换
+function handleSceneSwitch(sceneData) {
+    // 显示场景切换动画
+    playSceneTransitionAnimation();
+    
+    // 更新场景名称
+    if (sceneData.scene && sceneData.scene.name) {
+        sceneName.textContent = sceneData.scene.name;
+    }
+    
+    // 如果有场景图片，更新背景
+    if (sceneData.scene && sceneData.scene.image_url) {
+        updateBackground(sceneData.scene.image_url);
+    }
+    
+    // 添加系统消息到历史记录
+    if (sceneData.scene) {
+        const systemMessage = `你们来到了${sceneData.scene.name}，这里${sceneData.scene.description}`;
+        addToHistory('system', systemMessage);
+    }
+}
+
+// 播放场景切换动画
+function playSceneTransitionAnimation() {
+    // 添加活动类以显示黑屏
+    sceneTransition.classList.add('active');
+    
+    // 2秒后移除活动类以淡出黑屏
+    setTimeout(() => {
+        sceneTransition.classList.remove('active');
+    }, 2000);
 }

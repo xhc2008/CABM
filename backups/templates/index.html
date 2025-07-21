@@ -5,45 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CABM - Code Afflatus & Beyond Matter</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        /* 场景名称样式 */
-        .scene-name {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 100;
-            display: {% if show_scene_name %}block{% else %}none{% endif %};
-        }
-        
-        /* 场景切换动画 */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .scene-transition {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 1s ease-in-out;
-        }
-        
-        .scene-transition.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-    </style>
 </head>
 <body>
     <!-- 主容器 -->
@@ -76,19 +37,7 @@
                 <div class="background-image default-background"></div>
                 {% endif %}
                 <div class="background-overlay"></div>
-                
-                <!-- 场景名称 -->
-                <div class="scene-name" id="sceneName">
-                    {% if current_scene %}
-                    {{ current_scene.name }}
-                    {% else %}
-                    默认场景
-                    {% endif %}
-                </div>
             </div>
-            
-            <!-- 场景切换动画 -->
-            <div class="scene-transition" id="sceneTransition"></div>
             
             <!-- 标题栏 -->
             <div class="chat-header">

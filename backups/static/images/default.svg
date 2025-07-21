@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="600" viewBox="0 0 300 600">
+  <rect width="300" height="600" fill="#2c3e50" />
+  <text x="150" y="300" font-family="Arial" font-size="24" fill="white" text-anchor="middle">角色图片占位符</text>
+  <text x="150" y="340" font-family="Arial" font-size="16" fill="#3498db" text-anchor="middle">请将实际角色图片放置在</text>
+  <text x="150" y="370" font-family="Arial" font-size="16" fill="#3498db" text-anchor="middle">static/images/default.png</text>
+</svg>

@@ -75,11 +75,6 @@ def get_character_config(character_id: Optional[str] = None) -> Dict[str, Any]:
             "examples": []
         }
     
-    # 确保图像路径正确处理
-    if "image" in config and config["image"].startswith("data/"):
-        # 将data路径转换为URL路径
-        config["image"] = "/" + config["image"]
-    
     return config
 
 def list_available_characters() -> List[Dict[str, Any]]:
