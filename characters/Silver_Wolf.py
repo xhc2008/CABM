@@ -9,7 +9,7 @@ CHARACTER_NAME_EN = "Silver_Wolf"
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/default.png"  # 角色立绘路径
-CHARACTER_COLOR = "#ffeb3b"  # 角色名称颜色
+CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
 
 # 角色设定
 CHARACTER_DESCRIPTION = """
