@@ -1,0 +1,526 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+    background-color: #fff;
+}
+
+/* 容器样式 */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* 页面切换样式 */
+.page {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.page.active {
+    display: flex;
+}
+
+/* 主页面样式 */
+#homePage {
+    color: #333;
+    background-color: #fff;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 10;
+}
+
+.home-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    z-index: -1;
+}
+
+.home-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.home-header h1 {
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+    color: #333;
+}
+
+.home-header p {
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.home-buttons {
+    margin-top: 3rem;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.home-buttons .btn {
+    padding: 0.8rem 2rem;
+    font-size: 1.2rem;
+    min-width: 120px;
+}
+
+/* 对话页面样式 */
+#chatPage {
+    color: #fff;
+    position: relative;
+    z-index: 5;
+    padding-top: 60px;
+}
+
+/* 背景样式 (仅用于对话页面) */
+.background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 1s ease;
+}
+
+.default-background {
+    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+}
+
+.background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 50;
+    padding: 0 1rem;
+}
+
+.chat-header h2 {
+    margin: 0 auto;
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.back-btn:hover {
+    color: #90caf9;
+}
+
+/* 角色区域样式 */
+.character-container {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.character-image {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.character-image img {
+    max-width: 100%;
+    max-height: 40vh;
+    object-fit: contain;
+}
+
+/* 对话区域样式 */
+.dialog-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.dialog-box {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    animation: fadeIn 0.3s ease;
+    flex: 1;
+}
+
+.character-name {
+    color: #ffeb3b;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.dialog-content {
+    font-size: 1rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    min-height: 100px;
+}
+
+/* 用户输入区域样式 */
+.user-input-container {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-size: 0.9rem;
+    resize: none;
+    height: 40px;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 控制按钮样式 */
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 0.8rem;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.primary-btn {
+    background-color: #2979ff;
+    color: #fff;
+}
+
+.primary-btn:hover {
+    background-color: #1565c0;
+}
+
+.secondary-btn {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.secondary-btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 主页面按钮特殊样式 */
+#homePage .secondary-btn {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #333;
+}
+
+#homePage .secondary-btn:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* 弹窗通用样式 */
+.modal, .history-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.modal-content, .history-content {
+    background-color: rgba(30, 30, 50, 0.9);
+    border-radius: 10px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header, .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-body, .history-messages {
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+/* 历史对话样式 */
+.history-message {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-user {
+    text-align: right;
+    color: #90caf9;
+}
+
+.history-assistant {
+    text-align: left;
+}
+
+/* 角色选择样式 */
+.character-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.character-card {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    text-align: center;
+}
+
+.character-card:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    transform: translateY(-5px);
+}
+
+.character-card.active {
+    border-color: #ffeb3b;
+}
+
+.character-card-image {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 0.8rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.character-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.character-card-name {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+}
+
+.character-card-description {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* 确认对话框样式 */
+.confirm-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* 继续按钮样式 */
+#continueButton {
+    display: none;
+}
+
+#continueButton.active {
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+}
+
+/* 加载指示器样式 */
+.loading-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 2rem;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    display: none;
+    z-index: 200;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+/* 错误提示样式 */
+.error-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(183, 28, 28, 0.9);
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 80%;
+    display: none;
+    z-index: 200;
+}
+
+.error-container p {
+    margin-bottom: 1rem;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 0.8rem;
+    }
+    
+    .home-header h1 {
+        font-size: 2.5rem;
+    }
+    
+    .home-buttons {
+        flex-direction: column;
+    }
+    
+    .character-image img {
+        max-height: 30vh;
+    }
+    
+    .control-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}

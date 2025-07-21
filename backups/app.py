@@ -13,7 +13,6 @@ sys.path.append(str(Path(__file__).resolve().parent))
 from services.config_service import config_service
 from services.chat_service import chat_service
 from services.image_service import image_service
-from services.scene_service import scene_service
 from utils.api_utils import APIError
 
 # 初始化配置
@@ -62,20 +61,10 @@ def index():
         print(f"警告: 默认角色图片不存在: {character_image_path}")
         print("请将角色图片放置在 static/images/default.png")
     
-    # 获取当前场景
-    current_scene = scene_service.get_current_scene()
-    scene_data = current_scene.to_dict() if current_scene else None
-    
-    # 获取应用配置
-    app_config = config_service.get_app_config()
-    show_scene_name = app_config.get("show_scene_name", True)
-    
     # 渲染模板
     return render_template(
         'index.html',
-        background_url=background_url,
-        current_scene=scene_data,
-        show_scene_name=show_scene_name
+        background_url=background_url
     )
 
 @app.route('/api/chat', methods=['POST'])
@@ -105,17 +94,11 @@ def chat():
             if message_data and "content" in message_data:
                 assistant_message = message_data["content"]
         
-        # 检查是否有场景切换
-        scene_switch = None
-        if "scene_switch" in response and response["scene_switch"].get("scene_switched"):
-            scene_switch = response["scene_switch"]
-        
         # 返回响应
         return jsonify({
             'success': True,
             'message': assistant_message,
-            'history': [msg.to_dict() for msg in chat_service.get_history()],
-            'scene_switch': scene_switch
+            'history': [msg.to_dict() for msg in chat_service.get_history()]
         })
         
     except APIError as e:
@@ -150,6 +133,8 @@ def chat_stream():
             if control_action == "continue":
                 # 继续输出
                 chat_service.stream_controller.is_paused = False
+                
+                # 简单返回继续信号，让前端知道可以继续
                 return jsonify({
                     'success': True,
                     'action': 'continue'
@@ -182,24 +167,19 @@ def chat_stream():
                 # 调用对话API（流式）
                 stream_gen = chat_service.chat_completion(stream=True)
                 
+                # 保存流生成器以便继续使用
+                chat_service._current_stream_gen = stream_gen
+                
                 # 逐步返回响应
                 for chunk in stream_gen:
                     # 如果是结束标记
                     if chunk.get("done"):
-                        # 检查是否有场景切换信息
-                        if "scene_switch" in chunk and chunk["scene_switch"].get("scene_switched"):
-                            # 处理场景图片URL
-                            if "scene" in chunk["scene_switch"] and chunk["scene_switch"]["scene"].get("image_path"):
-                                scene = chunk["scene_switch"]["scene"]
-                                # 从绝对路径转换为相对URL
-                                rel_path = os.path.relpath(scene["image_path"], start=app.static_folder)
-                                scene["image_url"] = f"/static/{rel_path.replace(os.sep, '/')}"
-                            
-                            # 添加场景切换信息
-                            yield f"data: {json.dumps({'scene_switch': chunk['scene_switch']})}\n\n"
-                        
+                        # 添加完成标记
+                        yield f"data: {json.dumps({'stream_control': {'is_complete': True}})}\n\n"
                         yield "data: [DONE]\n\n"
-                        continue
+                        # 清除保存的流生成器
+                        chat_service._current_stream_gen = None
+                        break
                     
                     # 检查是否有控制信息
                     if "stream_control" in chunk:
@@ -211,17 +191,17 @@ def chat_stream():
                     # 转发流式数据
                     yield f"data: {json.dumps(chunk)}\n\n"
                     
-                    # 如果需要暂停，等待前端继续命令
+                    # 如果需要暂停，停止当前流式响应
                     if "stream_control" in chunk and chunk["stream_control"].get("status") == "paused":
-                        # 在实际应用中，这里应该使用更高效的方式等待前端命令
-                        # 这里简化处理，让前端发送继续命令
-                        pass
+                        break
                 
             except Exception as e:
                 error_msg = str(e)
                 print(f"流式响应错误: {error_msg}")
                 yield f"data: {json.dumps({'error': error_msg})}\n\n"
                 yield "data: [DONE]\n\n"
+                # 清除保存的流生成器
+                chat_service._current_stream_gen = None
         
         # 设置响应头
         headers = {
@@ -353,103 +333,6 @@ def set_character(character_id):
             'error': str(e)
         }), 500
 
-@app.route('/api/scenes', methods=['GET'])
-def list_scenes():
-    """列出可用场景API"""
-    try:
-        # 获取当前场景
-        current_scene = scene_service.get_current_scene()
-        
-        # 获取所有可用场景
-        available_scenes = scene_service.list_scenes()
-        
-        return jsonify({
-            'success': True,
-            'current_scene': current_scene.to_dict() if current_scene else None,
-            'available_scenes': [scene.to_dict() for scene in available_scenes]
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/scenes/<scene_id>', methods=['POST'])
-def set_scene(scene_id):
-    """设置场景API"""
-    try:
-        # 设置场景
-        if scene_service.set_current_scene(scene_id):
-            # 获取场景配置
-            current_scene = scene_service.get_current_scene()
-            
-            # 添加系统消息
-            if current_scene:
-                system_message = f"你们来到了{current_scene.name}，这里{current_scene.description}"
-                chat_service.add_message("system", system_message)
-            
-            return jsonify({
-                'success': True,
-                'scene': current_scene.to_dict() if current_scene else None,
-                'message': f"场景已切换为 {current_scene.name}" if current_scene else "场景切换失败"
-            })
-        
-        return jsonify({
-            'success': False,
-            'error': f"未找到场景: {scene_id}"
-        }), 404
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/scenes/create', methods=['POST'])
-def create_scene():
-    """创建场景API"""
-    try:
-        # 获取请求数据
-        data = request.json
-        name = data.get('name')
-        description = data.get('description')
-        
-        if not name or not description:
-            return jsonify({
-                'success': False,
-                'error': '场景名称和描述不能为空'
-            }), 400
-        
-        # 创建场景
-        scene = scene_service.create_scene(name, description)
-        
-        # 设置为当前场景
-        scene_service.set_current_scene(scene.id)
-        
-        # 添加系统消息
-        system_message = f"你们来到了{scene.name}，这里{scene.description}"
-        chat_service.add_message("system", system_message)
-        
-        # 如果有场景图片，转换为URL
-        scene_image_url = None
-        if scene.image_path:
-            rel_path = os.path.relpath(scene.image_path, start=app.static_folder)
-            scene_image_url = f"/static/{rel_path.replace(os.sep, '/')}"
-        
-        return jsonify({
-            'success': True,
-            'scene': scene.to_dict(),
-            'scene_image_url': scene_image_url,
-            'message': f"场景已创建并切换为 {scene.name}"
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
 @app.route('/api/exit', methods=['POST'])
 def exit_app():
     """退出应用API"""
@@ -466,11 +349,6 @@ def exit_app():
             'success': False,
             'error': str(e)
         }), 500
-        
-@app.route('/data/images/<path:filename>')
-def serve_character_image(filename):
-    """提供角色图片"""
-    return send_from_directory('data/images', filename)
 
 if __name__ == '__main__':
     # 设置系统提示词

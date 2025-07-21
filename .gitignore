@@ -3,6 +3,7 @@
 .kiro/
 .vscode/
 data/history/
+plan.txt
 # Python缓存文件
 __pycache__/
 *.py[cod]

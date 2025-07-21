@@ -135,20 +135,6 @@ class ConfigService:
         """获取图像API密钥"""
         return get_env_var("IMAGE_API_KEY")
     
-    def get_decision_api_url(self):
-        """获取决策API URL"""
-        return get_env_var("DECISION_API_URL", get_env_var("CHAT_API_URL"))
-    
-    def get_decision_api_key(self):
-        """获取决策API密钥"""
-        return get_env_var("DECISION_API_KEY", get_env_var("CHAT_API_KEY"))
-    
-    def get_decision_model_config(self):
-        """获取决策模型配置"""
-        if not self.config_loaded:
-            raise RuntimeError("配置未加载")
-        return config.get_decision_model_config()
-    
     def get_character_config(self, character_id: Optional[str] = None) -> Dict[str, Any]:
         """
         获取角色配置
@@ -209,9 +195,7 @@ if __name__ == "__main__":
         print("配置服务初始化成功")
         print(f"对话API URL: {config_service.get_chat_api_url()}")
         print(f"图像API URL: {config_service.get_image_api_url()}")
-        print(f"决策API URL: {config_service.get_decision_api_url()}")
         print(f"对话模型: {config_service.get_chat_config()['model']}")
-        print(f"决策模型: {config_service.get_decision_model_config()['model']}")
         print(f"图像模型: {config_service.get_image_config()['model']}")
         print(f"流式输出速度: {config_service.get_stream_config()['output_speed']} 字符/秒")
         
