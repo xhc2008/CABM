@@ -7,54 +7,74 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <!-- 背景图片 -->
-    <div class="background-container">
-        {% if background_url %}
-        <div class="background-image" style="background-image: url('{{ background_url }}');"></div>
-        {% else %}
-        <div class="background-image default-background"></div>
-        {% endif %}
-        <div class="background-overlay"></div>
-    </div>
-    
     <!-- 主容器 -->
     <div class="container">
-        <!-- 标题 -->
-        <header class="header">
-            <h1>CABM</h1>
-            <p>Code Afflatus & Beyond Matter</p>
-            <p class="quote">"当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。"</p>
-        </header>
+        <!-- 主页面 -->
+        <div id="homePage" class="page active">
+            <!-- 主页背景 -->
+            <div class="home-background"></div>
+            
+            <!-- 标题 -->
+            <header class="home-header">
+                <h1>CABM</h1>
+                <p>Code Afflatus & Beyond Matter</p>
+            </header>
+            
+            <!-- 主页按钮 -->
+            <div class="home-buttons">
+                <button id="startButton" class="btn primary-btn">开始</button>
+                <button id="exitButton" class="btn secondary-btn">退出</button>
+            </div>
+        </div>
         
-        <!-- 角色区域 -->
-        <div class="character-container">
-            <div class="character-image">
-                <img src="/static/images/default.svg" alt="AI角色" id="characterImage">
+        <!-- 对话页面 -->
+        <div id="chatPage" class="page">
+            <!-- 背景图片 (仅在对话页面显示) -->
+            <div class="background-container">
+                {% if background_url %}
+                <div class="background-image" style="background-image: url('{{ background_url }}');"></div>
+                {% else %}
+                <div class="background-image default-background"></div>
+                {% endif %}
+                <div class="background-overlay"></div>
             </div>
             
-            <!-- 用户输入区域 -->
+            <!-- 标题栏 -->
+            <div class="chat-header">
+                <button id="backButton" class="btn back-btn">返回</button>
+                <h2>CABM</h2>
+            </div>
+            
+            <!-- 角色区域 - 居中显示 -->
+            <div class="character-container">
+                <div class="character-image">
+                    <img src="/static/images/default.svg" alt="AI角色" id="characterImage">
+                </div>
+            </div>
+            
+            <!-- 用户输入区域 - 右上角 -->
             <div class="user-input-container">
                 <textarea id="messageInput" placeholder="输入消息..." class="chat-input"></textarea>
                 <button id="sendButton" class="btn primary-btn">发送</button>
             </div>
-        </div>
-        
-        <!-- 对话区域 -->
-        <div class="dialog-container">
-            <div class="dialog-box" id="dialogBox">
-                <!-- 当前消息 -->
-                <div class="character-name" id="characterName">系统</div>
-                <div class="dialog-content" id="currentMessage">欢迎使用CABM！我是您的AI助手，请输入消息开始对话。</div>
-            </div>
             
-            <!-- 控制按钮 -->
-            <div class="control-buttons">
-                <button id="clearButton" class="btn secondary-btn">清空对话</button>
-                <button id="backgroundButton" class="btn secondary-btn">更换背景</button>
-                <button id="historyButton" class="btn secondary-btn">历史</button>
-                <button id="characterButton" class="btn secondary-btn">角色</button>
-                <button id="autoButton" class="btn secondary-btn">自动</button>
-                <button id="skipButton" class="btn secondary-btn">跳过</button>
+            <!-- 对话区域 - 底部窄条 -->
+            <div class="dialog-container">
+                <div class="dialog-box" id="dialogBox">
+                    <!-- 当前消息 -->
+                    <div class="character-name" id="characterName">系统</div>
+                    <div class="dialog-content" id="currentMessage">欢迎使用CABM！我是您的AI助手，请输入消息开始对话。</div>
+                </div>
+                
+                <!-- 控制按钮 -->
+                <div class="control-buttons">
+                    <button id="clearButton" class="btn secondary-btn">清空对话</button>
+                    <button id="backgroundButton" class="btn secondary-btn">更换背景</button>
+                    <button id="historyButton" class="btn secondary-btn">历史</button>
+                    <button id="characterButton" class="btn secondary-btn">角色</button>
+                    <button id="continueButton" class="btn secondary-btn">继续</button>
+                    <button id="skipButton" class="btn secondary-btn">跳过</button>
+                </div>
             </div>
         </div>
         
@@ -81,6 +101,23 @@
                 <div class="modal-body">
                     <div class="character-list" id="characterList">
                         <!-- 角色列表将通过JavaScript动态添加 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 确认对话框 -->
+        <div class="modal" id="confirmModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>确认</h3>
+                    <button id="closeConfirmButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage">确定要执行此操作吗？</p>
+                    <div class="confirm-buttons">
+                        <button id="confirmYesButton" class="btn primary-btn">确定</button>
+                        <button id="confirmNoButton" class="btn secondary-btn">取消</button>
                     </div>
                 </div>
             </div>

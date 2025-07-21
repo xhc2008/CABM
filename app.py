@@ -119,12 +119,42 @@ def chat_stream():
         # 获取请求数据
         data = request.json
         message = data.get('message', '')
+        control_action = data.get('control_action', None)
         
-        if not message:
+        if not message and not control_action:
             return jsonify({
                 'success': False,
-                'error': '消息不能为空'
+                'error': '消息不能为空且未指定控制动作'
             }), 400
+        
+        # 如果是控制命令
+        if control_action:
+            # 处理控制命令
+            if control_action == "continue":
+                # 继续输出
+                chat_service.stream_controller.is_paused = False
+                return jsonify({
+                    'success': True,
+                    'action': 'continue'
+                })
+            elif control_action == "pause":
+                # 暂停输出
+                chat_service.stream_controller.is_paused = True
+                return jsonify({
+                    'success': True,
+                    'action': 'pause'
+                })
+            elif control_action == "skip":
+                # 跳过当前段落
+                return jsonify({
+                    'success': True,
+                    'action': 'skip'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'未知的控制命令: {control_action}'
+                }), 400
         
         # 添加用户消息
         chat_service.add_message("user", message)
@@ -142,8 +172,21 @@ def chat_stream():
                         yield "data: [DONE]\n\n"
                         continue
                     
+                    # 检查是否有控制信息
+                    if "stream_control" in chunk:
+                        # 如果段落完成且需要暂停
+                        if chunk["stream_control"].get("paragraph_complete") and chunk["stream_control"].get("pause"):
+                            # 添加暂停标记
+                            chunk["stream_control"]["status"] = "paused"
+                    
                     # 转发流式数据
                     yield f"data: {json.dumps(chunk)}\n\n"
+                    
+                    # 如果需要暂停，等待前端继续命令
+                    if "stream_control" in chunk and chunk["stream_control"].get("status") == "paused":
+                        # 在实际应用中，这里应该使用更高效的方式等待前端命令
+                        # 这里简化处理，让前端发送继续命令
+                        pass
                 
             except Exception as e:
                 error_msg = str(e)
@@ -274,6 +317,23 @@ def set_character(character_id):
             'success': False,
             'error': f"未找到角色: {character_id}"
         }), 404
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/exit', methods=['POST'])
+def exit_app():
+    """退出应用API"""
+    try:
+        # 在实际应用中，这里可能需要清理资源或保存状态
+        # 这里简化处理，直接返回成功
+        return jsonify({
+            'success': True,
+            'message': '应用已退出'
+        })
         
     except Exception as e:
         return jsonify({

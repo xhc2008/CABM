@@ -13,6 +13,14 @@ CHAT_CONFIG = {
     "stream": True,       # 默认使用流式输出
 }
 
+# 流式输出配置
+STREAM_CONFIG = {
+    "output_speed": 30,           # 字符/秒
+    "pause_on_paragraph": True,   # 段落结束时暂停
+    "paragraph_delimiters": ["。", "！", "？", ".", "!", "?"],  # 段落分隔符
+    "buffer_size": 1024,          # 缓冲区大小
+}
+
 # 图像生成模型配置
 IMAGE_CONFIG = {
     "model": "Kwai-Kolors/Kolors",  # 默认模型
@@ -37,10 +45,7 @@ IMAGE_PROMPTS = [
     #"阳光透过云层，照耀在广阔的草原上，野花盛开，远处有山脉和小溪",
     #"雪花飘落的冬日森林，松树覆盖着白雪，小路蜿蜒，远处有小木屋和炊烟",
     #"雨后的城市街道，霓虹灯反射在湿润的路面上，行人撑着伞，远处是城市天际线",
-    "一间温馨的二次元风格卧室，阳光透过薄纱窗帘洒在木地板上",
-    "床上散落着卡通抱枕，墙边有摆满书籍和手办的原木色书架",
-    "书桌上亮着一盏小台灯，电脑屏幕泛着微光，窗外隐约可见樱花树。",
-    "画面线条柔和，色彩清新，带有动画般的细腻阴影和高光。",
+    "一间温馨的二次元风格卧室，阳光透过薄纱窗帘洒在木地板上,床上散落着卡通抱枕，墙边有摆满书籍和手办的原木色书架.书桌上亮着一盏小台灯，电脑屏幕泛着微光，窗外隐约可见樱花树。画面线条柔和，色彩清新，带有动画般的细腻阴影和高光。",
 ]
 
 # 负面提示词
@@ -78,6 +83,10 @@ def get_app_config():
     """获取应用配置"""
     return APP_CONFIG.copy()
 
+def get_stream_config():
+    """获取流式输出配置"""
+    return STREAM_CONFIG.copy()
+
 def validate_config():
     """验证配置完整性"""
     # 验证对话模型配置
@@ -92,12 +101,16 @@ def validate_config():
     if "default" not in SYSTEM_PROMPTS:
         missing_chat_keys.append("default_system_prompt")
     
+    # 验证流式输出配置
+    required_stream_keys = ["output_speed", "paragraph_delimiters"]
+    missing_stream_keys = [key for key in required_stream_keys if key not in STREAM_CONFIG]
+    
     # 验证应用配置
     required_app_keys = ["debug", "port", "host", "image_cache_dir"]
     missing_app_keys = [key for key in required_app_keys if key not in APP_CONFIG]
     
     # 合并所有缺失的配置项
-    all_missing = missing_chat_keys + missing_image_keys + missing_app_keys
+    all_missing = missing_chat_keys + missing_image_keys + missing_stream_keys + missing_app_keys
     
     if all_missing:
         raise ValueError(f"配置不完整，缺少以下配置项: {', '.join(all_missing)}")
@@ -113,5 +126,6 @@ if __name__ == "__main__":
             print(f"图像模型: {get_image_config()['model']}")
             print(f"默认系统提示词: {get_system_prompt()}")
             print(f"随机图像提示词: {get_random_image_prompt()}")
+            print(f"流式输出速度: {get_stream_config()['output_speed']} 字符/秒")
     except ValueError as e:
         print(f"配置验证失败: {e}")

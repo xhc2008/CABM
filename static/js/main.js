@@ -1,4 +1,12 @@
 // DOM元素
+// 页面元素
+const homePage = document.getElementById('homePage');
+const chatPage = document.getElementById('chatPage');
+const startButton = document.getElementById('startButton');
+const exitButton = document.getElementById('exitButton');
+const backButton = document.getElementById('backButton');
+
+// 对话元素
 const characterName = document.getElementById('characterName');
 const currentMessage = document.getElementById('currentMessage');
 const messageInput = document.getElementById('messageInput');
@@ -7,7 +15,7 @@ const clearButton = document.getElementById('clearButton');
 const backgroundButton = document.getElementById('backgroundButton');
 const historyButton = document.getElementById('historyButton');
 const characterButton = document.getElementById('characterButton');
-const autoButton = document.getElementById('autoButton');
+const continueButton = document.getElementById('continueButton');
 const skipButton = document.getElementById('skipButton');
 const historyModal = document.getElementById('historyModal');
 const historyMessages = document.getElementById('historyMessages');
@@ -15,6 +23,15 @@ const closeHistoryButton = document.getElementById('closeHistoryButton');
 const characterModal = document.getElementById('characterModal');
 const characterList = document.getElementById('characterList');
 const closeCharacterButton = document.getElementById('closeCharacterButton');
+
+// 确认对话框
+const confirmModal = document.getElementById('confirmModal');
+const confirmMessage = document.getElementById('confirmMessage');
+const confirmYesButton = document.getElementById('confirmYesButton');
+const confirmNoButton = document.getElementById('confirmNoButton');
+const closeConfirmButton = document.getElementById('closeConfirmButton');
+
+// 加载和错误元素
 const loadingIndicator = document.getElementById('loadingIndicator');
 const errorContainer = document.getElementById('errorContainer');
 const errorMessage = document.getElementById('errorMessage');
@@ -26,17 +43,30 @@ let currentCharacter = null;
 
 // 状态变量
 let isProcessing = false;
-let isAutoMode = false;
+let isPaused = false;
 let messageHistory = [];
 let typingSpeed = 50; // 打字速度（毫秒/字符）
 let currentTypingTimeout = null;
+let currentConfirmCallback = null;
+let streamController = {
+    buffer: '',
+    currentParagraph: '',
+    paragraphs: [],
+    isComplete: false,
+    isPaused: false
+};
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     // 加载角色数据
     loadCharacters();
     
-    // 绑定事件
+    // 绑定页面切换事件
+    startButton.addEventListener('click', showChatPage);
+    backButton.addEventListener('click', confirmBackToHome);
+    exitButton.addEventListener('click', confirmExit);
+    
+    // 绑定对话事件
     sendButton.addEventListener('click', sendMessage);
     clearButton.addEventListener('click', clearChat);
     backgroundButton.addEventListener('click', changeBackground);
@@ -44,9 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
     closeHistoryButton.addEventListener('click', toggleHistory);
     characterButton.addEventListener('click', toggleCharacterModal);
     closeCharacterButton.addEventListener('click', toggleCharacterModal);
-    autoButton.addEventListener('click', toggleAutoMode);
+    continueButton.addEventListener('click', continueOutput);
     skipButton.addEventListener('click', skipTyping);
     errorCloseButton.addEventListener('click', hideError);
+    
+    // 绑定确认对话框事件
+    confirmYesButton.addEventListener('click', handleConfirmYes);
+    confirmNoButton.addEventListener('click', handleConfirmNo);
+    closeConfirmButton.addEventListener('click', hideConfirmModal);
     
     // 绑定回车键发送消息
     messageInput.addEventListener('keydown', (e) => {
@@ -55,6 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sendMessage();
         }
     });
+    
+    // 绑定点击事件继续输出
+    currentMessage.addEventListener('click', continueOutput);
 });
 
 // 发送消息
@@ -73,6 +111,15 @@ async function sendMessage() {
         showError('正在处理上一条消息，请稍候');
         return;
     }
+    
+    // 重置流控制器状态
+    streamController = {
+        buffer: '',
+        currentParagraph: '',
+        paragraphs: [],
+        isComplete: false,
+        isPaused: false
+    };
     
     // 更新当前消息为用户消息
     updateCurrentMessage('user', message);
@@ -141,25 +188,44 @@ async function sendMessage() {
                         try {
                             const data = JSON.parse(jsonStr);
                             
-                            // 处理讯飞星火API的流式输出格式
-                            if (data.payload) {
-                                let content = null;
-                                
-                                // 尝试不同的路径获取内容
-                                if (data.payload.choices) {
-                                    if (Array.isArray(data.payload.choices) && data.payload.choices.length > 0) {
-                                        content = data.payload.choices[0].content;
-                                    } else if (data.payload.choices.text && data.payload.choices.text.length > 0) {
-                                        content = data.payload.choices.text[0].content;
+                            // 处理流式控制信息
+                            if (data.stream_control) {
+                                // 如果段落完成且需要暂停
+                                if (data.stream_control.paragraph_complete && data.stream_control.pause) {
+                                    isPaused = true;
+                                    
+                                    // 添加完整段落到历史记录
+                                    if (data.stream_control.paragraph) {
+                                        streamController.paragraphs.push(data.stream_control.paragraph);
+                                        fullResponse = streamController.paragraphs.join('');
+                                        updateCurrentMessage('assistant', fullResponse, true);
                                     }
+                                    
+                                    // 等待用户点击继续
+                                    continueButton.classList.add('active');
+                                    continue;
                                 }
                                 
-                                if (content) {
-                                    fullResponse += content;
+                                // 如果是结束标记
+                                if (data.stream_control.is_complete) {
+                                    streamController.isComplete = true;
+                                    
+                                    // 如果有段落信息，更新完整响应
+                                    if (data.stream_control.paragraphs) {
+                                        fullResponse = data.stream_control.paragraphs.join('');
+                                        updateCurrentMessage('assistant', fullResponse, true);
+                                    }
+                                    
+                                    continue;
+                                }
+                                
+                                // 处理增量内容
+                                if (data.stream_control.content) {
+                                    fullResponse += data.stream_control.content;
                                     updateCurrentMessage('assistant', fullResponse, true);
                                 }
                             }
-                            // 处理标准格式
+                            // 处理标准格式（兼容旧格式）
                             else if (data.choices && data.choices[0] && data.choices[0].delta) {
                                 const delta = data.choices[0].delta;
                                 
@@ -187,6 +253,10 @@ async function sendMessage() {
         if (fullResponse) {
             addToHistory('assistant', fullResponse);
         }
+        
+        // 重置暂停状态
+        isPaused = false;
+        continueButton.classList.remove('active');
         
     } catch (error) {
         console.error('发送消息失败:', error);
@@ -322,13 +392,8 @@ function updateCurrentMessage(role, content, isStreaming = false) {
         return;
     }
     
-    // 如果是自动模式或者是用户消息，使用打字机效果
-    if (isAutoMode && role !== 'user') {
-        typeMessage(content);
-    } else {
-        // 直接显示消息
-        currentMessage.textContent = content;
-    }
+    // 直接显示消息
+    currentMessage.textContent = content;
 }
 
 // 打字机效果
@@ -349,7 +414,22 @@ function typeMessage(content) {
 
 // 跳过打字效果
 function skipTyping() {
-    if (currentTypingTimeout) {
+    if (isPaused) {
+        // 发送跳过命令
+        fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ control_action: 'skip' })
+        }).catch(error => {
+            console.error('发送跳过命令失败:', error);
+        });
+        
+        // 重置暂停状态
+        isPaused = false;
+        continueButton.classList.remove('active');
+    } else if (currentTypingTimeout) {
         clearTimeout(currentTypingTimeout);
         currentTypingTimeout = null;
         
@@ -358,20 +438,6 @@ function skipTyping() {
         if (lastMessage) {
             currentMessage.textContent = lastMessage.content;
         }
-    }
-}
-
-// 切换自动模式
-function toggleAutoMode() {
-    isAutoMode = !isAutoMode;
-    autoButton.textContent = isAutoMode ? '手动' : '自动';
-    
-    if (isAutoMode) {
-        autoButton.classList.add('primary-btn');
-        autoButton.classList.remove('secondary-btn');
-    } else {
-        autoButton.classList.remove('primary-btn');
-        autoButton.classList.add('secondary-btn');
     }
 }
 
@@ -634,5 +700,120 @@ async function selectCharacter(characterId) {
     } finally {
         // 隐藏加载指示器
         hideLoading();
+    }
+}
+
+// 页面切换函数
+function showHomePage() {
+    homePage.classList.add('active');
+    chatPage.classList.remove('active');
+}
+
+function showChatPage() {
+    homePage.classList.remove('active');
+    chatPage.classList.add('active');
+}
+
+// 确认返回主页
+function confirmBackToHome() {
+    // 如果有未完成的对话，显示确认对话框
+    if (messageHistory.length > 0) {
+        showConfirmModal('返回主页将清空当前对话，确定要返回吗？', () => {
+            // 清空对话历史
+            messageHistory = [];
+            historyMessages.innerHTML = '';
+            
+            // 返回主页
+            showHomePage();
+        });
+    } else {
+        // 直接返回主页
+        showHomePage();
+    }
+}
+
+// 确认退出应用
+function confirmExit() {
+    showConfirmModal('确定要退出应用吗？', exitApplication);
+}
+
+// 退出应用
+async function exitApplication() {
+    try {
+        // 显示加载指示器
+        showLoading();
+        
+        // 发送API请求
+        const response = await fetch('/api/exit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // 解析响应
+        const data = await response.json();
+        
+        // 检查响应是否成功
+        if (!data.success) {
+            throw new Error(data.error || '请求失败');
+        }
+        
+        // 关闭窗口
+        window.close();
+        
+        // 如果window.close()不起作用（大多数浏览器会阻止），显示提示
+        setTimeout(() => {
+            showError('请手动关闭浏览器窗口');
+        }, 1000);
+        
+    } catch (error) {
+        console.error('退出应用失败:', error);
+        showError(`退出应用失败: ${error.message}`);
+        hideLoading();
+    }
+}
+
+// 显示确认对话框
+function showConfirmModal(message, callback) {
+    confirmMessage.textContent = message;
+    currentConfirmCallback = callback;
+    confirmModal.style.display = 'flex';
+}
+
+// 隐藏确认对话框
+function hideConfirmModal() {
+    confirmModal.style.display = 'none';
+    currentConfirmCallback = null;
+}
+
+// 处理确认对话框的确定按钮
+function handleConfirmYes() {
+    if (currentConfirmCallback) {
+        currentConfirmCallback();
+    }
+    hideConfirmModal();
+}
+
+// 处理确认对话框的取消按钮
+function handleConfirmNo() {
+    hideConfirmModal();
+}
+
+// 继续输出
+function continueOutput() {
+    if (isPaused) {
+        isPaused = false;
+        
+        // 发送继续命令
+        fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ control_action: 'continue' })
+        }).catch(error => {
+            console.error('发送继续命令失败:', error);
+        });
     }
 }

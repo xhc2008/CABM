@@ -108,6 +108,12 @@ class ConfigService:
             raise RuntimeError("配置未加载")
         return config.get_app_config()
     
+    def get_stream_config(self):
+        """获取流式输出配置"""
+        if not self.config_loaded:
+            raise RuntimeError("配置未加载")
+        return config.get_stream_config()
+    
     def get_chat_api_url(self):
         """获取对话API URL"""
         return get_env_var("CHAT_API_URL")
@@ -186,6 +192,7 @@ if __name__ == "__main__":
         print(f"图像API URL: {config_service.get_image_api_url()}")
         print(f"对话模型: {config_service.get_chat_config()['model']}")
         print(f"图像模型: {config_service.get_image_config()['model']}")
+        print(f"流式输出速度: {config_service.get_stream_config()['output_speed']} 字符/秒")
         
         # 测试角色配置
         character = config_service.get_character_config()
