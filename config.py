@@ -10,7 +10,7 @@ CHAT_CONFIG = {
     "max_tokens": 4096,   # 最大生成令牌数
     "top_k": 5,           # Top-K采样
     "temperature": 1.0,   # 温度参数，控制创造性
-    "stream": True,       # 默认使用流式输出
+    "stream": False,       # 默认使用流式输出
 }
 
 # 决策模型配置（用于场景切换）
@@ -23,7 +23,7 @@ DECISION_MODEL_CONFIG = {
 
 # 流式输出配置
 STREAM_CONFIG = {
-    "output_speed": 20,          # 字符/秒，提高速度以实现更流畅的输出
+    "output_speed": 5,          # 字符/秒，提高速度以实现更流畅的输出
     "pause_on_paragraph": True,   # 段落结束时暂停
     "paragraph_delimiters": ["。", "！", "？", ".", "!", "?"],  # 段落分隔符
     "buffer_size": 1024,          # 缓冲区大小
