@@ -5,8 +5,6 @@ const chatPage = document.getElementById('chatPage');
 const startButton = document.getElementById('startButton');
 const exitButton = document.getElementById('exitButton');
 const backButton = document.getElementById('backButton');
-const sceneName = document.getElementById('sceneName');
-const sceneTransition = document.getElementById('sceneTransition');
 
 // 对话元素
 const characterName = document.getElementById('characterName');
@@ -19,6 +17,7 @@ const historyButton = document.getElementById('historyButton');
 const characterButton = document.getElementById('characterButton');
 const continueButton = document.getElementById('continueButton');
 const skipButton = document.getElementById('skipButton');
+const clickToContinue = document.getElementById('clickToContinue');
 const historyModal = document.getElementById('historyModal');
 const historyMessages = document.getElementById('historyMessages');
 const closeHistoryButton = document.getElementById('closeHistoryButton');
@@ -50,13 +49,8 @@ let messageHistory = [];
 let typingSpeed = 50; // 打字速度（毫秒/字符）
 let currentTypingTimeout = null;
 let currentConfirmCallback = null;
-let streamController = {
-    buffer: '',
-    currentParagraph: '',
-    paragraphs: [],
-    isComplete: false,
-    isPaused: false
-};
+// 流式处理器
+let streamHandler = null;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -95,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 绑定点击事件继续输出
     currentMessage.addEventListener('click', continueOutput);
+    clickToContinue.addEventListener('click', continueOutput);
 });
 
 // 发送消息
@@ -114,13 +109,46 @@ async function sendMessage() {
         return;
     }
     
-    // 重置流控制器状态
-    streamController = {
-        buffer: '',
-        currentParagraph: '',
-        paragraphs: [],
-        isComplete: false,
-        isPaused: false
+    // 创建新的流处理器
+    streamHandler = new StreamHandler({
+        paragraphDelimiters: ["。", "！", "？", ".", "!", "?"],
+        endToken: "[DONE]"
+    });
+    
+    // 设置回调函数
+    streamHandler.onSegmentComplete = (segment, index) => {
+        // 显示继续按钮
+        continueButton.classList.add('active');
+        // 显示点击继续提示
+        clickToContinue.classList.add('active');
+        // 保存当前段落到历史记录
+        const role = index === 1 ? 'assistant' : 'assistant_continue';
+        addToHistory(role, segment);
+        // 不修改当前消息内容，保留原有内容
+    };
+    
+    streamHandler.onContentUpdate = (content) => {
+        // 更新当前消息内容
+        updateCurrentMessage('assistant', content, true);
+    };
+    
+    streamHandler.onResponseComplete = (fullResponse, paragraphs) => {
+        // 如果最后一段还没有添加到历史记录，添加它
+        if (fullResponse && streamHandler.currentSegmentIndex < paragraphs.length) {
+            // 添加最后一段到历史记录
+            const lastSegment = paragraphs[paragraphs.length - 1];
+            const role = paragraphs.length === 1 ? 'assistant' : 'assistant_continue';
+            addToHistory(role, lastSegment);
+        }
+        
+        // 重置暂停状态
+        isPaused = false;
+        continueButton.classList.remove('active');
+        clickToContinue.classList.remove('active');
+        
+        // 启用输入框
+        messageInput.disabled = false;
+        sendButton.disabled = false;
     };
     
     // 更新当前消息为用户消息
@@ -132,13 +160,14 @@ async function sendMessage() {
     // 清空输入框
     messageInput.value = '';
     
+    // 禁用输入框，直到响应完成
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+    
     // 显示加载指示器
     showLoading();
     
     try {
-        // 准备接收流式响应
-        let fullResponse = '';
-        
         // 发送API请求
         const response = await fetch('/api/chat/stream', {
             method: 'POST',
@@ -154,122 +183,23 @@ async function sendMessage() {
             throw new Error(errorData.error || '请求失败');
         }
         
-        // 获取响应的读取器
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        
         // 隐藏加载指示器，因为我们将开始接收流式响应
         hideLoading();
         
         // 准备接收流式响应
         updateCurrentMessage('assistant', '');
         
-        // 读取流式响应
-        while (true) {
-            const { done, value } = await reader.read();
-            
-            if (done) {
-                break;
-            }
-            
-            // 解码响应数据
-            const chunk = decoder.decode(value, { stream: true });
-            
-            try {
-                // 尝试解析JSON
-                const lines = chunk.split('\n').filter(line => line.trim());
-                
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.slice(6);
-                        
-                        if (jsonStr === '[DONE]') {
-                            continue;
-                        }
-                        
-                        try {
-                            const data = JSON.parse(jsonStr);
-                            
-                            // 处理场景切换
-                            if (data.scene_switch && data.scene_switch.scene_switched) {
-                                handleSceneSwitch(data.scene_switch);
-                                continue;
-                            }
-                            
-                            // 处理流式控制信息
-                            if (data.stream_control) {
-                                // 如果段落完成且需要暂停
-                                if (data.stream_control.paragraph_complete && data.stream_control.pause) {
-                                    isPaused = true;
-                                    
-                                    // 添加完整段落到历史记录
-                                    if (data.stream_control.paragraph) {
-                                        streamController.paragraphs.push(data.stream_control.paragraph);
-                                        fullResponse = streamController.paragraphs.join('');
-                                        updateCurrentMessage('assistant', fullResponse, true);
-                                    }
-                                    
-                                    // 等待用户点击继续
-                                    continueButton.classList.add('active');
-                                    continue;
-                                }
-                                
-                                // 如果是结束标记
-                                if (data.stream_control.is_complete) {
-                                    streamController.isComplete = true;
-                                    
-                                    // 如果有段落信息，更新完整响应
-                                    if (data.stream_control.paragraphs) {
-                                        fullResponse = data.stream_control.paragraphs.join('');
-                                        updateCurrentMessage('assistant', fullResponse, true);
-                                    }
-                                    
-                                    continue;
-                                }
-                                
-                                // 处理增量内容
-                                if (data.stream_control.content) {
-                                    fullResponse += data.stream_control.content;
-                                    updateCurrentMessage('assistant', fullResponse, true);
-                                }
-                            }
-                            // 处理标准格式（兼容旧格式）
-                            else if (data.choices && data.choices[0] && data.choices[0].delta) {
-                                const delta = data.choices[0].delta;
-                                
-                                if (delta.content) {
-                                    fullResponse += delta.content;
-                                    updateCurrentMessage('assistant', fullResponse, true);
-                                }
-                            }
-                            // 直接处理内容字段（如果存在）
-                            else if (data.content) {
-                                fullResponse += data.content;
-                                updateCurrentMessage('assistant', fullResponse, true);
-                            }
-                        } catch (e) {
-                            console.error('解析JSON失败:', e, jsonStr);
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('解析流式响应失败:', e);
-            }
-        }
-        
-        // 添加完整响应到历史记录
-        if (fullResponse) {
-            addToHistory('assistant', fullResponse);
-        }
-        
-        // 重置暂停状态
-        isPaused = false;
-        continueButton.classList.remove('active');
+        // 开始处理流式响应
+        await streamHandler.startReceiving(response.body);
         
     } catch (error) {
         console.error('发送消息失败:', error);
         showError(`发送消息失败: ${error.message}`);
         hideLoading();
+        
+        // 启用输入框
+        messageInput.disabled = false;
+        sendButton.disabled = false;
     }
 }
 
@@ -420,9 +350,16 @@ function typeMessage(content) {
     type();
 }
 
-// 跳过打字效果
+// 跳过当前段落
 function skipTyping() {
-    if (isPaused) {
+    if (streamHandler && streamHandler.isPaused) {
+        // 继续输出
+        streamHandler.skip();
+        
+        // 隐藏继续按钮和点击继续提示
+        continueButton.classList.remove('active');
+        clickToContinue.classList.remove('active');
+        
         // 发送跳过命令
         fetch('/api/chat/stream', {
             method: 'POST',
@@ -433,10 +370,6 @@ function skipTyping() {
         }).catch(error => {
             console.error('发送跳过命令失败:', error);
         });
-        
-        // 重置暂停状态
-        isPaused = false;
-        continueButton.classList.remove('active');
     } else if (currentTypingTimeout) {
         clearTimeout(currentTypingTimeout);
         currentTypingTimeout = null;
@@ -453,7 +386,7 @@ function skipTyping() {
 function addToHistory(role, content) {
     // 添加到内存中的历史记录
     messageHistory.push({
-        role: role,
+        role: role === 'assistant_continue' ? 'assistant' : role,
         content: content
     });
     
@@ -467,8 +400,12 @@ function addToHistory(role, content) {
     // 使用当前角色名称
     if (role === 'user') {
         roleSpan.textContent = '你';
-    } else if (role === 'assistant') {
+    } else if (role === 'assistant' || role === 'assistant_continue') {
         roleSpan.textContent = currentCharacter ? currentCharacter.name : '时雨绮罗';
+        // 如果是继续的消息，添加特殊样式
+        if (role === 'assistant_continue') {
+            roleSpan.classList.add('history-role-continue');
+        }
     } else {
         roleSpan.textContent = '系统';
     }
@@ -810,10 +747,15 @@ function handleConfirmNo() {
 
 // 继续输出
 function continueOutput() {
-    if (isPaused) {
-        isPaused = false;
+    if (streamHandler && streamHandler.isPaused) {
+        // 继续输出
+        streamHandler.continue();
         
-        // 发送继续命令
+        // 隐藏继续按钮和点击继续提示
+        continueButton.classList.remove('active');
+        clickToContinue.classList.remove('active');
+        
+        // 发送继续命令到后端
         fetch('/api/chat/stream', {
             method: 'POST',
             headers: {
@@ -824,37 +766,4 @@ function continueOutput() {
             console.error('发送继续命令失败:', error);
         });
     }
-}
-
-// 处理场景切换
-function handleSceneSwitch(sceneData) {
-    // 显示场景切换动画
-    playSceneTransitionAnimation();
-    
-    // 更新场景名称
-    if (sceneData.scene && sceneData.scene.name) {
-        sceneName.textContent = sceneData.scene.name;
-    }
-    
-    // 如果有场景图片，更新背景
-    if (sceneData.scene && sceneData.scene.image_url) {
-        updateBackground(sceneData.scene.image_url);
-    }
-    
-    // 添加系统消息到历史记录
-    if (sceneData.scene) {
-        const systemMessage = `你们来到了${sceneData.scene.name}，这里${sceneData.scene.description}`;
-        addToHistory('system', systemMessage);
-    }
-}
-
-// 播放场景切换动画
-function playSceneTransitionAnimation() {
-    // 添加活动类以显示黑屏
-    sceneTransition.classList.add('active');
-    
-    // 2秒后移除活动类以淡出黑屏
-    setTimeout(() => {
-        sceneTransition.classList.remove('active');
-    }, 2000);
 }

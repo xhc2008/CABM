@@ -15,7 +15,7 @@ CHAT_CONFIG = {
 
 # 决策模型配置（用于场景切换）
 DECISION_MODEL_CONFIG = {
-    "model": "Qwen/Qwen3-8B",  # 决策模型
+    "model": "Qwen3-8B",  # 决策模型
     "max_tokens": 256,    # 最大生成令牌数
     "temperature": 0.2,   # 低温度，提高确定性
     "stream": False,      # 不使用流式输出
@@ -23,7 +23,7 @@ DECISION_MODEL_CONFIG = {
 
 # 流式输出配置
 STREAM_CONFIG = {
-    "output_speed": 2,           # 字符/秒
+    "output_speed": 20,          # 字符/秒，提高速度以实现更流畅的输出
     "pause_on_paragraph": True,   # 段落结束时暂停
     "paragraph_delimiters": ["。", "！", "？", ".", "!", "?"],  # 段落分隔符
     "buffer_size": 1024,          # 缓冲区大小
@@ -138,11 +138,9 @@ if __name__ == "__main__":
         if validate_config():
             print("配置验证成功")
             print(f"对话模型: {get_chat_config()['model']}")
-            print(f"决策模型: {get_decision_model_config()['model']}")
             print(f"图像模型: {get_image_config()['model']}")
             print(f"默认系统提示词: {get_system_prompt()}")
             print(f"随机图像提示词: {get_random_image_prompt()}")
             print(f"流式输出速度: {get_stream_config()['output_speed']} 字符/秒")
-            print(f"显示场景名称: {'是' if get_app_config()['show_scene_name'] else '否'}")
     except ValueError as e:
         print(f"配置验证失败: {e}")

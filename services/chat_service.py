@@ -2,7 +2,6 @@
 对话服务模块
 封装对话API调用和处理
 """
-import os
 import sys
 import json
 import time
@@ -189,10 +188,6 @@ class ChatService:
         
         # 初始化时加载历史记录
         self._load_history_on_startup()
-        
-        # 导入场景服务（避免循环导入）
-        from services.scene_service import scene_service
-        self.scene_service = scene_service
     
     def add_message(self, role: str, content: str) -> Message:
         """
@@ -345,8 +340,7 @@ class ChatService:
     def chat_completion(
         self, 
         messages: Optional[List[Dict[str, str]]] = None, 
-        stream: bool = True,
-        check_scene_switch: bool = True
+        stream: bool = True
     ) -> Union[Dict[str, Any], Generator[Dict[str, Any], None, None]]:
         """
         调用对话API
@@ -354,7 +348,6 @@ class ChatService:
         Args:
             messages: 消息列表，如果为None则使用历史记录
             stream: 是否使用流式输出
-            check_scene_switch: 是否检查场景切换
             
         Returns:
             如果stream为False，返回完整响应
@@ -416,14 +409,6 @@ class ChatService:
                                     # 将完整消息添加到历史记录
                                     if full_content:
                                         self.add_message("assistant", full_content)
-                                        
-                                        # 检查是否需要切换场景
-                                        if check_scene_switch:
-                                            scene_result = self.process_scene_switch()
-                                            if scene_result["scene_switched"]:
-                                                # 添加场景切换信息
-                                                processed_chunk["scene_switch"] = scene_result
-                                    
                                     yield processed_chunk
                                     break
                                 
@@ -448,13 +433,6 @@ class ChatService:
                 if message and "content" in message:
                     # 将助手回复添加到历史记录
                     self.add_message("assistant", message["content"])
-                    
-                    # 检查是否需要切换场景
-                    if check_scene_switch:
-                        scene_result = self.process_scene_switch()
-                        if scene_result["scene_switched"]:
-                            # 添加场景切换信息
-                            data["scene_switch"] = scene_result
             
             return data
             
@@ -462,38 +440,6 @@ class ChatService:
             # 处理API错误
             error_info = handle_api_error(e)
             raise APIError(error_info["error"], e.status_code, error_info)
-    
-    def process_scene_switch(self) -> Dict[str, Any]:
-        """
-        处理场景切换
-        
-        Returns:
-            处理结果，包含是否切换场景、场景信息等
-        """
-        # 获取历史记录
-        history = self.format_messages()
-        
-        # 处理场景切换
-        result = self.scene_service.process_scene_switch(history)
-        
-        # 如果切换了场景，添加系统消息
-        if result["scene_switched"] and result["scene"]:
-            scene = result["scene"]
-            system_message = f"你们来到了{scene['name']}，这里{scene['description']}"
-            self.add_message("system", system_message)
-            
-            # 添加场景图片URL
-            if "image_path" in scene and scene["image_path"]:
-                # 从绝对路径转换为相对URL
-                try:
-                    from flask import current_app
-                    static_folder = current_app.static_folder
-                    rel_path = os.path.relpath(scene["image_path"], start=static_folder)
-                    scene["image_url"] = f"/static/{rel_path.replace(os.sep, '/')}"
-                except Exception as e:
-                    print(f"转换场景图片路径失败: {str(e)}")
-        
-        return result
 
 # 创建全局对话服务实例
 chat_service = ChatService()
