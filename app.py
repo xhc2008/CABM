@@ -105,17 +105,11 @@ def chat():
             if message_data and "content" in message_data:
                 assistant_message = message_data["content"]
         
-        # 检查是否有场景切换
-        scene_switch = None
-        if "scene_switch" in response and response["scene_switch"].get("scene_switched"):
-            scene_switch = response["scene_switch"]
-        
         # 返回响应
         return jsonify({
             'success': True,
             'message': assistant_message,
-            'history': [msg.to_dict() for msg in chat_service.get_history()],
-            'scene_switch': scene_switch
+            'history': [msg.to_dict() for msg in chat_service.get_history()]
         })
         
     except APIError as e:
@@ -188,13 +182,6 @@ def chat_stream():
                     if chunk.get("done"):
                         # 检查是否有场景切换信息
                         if "scene_switch" in chunk and chunk["scene_switch"].get("scene_switched"):
-                            # 处理场景图片URL
-                            if "scene" in chunk["scene_switch"] and chunk["scene_switch"]["scene"].get("image_path"):
-                                scene = chunk["scene_switch"]["scene"]
-                                # 从绝对路径转换为相对URL
-                                rel_path = os.path.relpath(scene["image_path"], start=app.static_folder)
-                                scene["image_url"] = f"/static/{rel_path.replace(os.sep, '/')}"
-                            
                             # 添加场景切换信息
                             yield f"data: {json.dumps({'scene_switch': chunk['scene_switch']})}\n\n"
                         
@@ -346,103 +333,6 @@ def set_character(character_id):
             'success': False,
             'error': f"未找到角色: {character_id}"
         }), 404
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/scenes', methods=['GET'])
-def list_scenes():
-    """列出可用场景API"""
-    try:
-        # 获取当前场景
-        current_scene = scene_service.get_current_scene()
-        
-        # 获取所有可用场景
-        available_scenes = scene_service.list_scenes()
-        
-        return jsonify({
-            'success': True,
-            'current_scene': current_scene.to_dict() if current_scene else None,
-            'available_scenes': [scene.to_dict() for scene in available_scenes]
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/scenes/<scene_id>', methods=['POST'])
-def set_scene(scene_id):
-    """设置场景API"""
-    try:
-        # 设置场景
-        if scene_service.set_current_scene(scene_id):
-            # 获取场景配置
-            current_scene = scene_service.get_current_scene()
-            
-            # 添加系统消息
-            if current_scene:
-                system_message = f"你们来到了{current_scene.name}，这里{current_scene.description}"
-                chat_service.add_message("system", system_message)
-            
-            return jsonify({
-                'success': True,
-                'scene': current_scene.to_dict() if current_scene else None,
-                'message': f"场景已切换为 {current_scene.name}" if current_scene else "场景切换失败"
-            })
-        
-        return jsonify({
-            'success': False,
-            'error': f"未找到场景: {scene_id}"
-        }), 404
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/scenes/create', methods=['POST'])
-def create_scene():
-    """创建场景API"""
-    try:
-        # 获取请求数据
-        data = request.json
-        name = data.get('name')
-        description = data.get('description')
-        
-        if not name or not description:
-            return jsonify({
-                'success': False,
-                'error': '场景名称和描述不能为空'
-            }), 400
-        
-        # 创建场景
-        scene = scene_service.create_scene(name, description)
-        
-        # 设置为当前场景
-        scene_service.set_current_scene(scene.id)
-        
-        # 添加系统消息
-        system_message = f"你们来到了{scene.name}，这里{scene.description}"
-        chat_service.add_message("system", system_message)
-        
-        # 如果有场景图片，转换为URL
-        scene_image_url = None
-        if scene.image_path:
-            rel_path = os.path.relpath(scene.image_path, start=app.static_folder)
-            scene_image_url = f"/static/{rel_path.replace(os.sep, '/')}"
-        
-        return jsonify({
-            'success': True,
-            'scene': scene.to_dict(),
-            'scene_image_url': scene_image_url,
-            'message': f"场景已创建并切换为 {scene.name}"
-        })
         
     except Exception as e:
         return jsonify({
