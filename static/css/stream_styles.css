@@ -1,0 +1,66 @@
+/* 流式输出相关样式 */
+
+/* 段落指示器 */
+.segment-indicator {
+    background-color: rgba(255, 235, 59, 0.2);
+    color: #ffeb3b;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    text-align: center;
+    animation: pulse 1.5s infinite;
+    font-weight: bold;
+}
+
+/* 历史记录中的继续消息 */
+.history-role-continue {
+    opacity: 0.6;
+    font-size: 0.8rem;
+}
+
+.history-assistant_continue {
+    margin-top: -0.5rem;
+    border-top: none;
+}
+
+/* 流式输出控制按钮 */
+.stream-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* 点击继续提示 */
+.click-to-continue {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ffeb3b;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    animation: pulse 1.5s infinite;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+}
+
+.click-to-continue.active {
+    display: block;
+}
+
+/* 
+调整对话框样式以适应段落指示器 */
+.dialog-box {
+    position: relative;
+    min-height: 100px;
+}
+
+/* 确保对话内容在段落指示器显示时仍然可见 */
+.dialog-content {
+    min-height: 2em;
+}

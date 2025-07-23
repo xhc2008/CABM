@@ -1,0 +1,41 @@
+/* 继续提示样式 */
+.continue-prompt {
+    position: absolute;
+    right: 20px;
+    bottom: 50%;
+    transform: translateY(50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    animation: pulse 1.5s infinite;
+    display: none;
+    z-index: 100;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.7;
+    }
+}
+
+/* 激活状态的继续按钮 */
+.control-buttons .btn.active {
+    background-color: #4caf50;
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+/* 禁用状态的输入框和按钮 */
+textarea:disabled, button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

@@ -54,6 +54,7 @@ class StreamController:
         self.is_complete = False
         self.last_output_time = 0
         self.stream_config = self.config_service.get_stream_config()
+        self.character_name = None
     
     def process_chunk(self, chunk: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -68,6 +69,11 @@ class StreamController:
         # 更新配置
         self.stream_config = self.config_service.get_stream_config()
         
+        # 检查是否启用流式输出
+        if not self.stream_config.get("enable_streaming", True):
+            # 如果禁用了流式输出，直接返回原始数据块
+            return chunk
+        
         # 如果是结束标记
         if chunk.get("done"):
             self.is_complete = True
@@ -79,7 +85,8 @@ class StreamController:
             # 添加控制信息
             chunk["stream_control"] = {
                 "is_complete": True,
-                "paragraphs": self.paragraphs
+                "paragraphs": self.paragraphs,
+                "character_name": self.character_name
             }
             return chunk
         
@@ -105,12 +112,17 @@ class StreamController:
                             self.current_paragraph = ""
                             self.buffer = parts[2]
                             
+                            # 获取继续提示文本
+                            continue_prompt = self.stream_config.get("continue_prompt", "点击屏幕继续")
+                            
                             # 添加控制信息
                             chunk["stream_control"] = {
                                 "is_complete": False,
                                 "paragraph_complete": True,
                                 "paragraph": complete_paragraph,
-                                "pause": self.stream_config["pause_on_paragraph"]
+                                "pause": self.stream_config["pause_on_paragraph"],
+                                "continue_prompt": continue_prompt,
+                                "character_name": self.character_name
                             }
                             return chunk
                 
@@ -122,10 +134,15 @@ class StreamController:
         chunk["stream_control"] = {
             "is_complete": False,
             "paragraph_complete": False,
-            "content": delta.get("content", "")
+            "content": delta.get("content", ""),
+            "character_name": self.character_name
         }
         
         return chunk
+    
+    def set_character_name(self, name: str):
+        """设置当前角色名称"""
+        self.character_name = name
     
     def control_output_speed(self) -> float:
         """
@@ -359,6 +376,11 @@ class ChatService:
         url = self.config_service.get_chat_api_url()
         api_key = self.config_service.get_chat_api_key()
         chat_config = self.config_service.get_chat_config()
+        stream_config = self.config_service.get_stream_config()
+        
+        # 检查是否启用流式输出
+        if stream and not stream_config.get("enable_streaming", True):
+            stream = False
         
         # 准备请求数据
         if messages is None:
@@ -392,9 +414,17 @@ class ChatService:
                 # 重置流式控制器状态
                 self.stream_controller.reset()
                 
+                # 设置当前角色名称
+                character_config = self.get_character_config()
+                if character_config:
+                    self.stream_controller.set_character_name(character_config.get("name", "AI助手"))
+                else:
+                    self.stream_controller.set_character_name("AI助手")
+                
                 def stream_generator():
                     response.encoding = "utf-8"
                     full_content = ""
+                    current_segment = ""
                     
                     for line in response.iter_lines(decode_unicode=True):
                         if line:
@@ -416,6 +446,13 @@ class ChatService:
                                     delta = processed_chunk["choices"][0].get("delta", {})
                                     if "content" in delta:
                                         full_content += delta["content"]
+                                
+                                # 如果段落完成，添加到历史记录
+                                if "stream_control" in processed_chunk and processed_chunk["stream_control"].get("paragraph_complete"):
+                                    paragraph = processed_chunk["stream_control"].get("paragraph", "")
+                                    if paragraph and paragraph != current_segment:
+                                        # 不立即添加到历史记录，让前端处理
+                                        current_segment = paragraph
                                 
                                 # 控制输出速度
                                 wait_time = self.stream_controller.control_output_speed()

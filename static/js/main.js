@@ -130,12 +130,16 @@ async function sendMessage() {
     // 清空输入框
     messageInput.value = '';
     
+    // 禁用用户输入
+    disableUserInput();
+    
     // 显示加载指示器
     showLoading();
     
     try {
         // 准备接收流式响应
         let fullResponse = '';
+        let currentSegment = '';
         
         // 发送API请求
         const response = await fetch('/api/chat/stream', {
@@ -182,6 +186,12 @@ async function sendMessage() {
                         const jsonStr = line.slice(6);
                         
                         if (jsonStr === '[DONE]') {
+                            // 如果还有未添加到历史记录的段落，添加它
+                            if (currentSegment) {
+                                addToHistory('assistant', currentSegment);
+                            }
+                            // 启用用户输入
+                            enableUserInput();
                             continue;
                         }
                         
@@ -196,13 +206,24 @@ async function sendMessage() {
                                     
                                     // 添加完整段落到历史记录
                                     if (data.stream_control.paragraph) {
+                                        // 将当前段落添加到历史记录
+                                        currentSegment = data.stream_control.paragraph;
+                                        
+                                        // 如果有角色名称，使用它
+                                        const characterName = data.stream_control.character_name || 
+                                            (currentCharacter ? currentCharacter.name : 'AI助手');
+                                        
+                                        addToHistory('assistant', currentSegment, characterName);
+                                        currentSegment = ''; // 重置当前段落
+                                        
                                         streamController.paragraphs.push(data.stream_control.paragraph);
                                         fullResponse = streamController.paragraphs.join('');
                                         updateCurrentMessage('assistant', fullResponse, true);
                                     }
                                     
-                                    // 等待用户点击继续
-                                    continueButton.classList.add('active');
+                                    // 显示"点击屏幕继续"提示，使用服务器提供的文本
+                                    const continuePromptText = data.stream_control.continue_prompt || '点击屏幕继续';
+                                    showContinuePrompt(continuePromptText);
                                     continue;
                                 }
                                 
@@ -214,14 +235,23 @@ async function sendMessage() {
                                     if (data.stream_control.paragraphs) {
                                         fullResponse = data.stream_control.paragraphs.join('');
                                         updateCurrentMessage('assistant', fullResponse, true);
+                                        
+                                        // 如果还有未添加到历史记录的段落，添加它
+                                        if (currentSegment) {
+                                            addToHistory('assistant', currentSegment);
+                                            currentSegment = '';
+                                        }
                                     }
                                     
+                                    // 启用用户输入
+                                    enableUserInput();
                                     continue;
                                 }
                                 
                                 // 处理增量内容
                                 if (data.stream_control.content) {
                                     fullResponse += data.stream_control.content;
+                                    currentSegment += data.stream_control.content;
                                     updateCurrentMessage('assistant', fullResponse, true);
                                 }
                             }
@@ -231,12 +261,14 @@ async function sendMessage() {
                                 
                                 if (delta.content) {
                                     fullResponse += delta.content;
+                                    currentSegment += delta.content;
                                     updateCurrentMessage('assistant', fullResponse, true);
                                 }
                             }
                             // 直接处理内容字段（如果存在）
                             else if (data.content) {
                                 fullResponse += data.content;
+                                currentSegment += data.content;
                                 updateCurrentMessage('assistant', fullResponse, true);
                             }
                         } catch (e) {
@@ -249,19 +281,18 @@ async function sendMessage() {
             }
         }
         
-        // 添加完整响应到历史记录
-        if (fullResponse) {
-            addToHistory('assistant', fullResponse);
-        }
-        
         // 重置暂停状态
         isPaused = false;
-        continueButton.classList.remove('active');
+        hideContinuePrompt();
+        
+        // 启用用户输入（以防万一前面的逻辑没有启用）
+        enableUserInput();
         
     } catch (error) {
         console.error('发送消息失败:', error);
         showError(`发送消息失败: ${error.message}`);
         hideLoading();
+        enableUserInput();
     }
 }
 
@@ -442,7 +473,7 @@ function skipTyping() {
 }
 
 // 添加消息到历史记录
-function addToHistory(role, content) {
+function addToHistory(role, content, customName = null) {
     // 添加到内存中的历史记录
     messageHistory.push({
         role: role,
@@ -456,18 +487,29 @@ function addToHistory(role, content) {
     const roleSpan = document.createElement('div');
     roleSpan.className = 'history-role';
     
-    // 使用当前角色名称
+    // 使用当前角色名称或自定义名称
+    let roleName = '';
     if (role === 'user') {
-        roleSpan.textContent = '你';
+        roleName = '你';
+        roleSpan.textContent = roleName;
     } else if (role === 'assistant') {
-        roleSpan.textContent = currentCharacter ? currentCharacter.name : '时雨绮罗';
+        roleName = customName || (currentCharacter ? currentCharacter.name : '时雨绮罗');
+        roleSpan.textContent = roleName;
     } else {
-        roleSpan.textContent = '系统';
+        roleName = '系统';
+        roleSpan.textContent = roleName;
     }
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'history-content';
-    contentDiv.textContent = content;
+    
+    // 为每个段落添加角色名称前缀
+    if (role === 'assistant') {
+        // 添加角色名称前缀
+        contentDiv.textContent = `${roleName}：${content}`;
+    } else {
+        contentDiv.textContent = content;
+    }
     
     messageDiv.appendChild(roleSpan);
     messageDiv.appendChild(contentDiv);
@@ -804,6 +846,7 @@ function handleConfirmNo() {
 function continueOutput() {
     if (isPaused) {
         isPaused = false;
+        hideContinuePrompt();
         
         // 发送继续命令
         fetch('/api/chat/stream', {
@@ -816,4 +859,47 @@ function continueOutput() {
             console.error('发送继续命令失败:', error);
         });
     }
+}
+
+// 禁用用户输入
+function disableUserInput() {
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+    messageInput.placeholder = "AI正在回复中...";
+}
+
+// 启用用户输入
+function enableUserInput() {
+    messageInput.disabled = false;
+    sendButton.disabled = false;
+    messageInput.placeholder = "输入消息...";
+}
+
+// 显示"点击屏幕继续"提示
+function showContinuePrompt(promptText = '点击屏幕继续') {
+    // 创建或获取继续提示元素
+    let continuePrompt = document.getElementById('continuePrompt');
+    if (!continuePrompt) {
+        continuePrompt = document.createElement('div');
+        continuePrompt.id = 'continuePrompt';
+        continuePrompt.className = 'continue-prompt';
+        continuePrompt.addEventListener('click', continueOutput); // 添加点击事件
+        document.querySelector('.dialog-box').appendChild(continuePrompt);
+    }
+    continuePrompt.textContent = promptText;
+    continuePrompt.style.display = 'block';
+    
+    // 激活继续按钮
+    continueButton.classList.add('active');
+}
+
+// 隐藏"点击屏幕继续"提示
+function hideContinuePrompt() {
+    const continuePrompt = document.getElementById('continuePrompt');
+    if (continuePrompt) {
+        continuePrompt.style.display = 'none';
+    }
+    
+    // 取消激活继续按钮
+    continueButton.classList.remove('active');
 }

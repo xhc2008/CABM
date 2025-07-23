@@ -4,6 +4,7 @@ CABM应用主文件
 import os
 import sys
 import json
+import time
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 
@@ -159,6 +160,9 @@ def chat_stream():
         # 添加用户消息
         chat_service.add_message("user", message)
         
+        # 获取流式配置
+        stream_config = config_service.get_stream_config()
+        
         # 创建流式响应生成器
         def generate():
             try:
@@ -178,6 +182,9 @@ def chat_stream():
                         if chunk["stream_control"].get("paragraph_complete") and chunk["stream_control"].get("pause"):
                             # 添加暂停标记
                             chunk["stream_control"]["status"] = "paused"
+                            
+                            # 添加继续提示文本
+                            chunk["stream_control"]["continue_prompt"] = stream_config.get("continue_prompt", "点击屏幕继续")
                     
                     # 转发流式数据
                     yield f"data: {json.dumps(chunk)}\n\n"
@@ -186,7 +193,9 @@ def chat_stream():
                     if "stream_control" in chunk and chunk["stream_control"].get("status") == "paused":
                         # 在实际应用中，这里应该使用更高效的方式等待前端命令
                         # 这里简化处理，让前端发送继续命令
-                        pass
+                        chat_service.stream_controller.is_paused = True
+                        while chat_service.stream_controller.is_paused:
+                            time.sleep(0.1)
                 
             except Exception as e:
                 error_msg = str(e)

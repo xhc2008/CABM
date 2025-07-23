@@ -247,6 +247,8 @@ body {
     /* 限制最大高度 */
     overflow: hidden;
     /* 防止内容溢出 */
+    position: relative;
+    /* 为继续提示提供定位上下文 */
 }
 
 .character-name {
