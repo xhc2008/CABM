@@ -19,6 +19,8 @@ STREAM_CONFIG = {
     "pause_on_paragraph": True,   # 段落结束时暂停
     "paragraph_delimiters": ["。", "！", "？", ".", "!", "?"],  # 段落分隔符
     "buffer_size": 1024,          # 缓冲区大小
+    "continue_prompt": "点击屏幕继续",  # 继续提示文本
+    "enable_streaming": True,     # 启用流式输出
 }
 
 # 图像生成模型配置
