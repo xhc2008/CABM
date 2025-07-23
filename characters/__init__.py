@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Optional
 
 # 角色配置缓存
 _character_configs = {}
-_default_character_id = "lingyin"
+_default_character_id = "Silver_Wolf"
 
 def load_character_config(character_id: str) -> Optional[Dict[str, Any]]:
     """

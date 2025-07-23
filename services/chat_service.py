@@ -159,7 +159,7 @@ class StreamController:
             return 0
         
         # 计算需要等待的时间
-        time_per_char = 1.0 / output_speed
+        time_per_char = 1.000 / output_speed
         elapsed = current_time - self.last_output_time
         
         # 如果已经过了足够的时间，不需要等待
@@ -386,6 +386,15 @@ class ChatService:
         if messages is None:
             # 使用内存中的历史记录（已经包含了从持久化存储加载的记录）
             messages = self.format_messages()
+            
+            # 确保系统提示词中包含角色设定
+            has_system_message = any(msg.get("role") == "system" for msg in messages)
+            if not has_system_message:
+                # 如果没有系统消息，添加一个
+                character_config = self.config_service.get_character_config()
+                general_prompt = self.config_service.get_system_prompt("default")
+                system_prompt = f"{general_prompt}\n\n{character_config['prompt']}"
+                messages.insert(0, {"role": "system", "content": system_prompt})
         
         request_data = {
             **chat_config,
@@ -454,10 +463,10 @@ class ChatService:
                                         # 不立即添加到历史记录，让前端处理
                                         current_segment = paragraph
                                 
-                                # 控制输出速度
+                                # 控制输出速度(废弃)
                                 wait_time = self.stream_controller.control_output_speed()
-                                if wait_time > 0:
-                                    time.sleep(wait_time)
+                                #if wait_time > 0:
+                                time.sleep(0.1)
                                 
                                 yield processed_chunk
                 
