@@ -351,8 +351,8 @@ def exit_app():
         }), 500
 
 if __name__ == '__main__':
-    # 设置系统提示词
-    chat_service.set_system_prompt()
+    # 设置系统提示词，使用角色提示词
+    chat_service.set_system_prompt("character")
     
     # 启动应用
     app.run(

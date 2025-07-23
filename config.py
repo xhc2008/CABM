@@ -15,7 +15,7 @@ CHAT_CONFIG = {
 
 # 流式输出配置
 STREAM_CONFIG = {
-    "output_speed": 30,           # 字符/秒
+    "output_speed": 0,           # 字符/秒（已废弃，实际值见static/js/main.js）
     "pause_on_paragraph": True,   # 段落结束时暂停
     "paragraph_delimiters": ["。", "！", "？", ".", "!", "?"],  # 段落分隔符
     "buffer_size": 1024,          # 缓冲区大小

@@ -8,7 +8,7 @@ CHARACTER_NAME = "灵音"
 CHARACTER_NAME_EN = "Lingyin"
 
 # 角色外观
-CHARACTER_IMAGE = "data/images/default.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/default.png"  # 角色立绘路径
 CHARACTER_COLOR = "#00ffff"  # 角色名称颜色
 
 # 角色设定
