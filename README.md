@@ -2,27 +2,33 @@
 
 "当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。"
 ~~（不就是个Gal吗）~~
-> ## **⚠️ 注意：此项目仍在~~积极~~开发中，功能并不完整，且仍存在问题。**
+> ## **⚠️ 注意：本项目目前处于开发阶段，核心功能尚未实现，其他的功能和优化也正在进行中。欢迎贡献代码或提出建议。**
 
 ## 开发状态
 
-本项目目前处于开发阶段，核心功能~~已经~~尚未实现，但仍有一些功能和优化正在进行中。欢迎贡献代码或提出建议。
-
 **已完成功能：**
-- 基本的AI对话功能
-- 动态背景图片生成
+- 基本的AI对话功能，包含最近的历史记录
+- 前端的主页面（但是极简风）
 - 角色系统（可切换不同角色）
-- 流式输出（打字机效果）
+- 分段流式输出（灵魂所在~）
+- 很多的bug
 
 **正在开发：**
-- 图像生成API的完整集成
-- 更多角色的添加
-- 用户设置保存
-- 性能优化
+- 修bug
+- 场景切换（让AI切换场景或生成新场景）
+- 记忆系统（使用向量数据库长期保存记忆）
+- 故事模式（根据大纲推动故事发展，区别于“闲聊模式”）
+- 角色的表情/动作（蹲一个免费的画师）
+- ~~角色语音~~（硬件受限，等我换个有独显的电脑再说）
+
 
 ## 项目简介
 
 CABM是一个AI对话应用，具有动态生成的背景图片功能。用户可以与AI模型进行对话交流，同时应用会使用图像生成模型创建的图片作为动态背景，提供更丰富的视觉体验。应用支持多角色系统，可以切换不同的AI角色进行对话。
+
+~~人话：AI驱动的Galgame~~
+
+> ## *以下内容由AI生成，~~纯属瞎扯~~仅供参考*
 
 ## 功能特点
 
@@ -48,16 +54,18 @@ pip install flask requests python-dotenv
 ```bash
 cp .env.example .env
 ```
+需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
+如果使用其他平台，需要把API_URL换成对应的URL
 
 编辑`.env`文件，填写以下信息：
 
 ```
 # 对话API配置
-CHAT_API_URL=https://spark-api-open.xf-yun.com/v1/chat/completions
+CHAT_API_URL=https://api.siliconflow.cn/v1/chat/completions
 CHAT_API_KEY=your_chat_api_key_here
 
 # 图像生成API配置
-IMAGE_API_URL=https://api.example.com/images/generations
+IMAGE_API_URL=https://api.siliconflow.cn/v1/images/generations
 IMAGE_API_KEY=your_image_api_key_here
 
 # 应用配置
