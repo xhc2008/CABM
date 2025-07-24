@@ -207,7 +207,7 @@ async function sendMessage() {
     // 设置回调函数
     streamProcessor.setCallbacks(
         // 字符回调 - 每个字符输出时调用
-        (char, fullContent) => {
+        (fullContent) => {
             updateCurrentMessage('assistant', fullContent, true);
         },
         // 暂停回调 - 遇到标点符号暂停时调用
@@ -503,7 +503,7 @@ async function changeBackground() {
 
 
 // 更新当前消息
-function updateCurrentMessage(role, content, isStreaming = false, test = 0) {
+function updateCurrentMessage(role, content, isStreaming = false) {
     // 如果不是流式输出，停止当前正在进行的打字效果
 
     if (!isStreaming && currentTypingTimeout) {
@@ -1274,29 +1274,70 @@ function showContinuePrompt(promptText = '点击屏幕继续') {
         clickToContinue.textContent = promptText;
     }
 
-    // 添加临时的全屏点击监听器
-    const handleScreenClick = (e) => {
-        console.log('Screen clicked during pause');
-        continueOutput();
-        document.removeEventListener('click', handleScreenClick);
+    // 移除之前的监听器（如果存在）
+    if (currentScreenClickHandler) {
+        document.removeEventListener('click', currentScreenClickHandler);
+    }
+
+    // 创建新的点击监听器
+    currentScreenClickHandler = (e) => {
+        // 检查点击的目标是否是按钮或其他交互元素
+        const clickedElement = e.target;
+
+        // 如果点击的是按钮、输入框或其他交互元素，不触发继续
+        if (clickedElement.tagName === 'BUTTON' ||
+            clickedElement.tagName === 'INPUT' ||
+            clickedElement.tagName === 'TEXTAREA' ||
+            clickedElement.tagName === 'IMG' ||
+            clickedElement.classList.contains('modal') ||
+            clickedElement.classList.contains('btn') ||
+            clickedElement.classList.contains('continue-prompt') ||
+            clickedElement.closest('button') ||
+            clickedElement.closest('.btn') ||
+            clickedElement.closest('.modal') ||
+            clickedElement.closest('.history-modal') ||
+            clickedElement.closest('.character-modal') ||
+            clickedElement.closest('.confirm-modal') ||
+            clickedElement.closest('.control-buttons') ||
+            clickedElement.closest('.user-input-container') ||
+            clickedElement.closest('.chat-header') ||
+            clickedElement.closest('.character-container') ||
+            clickedElement.closest('.continue-prompt')) {
+            return; // 不处理按钮等元素的点击
+        }
+
+        // 只有点击对话区域或背景区域才触发继续
+        if (clickedElement.closest('.dialog-container') ||
+            clickedElement.closest('.background-container') ||
+            clickedElement === document.body ||
+            clickedElement.classList.contains('page')) {
+            console.log('Screen clicked during pause');
+            continueOutput();
+        }
     };
 
     // 延迟添加监听器，避免立即触发
     setTimeout(() => {
-        document.addEventListener('click', handleScreenClick);
+        document.addEventListener('click', currentScreenClickHandler);
     }, 100);
 }
 
+// 全局变量来存储当前的点击监听器
+let currentScreenClickHandler = null;
+
 // 隐藏"点击屏幕继续"提示
 function hideContinuePrompt() {
-    const continuePrompt = document.getElementById('continuePrompt');
-    if (continuePrompt) {
-        continuePrompt.style.display = 'none';
+    // 隐藏点击继续提示
+    if (clickToContinue) {
+        clickToContinue.style.display = 'none';
     }
 
     // 取消激活继续按钮
     continueButton.classList.remove('active');
 
-    // 移除全屏点击监听器（如果存在）
-    // 注意：这里我们无法直接移除匿名函数，但新的点击会覆盖旧的行为
+    // 移除全屏点击监听器
+    if (currentScreenClickHandler) {
+        document.removeEventListener('click', currentScreenClickHandler);
+        currentScreenClickHandler = null;
+    }
 }
