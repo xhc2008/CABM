@@ -41,145 +41,7 @@ class Message:
         """从字典创建消息"""
         return cls(data["role"], data["content"])
 
-class StreamController:
-    """流式输出控制器"""
-    
-    def __init__(self, config_service):
-        """初始化流式输出控制器"""
-        self.config_service = config_service
-        self.buffer = ""
-        self.current_paragraph = ""
-        self.paragraphs = []
-        self.is_paused = False
-        self.is_complete = False
-        self.last_output_time = 0
-        self.stream_config = self.config_service.get_stream_config()
-        self.character_name = None
-    
-    def process_chunk(self, chunk: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        处理流式数据块
-        
-        Args:
-            chunk: 流式数据块
-            
-        Returns:
-            处理后的数据块，添加了控制信息
-        """
-        # 更新配置
-        self.stream_config = self.config_service.get_stream_config()
-        
-        # 检查是否启用流式输出
-        if not self.stream_config.get("enable_streaming", True):
-            # 如果禁用了流式输出，直接返回原始数据块
-            return chunk
-        
-        # 如果是结束标记
-        if chunk.get("done"):
-            self.is_complete = True
-            # 如果还有未处理的段落，添加到结果中
-            if self.current_paragraph:
-                self.paragraphs.append(self.current_paragraph)
-                self.current_paragraph = ""
-            
-            # 添加控制信息
-            chunk["stream_control"] = {
-                "is_complete": True,
-                "paragraphs": self.paragraphs,
-                "character_name": self.character_name
-            }
-            return chunk
-        
-        # 处理增量内容
-        if "choices" in chunk and len(chunk["choices"]) > 0:
-            delta = chunk["choices"][0].get("delta", {})
-            if "content" in delta:
-                content = delta["content"]
-                self.buffer += content
-                
-                # 检查是否有完整段落
-                paragraph_delimiters = self.stream_config["paragraph_delimiters"]
-                for delimiter in paragraph_delimiters:
-                    if delimiter in self.buffer:
-                        # 分割段落
-                        parts = re.split(f"({delimiter})", self.buffer, 1)
-                        if len(parts) >= 3:
-                            # 添加完整段落到结果
-                            complete_paragraph = self.current_paragraph + parts[0] + parts[1]
-                            self.paragraphs.append(complete_paragraph)
-                            
-                            # 更新当前段落和缓冲区
-                            self.current_paragraph = ""
-                            self.buffer = parts[2]
-                            
-                            # 获取继续提示文本
-                            continue_prompt = self.stream_config.get("continue_prompt", "点击屏幕继续")
-                            
-                            # 添加控制信息
-                            chunk["stream_control"] = {
-                                "is_complete": False,
-                                "paragraph_complete": True,
-                                "paragraph": complete_paragraph,
-                                "pause": self.stream_config["pause_on_paragraph"],
-                                "continue_prompt": continue_prompt,
-                                "character_name": self.character_name
-                            }
-                            return chunk
-                
-                # 如果没有完整段落，添加到当前段落
-                self.current_paragraph += self.buffer
-                self.buffer = ""
-        
-        # 添加控制信息
-        chunk["stream_control"] = {
-            "is_complete": False,
-            "paragraph_complete": False,
-            "content": delta.get("content", ""),
-            "character_name": self.character_name
-        }
-        
-        return chunk
-    
-    def set_character_name(self, name: str):
-        """设置当前角色名称"""
-        self.character_name = name
-    
-    def control_output_speed(self) -> float:
-        """
-        控制输出速度
-        
-        Returns:
-            需要等待的秒数
-        """
-        current_time = time.time()
-        output_speed = self.stream_config["output_speed"]
-        
-        # 如果输出速度为0，不限制速度
-        if output_speed <= 0:
-            return 0
-        
-        # 计算需要等待的时间
-        time_per_char = 1.000 / output_speed
-        elapsed = current_time - self.last_output_time
-        
-        # 如果已经过了足够的时间，不需要等待
-        if elapsed >= time_per_char:
-            self.last_output_time = current_time
-            return 0
-        
-        # 计算需要等待的时间
-        wait_time = time_per_char - elapsed
-        self.last_output_time = current_time + wait_time
-        return wait_time
-    
-    def reset(self):
-        """重置控制器状态"""
-        self.buffer = ""
-        self.current_paragraph = ""
-        self.paragraphs = []
-        self.is_paused = False
-        self.is_complete = False
-        self.last_output_time = 0
+
 
 
 class ChatService:
@@ -193,9 +55,6 @@ class ChatService:
         # 确保配置服务已初始化
         if not self.config_service.initialized:
             self.config_service.initialize()
-        
-        # 创建流式输出控制器
-        self.stream_controller = StreamController(self.config_service)
         
         # 创建历史记录管理器
         app_config = self.config_service.get_app_config()
@@ -420,55 +279,14 @@ class ChatService:
             
             # 处理流式响应
             if stream:
-                # 重置流式控制器状态
-                self.stream_controller.reset()
-                
-                # 设置当前角色名称
-                character_config = self.get_character_config()
-                if character_config:
-                    self.stream_controller.set_character_name(character_config.get("name", "AI助手"))
-                else:
-                    self.stream_controller.set_character_name("AI助手")
-                
                 def stream_generator():
                     response.encoding = "utf-8"
-                    full_content = ""
-                    current_segment = ""
                     
                     for line in response.iter_lines(decode_unicode=True):
                         if line:
                             parsed_data = parse_stream_data(line)
                             if parsed_data:
-                                # 处理流式数据
-                                processed_chunk = self.stream_controller.process_chunk(parsed_data)
-                                
-                                # 如果是结束标记
-                                if processed_chunk.get("done"):
-                                    # 将完整消息添加到历史记录
-                                    if full_content:
-                                        self.add_message("assistant", full_content)
-                                    yield processed_chunk
-                                    break
-                                
-                                # 处理增量内容
-                                if "choices" in processed_chunk and len(processed_chunk["choices"]) > 0:
-                                    delta = processed_chunk["choices"][0].get("delta", {})
-                                    if "content" in delta:
-                                        full_content += delta["content"]
-                                
-                                # 如果段落完成，添加到历史记录
-                                if "stream_control" in processed_chunk and processed_chunk["stream_control"].get("paragraph_complete"):
-                                    paragraph = processed_chunk["stream_control"].get("paragraph", "")
-                                    if paragraph and paragraph != current_segment:
-                                        # 不立即添加到历史记录，让前端处理
-                                        current_segment = paragraph
-                                
-                                # 控制输出速度(废弃)
-                                wait_time = self.stream_controller.control_output_speed()
-                                #if wait_time > 0:
-                                time.sleep(0.1)
-                                
-                                yield processed_chunk
+                                yield parsed_data
                 
                 return stream_generator()
             
