@@ -4,7 +4,7 @@
  */
 
 // 常量配置
-const OUTPUT_DELAY = 50; // 每个字符的输出间隔（毫秒）
+const OUTPUT_DELAY = 20; // 每个字符的输出间隔（毫秒）
 const END_MARKER = "<END>"; // 结束标记符号
 const PAUSE_MARKERS = ['。', '？', '！', '…', '~']; // 暂停输出的分隔符号
 
@@ -39,8 +39,8 @@ class StreamProcessor {
             this.buffer.push(char);
         }
         
-        // 如果没有在处理，开始处理
-        if (!this.processingTimeout && this.active) {
+        // 如果没有在处理且没有暂停，开始处理
+        if (!this.processingTimeout && this.active && !this.isPaused) {
             this.processBuffer();
         }
     }
@@ -62,7 +62,7 @@ class StreamProcessor {
      * 处理缓冲区数据
      */
     processBuffer() {
-        if (this.buffer.length === 0) {
+        if (this.buffer.length === 0 || this.processingTimeout) {
             return;
         }
 
@@ -98,7 +98,7 @@ class StreamProcessor {
         
         // 调用字符回调
         if (this.onCharacterCallback) {
-            this.onCharacterCallback(char, this.paragraphs.join('') + this.currentParagraph);
+            this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
         }
 
         // 检查下一个字符是否是结束标记
