@@ -4,6 +4,7 @@ CABM应用主文件
 import os
 import sys
 import json
+import time
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 
@@ -125,47 +126,17 @@ def chat():
 
 @app.route('/api/chat/stream', methods=['POST'])
 def chat_stream():
-    """流式聊天API"""
+    """流式聊天API - 只负责转发AI响应"""
     try:
         # 获取请求数据
         data = request.json
         message = data.get('message', '')
-        control_action = data.get('control_action', None)
         
-        if not message and not control_action:
+        if not message:
             return jsonify({
                 'success': False,
-                'error': '消息不能为空且未指定控制动作'
+                'error': '消息不能为空'
             }), 400
-        
-        # 如果是控制命令
-        if control_action:
-            # 处理控制命令
-            if control_action == "continue":
-                # 继续输出
-                chat_service.stream_controller.is_paused = False
-                return jsonify({
-                    'success': True,
-                    'action': 'continue'
-                })
-            elif control_action == "pause":
-                # 暂停输出
-                chat_service.stream_controller.is_paused = True
-                return jsonify({
-                    'success': True,
-                    'action': 'pause'
-                })
-            elif control_action == "skip":
-                # 跳过当前段落
-                return jsonify({
-                    'success': True,
-                    'action': 'skip'
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': f'未知的控制命令: {control_action}'
-                }), 400
         
         # 添加用户消息
         chat_service.add_message("user", message)
@@ -175,34 +146,27 @@ def chat_stream():
             try:
                 # 调用对话API（流式）
                 stream_gen = chat_service.chat_completion(stream=True)
+                full_content = ""
                 
                 # 逐步返回响应
                 for chunk in stream_gen:
                     # 如果是结束标记
                     if chunk.get("done"):
-                        # 检查是否有场景切换信息
-                        if "scene_switch" in chunk and chunk["scene_switch"].get("scene_switched"):
-                            # 添加场景切换信息
-                            yield f"data: {json.dumps({'scene_switch': chunk['scene_switch']})}\n\n"
-                        
+                        # 将完整消息添加到历史记录
+                        if full_content:
+                            chat_service.add_message("assistant", full_content)
                         yield "data: [DONE]\n\n"
-                        continue
+                        break
                     
-                    # 检查是否有控制信息
-                    if "stream_control" in chunk:
-                        # 如果段落完成且需要暂停
-                        if chunk["stream_control"].get("paragraph_complete") and chunk["stream_control"].get("pause"):
-                            # 添加暂停标记
-                            chunk["stream_control"]["status"] = "paused"
-                    
-                    # 转发流式数据
-                    yield f"data: {json.dumps(chunk)}\n\n"
-                    
-                    # 如果需要暂停，等待前端继续命令
-                    if "stream_control" in chunk and chunk["stream_control"].get("status") == "paused":
-                        # 在实际应用中，这里应该使用更高效的方式等待前端命令
-                        # 这里简化处理，让前端发送继续命令
-                        pass
+                    # 处理增量内容
+                    if "choices" in chunk and len(chunk["choices"]) > 0:
+                        delta = chunk["choices"][0].get("delta", {})
+                        if "content" in delta:
+                            content = delta["content"]
+                            full_content += content
+                            
+                            # 直接转发原始数据，让前端处理
+                            yield f"data: {json.dumps({'content': content})}\n\n"
                 
             except Exception as e:
                 error_msg = str(e)
@@ -363,8 +327,8 @@ def serve_character_image(filename):
     return send_from_directory('data/images', filename)
 
 if __name__ == '__main__':
-    # 设置系统提示词
-    chat_service.set_system_prompt()
+    # 设置系统提示词，使用角色提示词
+    chat_service.set_system_prompt("character")
     
     # 启动应用
     app.run(

@@ -8,7 +8,7 @@ CHARACTER_NAME = "银狼"
 CHARACTER_NAME_EN = "Silver_Wolf"
 
 # 角色外观
-CHARACTER_IMAGE = "data/images/Silver_Wolf.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/Silver_Wolf.png"  # 角色立绘路径
 CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
 
 # 角色设定
@@ -28,6 +28,8 @@ CHARACTER_WELCOME = "(ᗜ ˰ ᗜ)"
 
 # 角色对话示例
 CHARACTER_EXAMPLES = [
+    {"role": "user", "content": "你能帮我写一段代码吗？"},
+    {"role": "assistant", "content": "当然可以，代码如同现代的诗篇，构筑着数字世界的秩序。请告诉我你需要什么样的代码，我会尽我所能为你编织这数字锦缎。🖥️"}
 ]
 
 # 获取角色配置
