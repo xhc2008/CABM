@@ -48,13 +48,7 @@ let messageHistory = [];
 let typingSpeed = 100; // 打字速度（毫秒/字符）
 let currentTypingTimeout = null;
 let currentConfirmCallback = null;
-let streamController = {
-    buffer: '',
-    currentParagraph: '',
-    paragraphs: [],
-    isComplete: false,
-    isPaused: false
-};
+
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -95,6 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentMessage.addEventListener('click', continueOutput);
 });
 
+// 流式处理器实例
+let streamProcessor = null;
+
 // 发送消息
 async function sendMessage() {
     // 获取消息内容
@@ -112,14 +109,46 @@ async function sendMessage() {
         return;
     }
 
-    // 重置流控制器状态
-    streamController = {
-        buffer: '',
-        currentParagraph: '',
-        paragraphs: [],
-        isComplete: false,
-        isPaused: false
-    };
+    // 创建新的流式处理器
+    streamProcessor = new StreamProcessor();
+
+    // 设置回调函数
+    streamProcessor.setCallbacks(
+        // 字符回调 - 每个字符输出时调用
+        (char, fullContent) => {
+            updateCurrentMessage('assistant', fullContent, true);
+        },
+        // 暂停回调 - 遇到标点符号暂停时调用
+        (content) => {
+            // 设置暂停状态
+            isPaused = true;
+
+            // 添加当前段落到历史记录
+            const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+            addToHistory('assistant', content, characterName);
+
+            // 显示继续提示
+            showContinuePrompt('点击屏幕继续');
+        },
+        // 完成回调 - 所有内容处理完成时调用
+        (fullContent) => {
+            // 如果还有未添加到历史记录的内容，添加它
+            if (fullContent && !messageHistory.some(msg => msg.content === fullContent && msg.role === 'assistant')) {
+                const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                addToHistory('assistant', fullContent, characterName);
+            }
+
+            // 隐藏继续提示
+            hideContinuePrompt();
+
+            // 启用用户输入
+            enableUserInput();
+
+            // 重置暂停状态
+            isPaused = false;
+        }
+    );
+
     // 更新当前消息为用户消息
     updateCurrentMessage('user', message);
 
@@ -132,13 +161,7 @@ async function sendMessage() {
     // 禁用用户输入
     disableUserInput();
 
-    // 显示加载指示器
-    //showLoading();
     try {
-        // 准备接收流式响应
-        let fullResponse = '';
-        let currentSegment = '';
-
         // 发送API请求
         const response = await fetch('/api/chat/stream', {
             method: 'POST',
@@ -158,8 +181,6 @@ async function sendMessage() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
-        // 隐藏加载指示器，因为我们将开始接收流式响应
-        //hideLoading();
         // 准备接收流式响应
         updateCurrentMessage('assistant', '');
 
@@ -175,7 +196,7 @@ async function sendMessage() {
             const chunk = decoder.decode(value, { stream: true });
 
             try {
-                // 尝试解析JSON
+                // 解析流式数据
                 const lines = chunk.split('\n').filter(line => line.trim());
 
                 for (const line of lines) {
@@ -183,132 +204,23 @@ async function sendMessage() {
                         const jsonStr = line.slice(6);
 
                         if (jsonStr === '[DONE]') {
-                            // 如果还有未添加到历史记录的段落，添加它
-                            if (currentSegment) {
-                                addToHistory('assistant', currentSegment);
-                            }
-                            // 启用用户输入
-                            enableUserInput();
-                            continue;
+                            // 标记流式处理结束
+                            streamProcessor.markEnd();
+                            break;
                         }
 
                         try {
                             const data = JSON.parse(jsonStr);
 
-                            // 处理流式控制信息
-                            if (data.stream_control) {
-                                // 如果段落完成且需要暂停
-                                if (data.stream_control.paragraph_complete && data.stream_control.pause) {
-                                    isPaused = true;
-
-                                    // 添加完整段落到历史记录
-                                    if (data.stream_control.paragraph) {
-                                        // 将当前段落添加到历史记录
-                                        currentSegment = data.stream_control.paragraph;
-
-                                        // 如果有角色名称，使用它
-                                        const characterName = data.stream_control.character_name ||
-                                            (currentCharacter ? currentCharacter.name : 'AI助手');
-
-                                        addToHistory('assistant', currentSegment, characterName);
-                                        currentSegment = ''; // 重置当前段落
-                                        //fullResponse='';
-                                        streamController.paragraphs.push(data.stream_control.paragraph);
-                                        fullResponse = streamController.paragraphs.join('');
-                                        // updateCurrentMessage('assistant', fullResponse, true);
-                                    }
-                                    // 显示"点击屏幕继续"提示，使用服务器提供的文本
-                                    const continuePromptText = data.stream_control.continue_prompt || '点击屏幕继续';
-                                    showContinuePrompt(continuePromptText);
-                                    continue;
-                                }
-
-                                // 如果是结束标记
-                                else if (data.stream_control.is_complete) {
-                                    streamController.isComplete = true;
-                                    // if (data.stream_control.paragraphs) {
-                                    //     const content = data.stream_control.paragraphs.join('');
-                                    //     // Process each character one by one
-                                    //     for (let i = 0; i < content.length; i++) {
-                                    //         // Use IIFE to preserve the value of i in each iteration
-                                    //         ((index) => {
-                                    //             setTimeout(() => {
-                                    //                 const char = content[index];
-                                    //                 fullResponse += char;
-                                    //                 currentSegment += char;
-                                    //                 updateCurrentMessage('assistant', fullResponse, true);
-                                    //             }, typingSpeed * index); // 50ms delay between characters (adjust as needed)
-                                    //         })(i);
-                                    //     }
-                                    
-                                    // // 如果有段落信息，更新完整响应
-                                    if (data.stream_control.paragraphs) {
-                                        fullResponse = data.stream_control.paragraphs.join('');
-                                        updateCurrentMessage('assistant', fullResponse, true);
-
-                                        // 如果还有未添加到历史记录的段落，添加它
-                                        if (currentSegment) {
-                                            addToHistory('assistant', currentSegment);
-                                            currentSegment = '';
-                                        }
-                                    }
-
-                                    // 启用用户输入
-                                    enableUserInput();
-                                    continue;
-                                }
-                                // 处理增量内容//已修改
-                                // if (data.stream_control.content) {
-                                //     fullResponse += data.stream_control.content;
-                                //     currentSegment += data.stream_control.content;
-                                //     updateCurrentMessage('assistant', fullResponse, true);
-                                // }
-                                if (data.stream_control.content) {
-                                    const content = data.stream_control.content;
-                                    for (let i = 0; i < content.length; i++) {
-                                        const start = Date.now();
-                                        const char = content[i];
-                                        fullResponse += char;
-                                        currentSegment += char;
-                                        updateCurrentMessage('assistant', fullResponse, true);
-                                        
-                                        // Blocking wait (not recommended in production)
-                                        while (Date.now() - start < typingSpeed) {}
-                                    }
-                                }
-                                
-                            }
-                            // 处理标准格式（兼容旧格式）
-                            else if (data.choices && data.choices[0] && data.choices[0].delta) {
-                                const delta = data.choices[0].delta;
-
-                                if (delta.content) {
-                                    fullResponse += delta.content;
-                                    currentSegment += delta.content;
-                                    updateCurrentMessage('assistant', fullResponse, true);
-                                }
+                            // 处理错误
+                            if (data.error) {
+                                throw new Error(data.error);
                             }
 
-                            // 直接处理内容字段（如果存在）
-                            // else if (data.content) {
-                            //     const content = data.content;
-                            //     // Process each character one by one
-                            //     for (let i = 0; i < content.length; i++) {
-                            //         // Use IIFE to preserve the value of i in each iteration
-                            //         ((index) => {
-                            //             setTimeout(() => {
-                            //                 const char = content[index];
-                            //                 fullResponse += char;
-                            //                 currentSegment += char;
-                            //                 updateCurrentMessage('assistant', fullResponse, true);
-                            //             }, typingSpeed * index); // 50ms delay between characters (adjust as needed)
-                            //         })(i);
-                            //     }
-                            // }
-                            else if (data.content) {
-                                fullResponse += data.content;
-                                currentSegment += data.content;
-                                updateCurrentMessage('assistant', fullResponse, true);
+                            // 处理内容
+                            if (data.content) {
+                                // 将数据添加到流式处理器
+                                streamProcessor.addData(data.content);
                             }
                         } catch (e) {
                             console.error('解析JSON失败:', e, jsonStr);
@@ -320,18 +232,16 @@ async function sendMessage() {
             }
         }
 
-        // 重置暂停状态
-        isPaused = false;
-        hideContinuePrompt();
-
-        // 启用用户输入（以防万一前面的逻辑没有启用）
-        enableUserInput();
-
     } catch (error) {
         console.error('发送消息失败:', error);
         showError(`发送消息失败: ${error.message}`);
         hideLoading();
         enableUserInput();
+
+        // 重置流式处理器
+        if (streamProcessor) {
+            streamProcessor.reset();
+        }
     }
 }
 
@@ -431,7 +341,7 @@ async function changeBackground() {
 }
 
 // 更新当前消息
-function updateCurrentMessage(role, content, isStreaming = false) {
+function updateCurrentMessage(role, content, isStreaming = false, test = 0) {
     // 如果不是流式输出，停止当前正在进行的打字效果
     if (!isStreaming && currentTypingTimeout) {
         clearTimeout(currentTypingTimeout);
@@ -456,6 +366,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
         characterName.style.color = '#4caf50';
     }
 
+    //console.log(content+test)
     // 如果是流式输出，直接更新内容
     if (isStreaming) {
         currentMessage.textContent = content;
@@ -482,34 +393,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
     type();
 }*/
 
-// 跳过打字效果
-function skipTyping() {
-    if (isPaused) {
-        // 发送跳过命令
-        fetch('/api/chat/stream', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ control_action: 'skip' })
-        }).catch(error => {
-            console.error('发送跳过命令失败:', error);
-        });
 
-        // 重置暂停状态
-        isPaused = false;
-        continueButton.classList.remove('active');
-    } else if (currentTypingTimeout) {
-        clearTimeout(currentTypingTimeout);
-        currentTypingTimeout = null;
-
-        // 获取当前正在打字的完整消息
-        const lastMessage = messageHistory[messageHistory.length - 1];
-        if (lastMessage) {
-            currentMessage.textContent = lastMessage.content;
-        }
-    }
-}
 
 // 添加消息到历史记录
 function addToHistory(role, content, customName = null) {
@@ -882,20 +766,31 @@ function handleConfirmNo() {
 
 // 继续输出
 function continueOutput() {
-    if (isPaused) {
+    console.log('continueOutput called, isPaused:', isPaused, 'streamProcessor:', streamProcessor);
+
+    if (isPaused && streamProcessor) {
         isPaused = false;
         hideContinuePrompt();
 
-        // 发送继续命令
-        fetch('/api/chat/stream', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ control_action: 'continue' })
-        }).catch(error => {
-            console.error('发送继续命令失败:', error);
-        });
+        // 继续流式处理
+        streamProcessor.continue();
+    } else if (streamProcessor) {
+        // 如果没有暂停但有流式处理器，也尝试继续
+        hideContinuePrompt();
+        streamProcessor.continue();
+    }
+}
+
+// 跳过打字效果
+function skipTyping() {
+    if (streamProcessor && streamProcessor.isProcessing()) {
+        // 跳过当前流式处理
+        streamProcessor.skip();
+
+        // 重置状态
+        isPaused = false;
+        hideContinuePrompt();
+        enableUserInput();
     }
 }
 
@@ -921,7 +816,10 @@ function showContinuePrompt(promptText = '点击屏幕继续') {
         continuePrompt = document.createElement('div');
         continuePrompt.id = 'continuePrompt';
         continuePrompt.className = 'continue-prompt';
-        continuePrompt.addEventListener('click', continueOutput); // 添加点击事件
+        continuePrompt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            continueOutput();
+        });
         document.querySelector('.dialog-box').appendChild(continuePrompt);
     }
     continuePrompt.textContent = promptText;
@@ -929,6 +827,18 @@ function showContinuePrompt(promptText = '点击屏幕继续') {
 
     // 激活继续按钮
     continueButton.classList.add('active');
+
+    // 添加临时的全屏点击监听器
+    const handleScreenClick = (e) => {
+        console.log('Screen clicked during pause');
+        continueOutput();
+        document.removeEventListener('click', handleScreenClick);
+    };
+
+    // 延迟添加监听器，避免立即触发
+    setTimeout(() => {
+        document.addEventListener('click', handleScreenClick);
+    }, 100);
 }
 
 // 隐藏"点击屏幕继续"提示
@@ -940,4 +850,7 @@ function hideContinuePrompt() {
 
     // 取消激活继续按钮
     continueButton.classList.remove('active');
+
+    // 移除全屏点击监听器（如果存在）
+    // 注意：这里我们无法直接移除匿名函数，但新的点击会覆盖旧的行为
 }

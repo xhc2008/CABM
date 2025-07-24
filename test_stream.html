@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流式处理测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .output {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            min-height: 50px;
+        }
+        .continue-prompt {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            cursor: pointer;
+            text-align: center;
+            border: 1px solid #1976d2;
+        }
+        .continue-prompt:hover {
+            background: #bbdefb;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .primary { background: #2196f3; color: white; }
+        .secondary { background: #757575; color: white; }
+    </style>
+</head>
+<body>
+    <h1>流式处理测试</h1>
+    
+    <div class="test-container">
+        <h3>测试流式处理器</h3>
+        <button class="primary" onclick="testStreamProcessor()">开始测试</button>
+        <button class="secondary" onclick="skipTest()">跳过</button>
+        <button class="secondary" onclick="resetTest()">重置</button>
+        
+        <div class="output" id="output">等待测试...</div>
+        <div id="continuePrompt" class="continue-prompt" style="display: none;" onclick="continueTest()">
+            点击继续
+        </div>
+    </div>
+
+    <script src="/static/js/stream_processor.js"></script>
+    <script>
+        let processor = null;
+        let outputDiv = document.getElementById('output');
+        let continuePrompt = document.getElementById('continuePrompt');
+
+        function testStreamProcessor() {
+            // 重置输出
+            outputDiv.textContent = '';
+            continuePrompt.style.display = 'none';
+            
+            // 创建新的处理器
+            processor = new StreamProcessor();
+            
+            // 设置回调
+            processor.setCallbacks(
+                // 字符回调
+                (char, fullContent) => {
+                    outputDiv.textContent = fullContent;
+                },
+                // 暂停回调
+                (content) => {
+                    continuePrompt.style.display = 'block';
+                },
+                // 完成回调
+                (fullContent) => {
+                    continuePrompt.style.display = 'none';
+                    console.log('处理完成:', fullContent);
+                }
+            );
+            
+            // 模拟流式数据
+            const testText = "你好！这是一个流式响应示例。它将逐字显示，并在标点处暂停。你可以随时继续查看后续内容。准备好开始了吗？让我们开始吧！";
+            
+            // 模拟分块发送数据
+            let index = 0;
+            const sendChunk = () => {
+                if (index < testText.length) {
+                    const chunkSize = Math.floor(Math.random() * 5) + 1; // 1-5个字符
+                    const chunk = testText.slice(index, index + chunkSize);
+                    processor.addData(chunk);
+                    index += chunkSize;
+                    
+                    // 随机延迟后发送下一块
+                    setTimeout(sendChunk, Math.random() * 200 + 50);
+                } else {
+                    // 标记结束
+                    processor.markEnd();
+                }
+            };
+            
+            sendChunk();
+        }
+
+        function continueTest() {
+            if (processor) {
+                processor.continue();
+                continuePrompt.style.display = 'none';
+            }
+        }
+
+        function skipTest() {
+            if (processor) {
+                processor.skip();
+                continuePrompt.style.display = 'none';
+            }
+        }
+
+        function resetTest() {
+            if (processor) {
+                processor.reset();
+            }
+            outputDiv.textContent = '等待测试...';
+            continuePrompt.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
