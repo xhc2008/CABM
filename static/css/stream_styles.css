@@ -51,7 +51,9 @@
 
 .click-to-continue.active {
     display: block;
-}/* 
+}
+
+/* 
 调整对话框样式以适应段落指示器 */
 .dialog-box {
     position: relative;

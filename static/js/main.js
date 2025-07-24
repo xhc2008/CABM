@@ -93,17 +93,10 @@ let isProcessing = false;
 let isPaused = false;
 
 let messageHistory = [];
-
-let typingSpeed = 50; // 打字速度（毫秒/字符）
-
+let typingSpeed = 100; // 打字速度（毫秒/字符）
 let currentTypingTimeout = null;
 
 let currentConfirmCallback = null;
-
-// 流式处理器
-
-let streamHandler = null;
-
 
 
 // 初始化
@@ -114,8 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadCharacters();
 
-    
-
     // 绑定页面切换事件
 
     startButton.addEventListener('click', showChatPage);
@@ -123,8 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     backButton.addEventListener('click', confirmBackToHome);
 
     exitButton.addEventListener('click', confirmExit);
-
-    
 
     // 绑定对话事件
 
@@ -148,8 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     errorCloseButton.addEventListener('click', hideError);
 
-    
-
     // 绑定确认对话框事件
 
     confirmYesButton.addEventListener('click', handleConfirmYes);
@@ -157,8 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmNoButton.addEventListener('click', handleConfirmNo);
 
     closeConfirmButton.addEventListener('click', hideConfirmModal);
-
-    
 
     // 绑定回车键发送消息
 
@@ -174,8 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     });
 
-    
-
     // 绑定点击事件继续输出
 
     currentMessage.addEventListener('click', continueOutput);
@@ -184,7 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-
+// 流式处理器实例
+let streamProcessor = null;
 
 // 发送消息
 
@@ -193,8 +177,6 @@ async function sendMessage() {
     // 获取消息内容
 
     const message = messageInput.value.trim();
-
-    
 
     // 检查消息是否为空
 
@@ -206,8 +188,6 @@ async function sendMessage() {
 
     }
 
-    
-
     // 检查是否正在处理请求
 
     if (isProcessing) {
@@ -218,192 +198,139 @@ async function sendMessage() {
 
     }
 
-    
-
-    // 清理旧的流处理器
-
-    if (streamHandler) {
-
-        streamHandler.stop();
-
-        streamHandler = null;
-
-    }
-
-    
-
-    // 创建新的流处理器
-
-    streamHandler = new StreamHandler({
-
-        paragraphDelimiters: ["。", "！", "？", ".", "!", "?"],
-
-        endToken: "[DONE]"
-
-    });
-
-    
+    // 创建新的流式处理器
+    streamProcessor = new StreamProcessor();
 
     // 设置回调函数
+    streamProcessor.setCallbacks(
+        // 字符回调 - 每个字符输出时调用
+        (char, fullContent) => {
+            updateCurrentMessage('assistant', fullContent, true);
+        },
+        // 暂停回调 - 遇到标点符号暂停时调用
+        (content) => {
+            // 设置暂停状态
+            isPaused = true;
 
-    streamHandler.onSegmentComplete = (segment, index) => {
+            // 添加当前段落到历史记录
+            const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+            addToHistory('assistant', content, characterName);
 
-        // 显示继续按钮
+            // 显示继续提示
+            showContinuePrompt('点击屏幕继续');
+        },
+        // 完成回调 - 所有内容处理完成时调用
+        (fullContent) => {
+            // 如果还有未添加到历史记录的内容，添加它
+            if (fullContent && !messageHistory.some(msg => msg.content === fullContent && msg.role === 'assistant')) {
+                const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                addToHistory('assistant', fullContent, characterName);
+            }
 
-        continueButton.classList.add('active');
+            // 隐藏继续提示
+            hideContinuePrompt();
 
-        // 显示点击继续提示
+            // 启用用户输入
+            enableUserInput();
 
-        clickToContinue.classList.add('active');
-
-        // 保存当前段落到历史记录
-
-        const role = index === 1 ? 'assistant' : 'assistant_continue';
-
-        addToHistory(role, segment);
-
-        // 不修改当前消息内容，保留原有内容
-
-    };
-
-    
-
-    streamHandler.onContentUpdate = (content) => {
-
-        // 更新当前消息内容
-
-        updateCurrentMessage('assistant', content, true);
-
-    };
-
-    
-
-    streamHandler.onResponseComplete = (fullResponse, paragraphs) => {
-
-        // 注意：fullResponse现在为null，避免重复记录
-
-        // 所有段落都已经通过onSegmentComplete添加到历史记录中
-
-        
-
-        // 重置暂停状态
-
-        isPaused = false;
-
-        continueButton.classList.remove('active');
-
-        clickToContinue.classList.remove('active');
-
-        
-
-        // 启用输入框
-
-        messageInput.disabled = false;
-
-        sendButton.disabled = false;
-
-    };
-
-    
+            // 重置暂停状态
+            isPaused = false;
+        }
+    );
 
     // 更新当前消息为用户消息
-
     updateCurrentMessage('user', message);
 
-    
-
     // 添加到历史记录
-
     addToHistory('user', message);
 
-    
-
     // 清空输入框
-
     messageInput.value = '';
 
-    
-
-    // 禁用输入框，直到响应完成
-
-    messageInput.disabled = true;
-
-    sendButton.disabled = true;
-
-    
-
-    // 显示加载指示器
-
-    showLoading();
-
-    
+    // 禁用用户输入
+    disableUserInput();
 
     try {
-
         // 发送API请求
-
         const response = await fetch('/api/chat/stream', {
-
             method: 'POST',
-
             headers: {
-
                 'Content-Type': 'application/json'
-
             },
-
             body: JSON.stringify({ message })
-
         });
 
-        
-
         // 检查响应状态
-
         if (!response.ok) {
-
             const errorData = await response.json();
-
             throw new Error(errorData.error || '请求失败');
-
         }
 
-        
-
-        // 隐藏加载指示器，因为我们将开始接收流式响应
-
-        hideLoading();
-
-        
+        // 获取响应的读取器
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
         // 准备接收流式响应
-
         updateCurrentMessage('assistant', '');
 
-        
+        // 读取流式响应
+        while (true) {
+            const { done, value } = await reader.read();
 
-        // 开始处理流式响应
+            if (done) {
+                break;
+            }
 
-        await streamHandler.startReceiving(response.body);
+            // 解码响应数据
+            const chunk = decoder.decode(value, { stream: true });
 
-        
+            try {
+                // 解析流式数据
+                const lines = chunk.split('\n').filter(line => line.trim());
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const jsonStr = line.slice(6);
+
+                        if (jsonStr === '[DONE]') {
+                            // 标记流式处理结束
+                            streamProcessor.markEnd();
+                            break;
+                        }
+
+                        try {
+                            const data = JSON.parse(jsonStr);
+
+                            // 处理错误
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+
+                            // 处理内容
+                            if (data.content) {
+                                // 将数据添加到流式处理器
+                                streamProcessor.addData(data.content);
+                            }
+                        } catch (e) {
+                            console.error('解析JSON失败:', e, jsonStr);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('解析流式响应失败:', e);
+            }
+        }
 
     } catch (error) {
-
         console.error('发送消息失败:', error);
-
         showError(`发送消息失败: ${error.message}`);
-
         hideLoading();
+        enableUserInput();
 
-        
-
-        // 启用输入框
-
-        messageInput.disabled = false;
-
-        sendButton.disabled = false;
-
+        // 重置流式处理器
+        if (streamProcessor) {
+            streamProcessor.reset();
+        }
     }
 
 }
@@ -424,13 +351,9 @@ async function clearChat() {
 
     }
 
-    
-
     // 显示加载指示器
 
     showLoading();
-
-    
 
     try {
 
@@ -450,13 +373,9 @@ async function clearChat() {
 
         });
 
-        
-
         // 解析响应
 
         const data = await response.json();
-
-        
 
         // 检查响应是否成功
 
@@ -466,21 +385,15 @@ async function clearChat() {
 
         }
 
-        
-
         // 清空历史记录
 
         messageHistory = [];
 
         historyMessages.innerHTML = '';
 
-        
-
         // 更新当前消息
 
         updateCurrentMessage('assistant', '对话已重置。有什么我可以帮助您的？');
-
-        
 
     } catch (error) {
 
@@ -514,13 +427,9 @@ async function changeBackground() {
 
     }
 
-    
-
     // 显示加载指示器
 
     showLoading();
-
-    
 
     try {
 
@@ -540,13 +449,9 @@ async function changeBackground() {
 
         });
 
-        
-
         // 解析响应
 
         const data = await response.json();
-
-        
 
         // 检查响应是否成功
 
@@ -556,31 +461,20 @@ async function changeBackground() {
 
         }
 
-        
-
         // 更新背景图片
 
         if (data.background_url) {
 
             updateBackground(data.background_url);
 
-            
-
             // 添加系统消息
-
-            const promptMessage = data.prompt ? 
-
-                `背景已更新，提示词: "${data.prompt}"` : 
-
+            const promptMessage = data.prompt ?
+                `背景已更新，提示词: "${data.prompt}"` :
                 '背景已更新';
-
-            
 
             updateCurrentMessage('system', promptMessage);
 
         }
-
-        
 
     } catch (error) {
 
@@ -601,9 +495,7 @@ async function changeBackground() {
 
 
 // 更新当前消息
-
-function updateCurrentMessage(role, content, isStreaming = false) {
-
+function updateCurrentMessage(role, content, isStreaming = false, test = 0) {
     // 如果不是流式输出，停止当前正在进行的打字效果
 
     if (!isStreaming && currentTypingTimeout) {
@@ -613,8 +505,6 @@ function updateCurrentMessage(role, content, isStreaming = false) {
         currentTypingTimeout = null;
 
     }
-
-    
 
     // 更新角色名称
 
@@ -635,9 +525,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
             characterName.style.color = currentCharacter.color;
 
         } else {
-
-            characterName.textContent = '时雨绮罗';
-
+            characterName.textContent = 'AI';
             characterName.style.color = '#ffeb3b';
 
         }
@@ -650,8 +538,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
     }
 
-    
-
+    //console.log(content+test)
     // 如果是流式输出，直接更新内容
 
     if (isStreaming) {
@@ -662,8 +549,6 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
     }
 
-    
-
     // 直接显示消息
 
     currentMessage.textContent = content;
@@ -673,14 +558,10 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
 
 // 打字机效果
-
-function typeMessage(content) {
-
+/*function typeMessage(content) {
     let i = 0;
 
     currentMessage.textContent = '';
-
-    
 
     function type() {
 
@@ -696,60 +577,15 @@ function typeMessage(content) {
 
     }
 
-    
-
     type();
-
-}
-
+}*/
 
 
-// 跳过当前段落
-
-function skipTyping() {
-
-    if (streamHandler && streamHandler.isPaused) {
-
-        // 跳过当前段落
-
-        streamHandler.skip();
-
-        
-
-        // 隐藏继续按钮和点击继续提示
-
-        continueButton.classList.remove('active');
-
-        clickToContinue.classList.remove('active');
-
-    } else if (currentTypingTimeout) {
-
-        clearTimeout(currentTypingTimeout);
-
-        currentTypingTimeout = null;
-
-        
-
-        // 获取当前正在打字的完整消息
-
-        const lastMessage = messageHistory[messageHistory.length - 1];
-
-        if (lastMessage) {
-
-            currentMessage.textContent = lastMessage.content;
-
-        }
-
-    }
-
-}
 
 
 
 // 添加消息到历史记录
-
-function addToHistory(role, content) {
-
+function addToHistory(role, content, customName = null) {
     // 添加到内存中的历史记录
 
     messageHistory.push({
@@ -760,55 +596,39 @@ function addToHistory(role, content) {
 
     });
 
-    
-
     // 添加到历史记录面板
 
     const messageDiv = document.createElement('div');
 
     messageDiv.className = `history-message history-${role}`;
 
-    
-
     const roleSpan = document.createElement('div');
 
     roleSpan.className = 'history-role';
 
-    
-
-    // 使用当前角色名称
-
+    // 使用当前角色名称或自定义名称
+    let roleName = '';
     if (role === 'user') {
-
-        roleSpan.textContent = '你';
-
-    } else if (role === 'assistant' || role === 'assistant_continue') {
-
-        roleSpan.textContent = currentCharacter ? currentCharacter.name : '时雨绮罗';
-
-        // 如果是继续的消息，添加特殊样式
-
-        if (role === 'assistant_continue') {
-
-            roleSpan.classList.add('history-role-continue');
-
-        }
-
+        roleName = '你';
+        roleSpan.textContent = roleName;
+    } else if (role === 'assistant') {
+        roleName = customName || (currentCharacter ? currentCharacter.name : 'AI');
+        roleSpan.textContent = roleName;
     } else {
-
-        roleSpan.textContent = '系统';
-
+        roleName = '系统';
+        roleSpan.textContent = roleName;
     }
-
-    
 
     const contentDiv = document.createElement('div');
 
     contentDiv.className = 'history-content';
 
-    contentDiv.textContent = content;
-
-    
+    // 为每个段落添加角色名称前缀
+    if (role === 'assistant') {
+        contentDiv.textContent = content;
+    } else {
+        contentDiv.textContent = content;
+    }
 
     messageDiv.appendChild(roleSpan);
 
@@ -850,13 +670,9 @@ function updateBackground(url) {
 
     const backgroundElements = document.getElementsByClassName('background-image');
 
-    
-
     if (backgroundElements.length > 0) {
 
         const backgroundElement = backgroundElements[0];
-
-        
 
         // 创建新背景元素
 
@@ -868,13 +684,9 @@ function updateBackground(url) {
 
         newBackground.style.opacity = '0';
 
-        
-
         // 添加新背景
 
         backgroundElement.parentNode.appendChild(newBackground);
-
-        
 
         // 淡入新背景
 
@@ -882,13 +694,9 @@ function updateBackground(url) {
 
             newBackground.style.opacity = '1';
 
-            
-
             // 淡出旧背景
 
             backgroundElement.style.opacity = '0';
-
-            
 
             // 移除旧背景
 
@@ -962,19 +770,13 @@ async function loadCharacters() {
 
         showLoading();
 
-        
-
         // 发送API请求
 
         const response = await fetch('/api/characters');
 
-        
-
         // 解析响应
 
         const data = await response.json();
-
-        
 
         // 检查响应是否成功
 
@@ -984,21 +786,15 @@ async function loadCharacters() {
 
         }
 
-        
-
         // 更新角色数据
 
         availableCharacters = data.available_characters;
 
         currentCharacter = data.current_character;
 
-        
-
         // 更新角色图片
 
         updateCharacterImage();
-
-        
 
         // 更新当前消息
 
@@ -1012,15 +808,11 @@ async function loadCharacters() {
 
         }
 
-        
-
     } catch (error) {
 
         console.error('加载角色数据失败:', error);
 
         showError(`加载角色数据失败: ${error.message}`);
-
-        
 
         // 设置默认消息
 
@@ -1045,8 +837,6 @@ function updateCharacterImage() {
     // 获取角色图片元素
 
     const characterImage = document.getElementById('characterImage');
-
-    
 
     // 如果有当前角色，更新图片
 
@@ -1074,8 +864,6 @@ function toggleCharacterModal() {
 
         characterModal.style.display = 'flex';
 
-        
-
         // 渲染角色列表
 
         renderCharacterList();
@@ -1094,8 +882,6 @@ function renderCharacterList() {
 
     characterList.innerHTML = '';
 
-    
-
     // 遍历可用角色
 
     availableCharacters.forEach(character => {
@@ -1108,15 +894,11 @@ function renderCharacterList() {
 
         card.dataset.characterId = character.id;
 
-        
-
         // 创建角色图片
 
         const imageContainer = document.createElement('div');
 
         imageContainer.className = 'character-card-image';
-
-        
 
         const image = document.createElement('img');
 
@@ -1124,11 +906,7 @@ function renderCharacterList() {
 
         image.alt = character.name;
 
-        
-
         imageContainer.appendChild(image);
-
-        
 
         // 创建角色名称
 
@@ -1140,8 +918,6 @@ function renderCharacterList() {
 
         name.style.color = character.color;
 
-        
-
         // 创建角色描述
 
         const description = document.createElement('div');
@@ -1149,8 +925,6 @@ function renderCharacterList() {
         description.className = 'character-card-description';
 
         description.textContent = character.description;
-
-        
 
         // 组装角色卡片
 
@@ -1160,8 +934,6 @@ function renderCharacterList() {
 
         card.appendChild(description);
 
-        
-
         // 添加点击事件
 
         card.addEventListener('click', () => {
@@ -1169,8 +941,6 @@ function renderCharacterList() {
             selectCharacter(character.id);
 
         });
-
-        
 
         // 添加到角色列表
 
@@ -1192,8 +962,6 @@ async function selectCharacter(characterId) {
 
         showLoading();
 
-        
-
         // 发送API请求
 
         const response = await fetch(`/api/characters/${characterId}`, {
@@ -1208,13 +976,9 @@ async function selectCharacter(characterId) {
 
         });
 
-        
-
         // 解析响应
 
         const data = await response.json();
-
-        
 
         // 检查响应是否成功
 
@@ -1224,25 +988,17 @@ async function selectCharacter(characterId) {
 
         }
 
-        
-
         // 更新当前角色
 
         currentCharacter = data.character;
-
-        
 
         // 更新角色图片
 
         updateCharacterImage();
 
-        
-
         // 更新角色列表
 
         renderCharacterList();
-
-        
 
         // 更新当前消息
 
@@ -1252,13 +1008,9 @@ async function selectCharacter(characterId) {
 
         }
 
-        
-
         // 关闭角色选择弹窗
 
         toggleCharacterModal();
-
-        
 
     } catch (error) {
 
@@ -1316,8 +1068,6 @@ function confirmBackToHome() {
 
             historyMessages.innerHTML = '';
 
-            
-
             // 返回主页
 
             showHomePage();
@@ -1356,8 +1106,6 @@ async function exitApplication() {
 
         showLoading();
 
-        
-
         // 发送API请求
 
         const response = await fetch('/api/exit', {
@@ -1372,13 +1120,9 @@ async function exitApplication() {
 
         });
 
-        
-
         // 解析响应
 
         const data = await response.json();
-
-        
 
         // 检查响应是否成功
 
@@ -1388,13 +1132,9 @@ async function exitApplication() {
 
         }
 
-        
-
         // 关闭窗口
 
         window.close();
-
-        
 
         // 如果window.close()不起作用（大多数浏览器会阻止），显示提示
 
@@ -1403,8 +1143,6 @@ async function exitApplication() {
             showError('请手动关闭浏览器窗口');
 
         }, 1000);
-
-        
 
     } catch (error) {
 
@@ -1475,21 +1213,91 @@ function handleConfirmNo() {
 // 继续输出
 
 function continueOutput() {
+    console.log('continueOutput called, isPaused:', isPaused, 'streamProcessor:', streamProcessor);
 
-    if (streamHandler && streamHandler.isPaused) {
+    if (isPaused && streamProcessor) {
+        isPaused = false;
+        hideContinuePrompt();
 
-        // 继续输出
+        // 继续流式处理
+        streamProcessor.continue();
+    } else if (streamProcessor) {
+        // 如果没有暂停但有流式处理器，也尝试继续
+        hideContinuePrompt();
+        streamProcessor.continue();
+    }
+}
 
-        streamHandler.continue();
+// 跳过打字效果
+function skipTyping() {
+    if (streamProcessor && streamProcessor.isProcessing()) {
+        // 跳过当前流式处理
+        streamProcessor.skip();
 
-        
+        // 重置状态
+        isPaused = false;
+        hideContinuePrompt();
+        enableUserInput();
+    }
+}
 
-        // 隐藏继续按钮和点击继续提示
+// 禁用用户输入
+function disableUserInput() {
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+    messageInput.placeholder = "AI正在回复中...";
+}
 
-        continueButton.classList.remove('active');
+// 启用用户输入
+function enableUserInput() {
+    messageInput.disabled = false;
+    sendButton.disabled = false;
+    messageInput.placeholder = "输入消息...";
+}
 
-        clickToContinue.classList.remove('active');
+// 显示"点击屏幕继续"提示
+function showContinuePrompt(promptText = '点击屏幕继续') {
+    // 创建或获取继续提示元素
+    let continuePrompt = document.getElementById('continuePrompt');
+    if (!continuePrompt) {
+        continuePrompt = document.createElement('div');
+        continuePrompt.id = 'continuePrompt';
+        continuePrompt.className = 'continue-prompt';
+        continuePrompt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            continueOutput();
+        });
+        document.querySelector('.dialog-box').appendChild(continuePrompt);
+    }
+    continuePrompt.textContent = promptText;
+    continuePrompt.style.display = 'block';
 
+    // 激活继续按钮
+    continueButton.classList.add('active');
+
+    // 添加临时的全屏点击监听器
+    const handleScreenClick = (e) => {
+        console.log('Screen clicked during pause');
+        continueOutput();
+        document.removeEventListener('click', handleScreenClick);
+    };
+
+    // 延迟添加监听器，避免立即触发
+    setTimeout(() => {
+        document.addEventListener('click', handleScreenClick);
+    }, 100);
+}
+
+// 隐藏"点击屏幕继续"提示
+function hideContinuePrompt() {
+    const continuePrompt = document.getElementById('continuePrompt');
+    if (continuePrompt) {
+        continuePrompt.style.display = 'none';
     }
 
+    // 取消激活继续按钮
+    continueButton.classList.remove('active');
+
+    // 移除全屏点击监听器（如果存在）
+    // 注意：这里我们无法直接移除匿名函数，但新的点击会覆盖旧的行为
 }
