@@ -201,6 +201,9 @@ async function sendMessage() {
     // 创建新的流式处理器
     streamProcessor = new StreamProcessor();
 
+    // 跟踪已添加到历史记录的内容长度
+    let addedToHistoryLength = 0;
+
     // 设置回调函数
     streamProcessor.setCallbacks(
         // 字符回调 - 每个字符输出时调用
@@ -208,23 +211,28 @@ async function sendMessage() {
             updateCurrentMessage('assistant', fullContent, true);
         },
         // 暂停回调 - 遇到标点符号暂停时调用
-        (content) => {
+        (fullContent) => {
             // 设置暂停状态
             isPaused = true;
 
-            // 添加当前段落到历史记录
-            const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-            addToHistory('assistant', content, characterName);
+            // 只添加新的内容段落到历史记录
+            const newContent = fullContent.substring(addedToHistoryLength);
+            if (newContent) {
+                const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                addToHistory('assistant', newContent, characterName);
+                addedToHistoryLength = fullContent.length;
+            }
 
-            // 显示继续提示
-            showContinuePrompt('点击屏幕继续');
+            // 显示继续提示（不传递文字参数，避免添加到聊天内容）
+            showContinuePrompt();
         },
         // 完成回调 - 所有内容处理完成时调用
         (fullContent) => {
-            // 如果还有未添加到历史记录的内容，添加它
-            if (fullContent && !messageHistory.some(msg => msg.content === fullContent && msg.role === 'assistant')) {
+            // 添加任何剩余的未添加到历史记录的内容
+            const remainingContent = fullContent.substring(addedToHistoryLength);
+            if (remainingContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                addToHistory('assistant', fullContent, characterName);
+                addToHistory('assistant', remainingContent, characterName);
             }
 
             // 隐藏继续提示
@@ -1257,23 +1265,14 @@ function enableUserInput() {
 
 // 显示"点击屏幕继续"提示
 function showContinuePrompt(promptText = '点击屏幕继续') {
-    // 创建或获取继续提示元素
-    let continuePrompt = document.getElementById('continuePrompt');
-    if (!continuePrompt) {
-        continuePrompt = document.createElement('div');
-        continuePrompt.id = 'continuePrompt';
-        continuePrompt.className = 'continue-prompt';
-        continuePrompt.addEventListener('click', (e) => {
-            e.stopPropagation();
-            continueOutput();
-        });
-        document.querySelector('.dialog-box').appendChild(continuePrompt);
-    }
-    continuePrompt.textContent = promptText;
-    continuePrompt.style.display = 'block';
-
-    // 激活继续按钮
+    // 激活继续按钮来显示提示
     continueButton.classList.add('active');
+
+    // 如果有clickToContinue元素，显示它
+    if (clickToContinue) {
+        clickToContinue.style.display = 'block';
+        clickToContinue.textContent = promptText;
+    }
 
     // 添加临时的全屏点击监听器
     const handleScreenClick = (e) => {
