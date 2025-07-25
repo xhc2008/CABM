@@ -197,7 +197,7 @@ if __name__ == "__main__":
         print(f"图像API URL: {config_service.get_image_api_url()}")
         print(f"对话模型: {config_service.get_chat_config()['model']}")
         print(f"图像模型: {config_service.get_image_config()['model']}")
-        print(f"流式输出速度: {config_service.get_stream_config()['output_speed']} 字符/秒")
+        print(f"流式输出启用: {config_service.get_stream_config()['enable_streaming']}")
         
         # 测试角色配置
         character = config_service.get_character_config()
