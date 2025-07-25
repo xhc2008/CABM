@@ -6,16 +6,16 @@ from utils.env_utils import get_env_var
 
 # 对话模型配置
 CHAT_CONFIG = {
-    "model": os.getenv("CHAT_MODEL", "deepseek-ai/DeepSeek-V3"),  
+    "model": "deepseek-ai/DeepSeek-V3",  # 默认模型
     "max_tokens": 4096,   # 最大生成令牌数
     "top_k": 5,           # Top-K采样
     "temperature": 1.0,   # 温度参数，控制创造性
-    "stream": False,       # 默认使用流式输出
+    "stream": True,       # 默认使用流式输出
 }
 
-# 决策模型配置（用于场景切换）(暂未启用)
+# 决策模型配置（用于场景切换）
 DECISION_MODEL_CONFIG = {
-    "model": os.getenv("DECISION_MODEL", "Qwen/Qwen3-8B"), 
+    "model": "Qwen/Qwen3-8B",  # 决策模型
     "max_tokens": 256,    # 最大生成令牌数
     "temperature": 0.2,   # 低温度，提高确定性
     "stream": False,      # 不使用流式输出
@@ -33,7 +33,7 @@ STREAM_CONFIG = {
 
 # 图像生成模型配置
 IMAGE_CONFIG = {
-    "model":  os.getenv("IMAGE_MODEL", "Kwai-Kolors/Kolors"),  # 默认模型
+    "model": "Kwai-Kolors/Kolors",  # 默认模型
     "image_size": "1024x1024",      # 默认图像尺寸
     "batch_size": 1,                # 默认生成数量
     "num_inference_steps": 20,      # 推理步数
