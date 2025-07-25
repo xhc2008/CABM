@@ -1,27 +1,50 @@
 import json
 import os
 import requests
+import signal
+import logging
+from datetime import datetime
 from typing import List, Dict, Optional, Union
 import numpy as np
 from collections import defaultdict
-from env_utils import get_env_var
+from utils.env_utils import get_env_var
+
+class TimeoutError(Exception):
+    """超时异常"""
+    pass
+
+def timeout_handler(signum, frame):
+    """超时处理函数"""
+    raise TimeoutError("操作超时")
 
 class ChatHistoryVectorDB:
-    def __init__(self, api_key: str = None, model: str = None):
+    def __init__(self, api_key: str = None, model: str = None, character_name: str = "default"):
         """
         初始化向量数据库
         
         参数:
             api_key: Silicon Flow API的密钥，如果为None则从环境变量读取
             model: 使用的嵌入模型，如果为None则从环境变量读取
+            character_name: 角色名称，用于确定数据库文件名
         """
         self.api_key = api_key or get_env_var('EMBEDDING_API_KEY')
         self.model = model or get_env_var('EMBEDDING_MODEL', 'BAAI/bge-m3')
         self.url = get_env_var('EMBEDDING_API_URL', 'https://api.siliconflow.cn/v1/embeddings')
+        self.character_name = character_name
         self.vectors = []  # 存储所有向量
         self.metadata = []  # 存储对应的元数据
         self.text_to_index = defaultdict(list)  # 文本到索引的映射
         self.loaded_texts = set()  # 记录已加载的文本，避免重复处理
+        
+        # 设置日志
+        self.logger = logging.getLogger(f"MemoryDB_{character_name}")
+        
+        # 确保数据目录存在
+        self.memory_dir = "data/memory"
+        os.makedirs(self.memory_dir, exist_ok=True)
+        
+        # 数据库文件路径
+        self.db_file_path = os.path.join(self.memory_dir, f"{character_name}_memory.json")
         
     def _get_embedding(self, text: str) -> Optional[List[float]]:
         """
@@ -76,84 +99,127 @@ class ChatHistoryVectorDB:
         self.metadata.append(metadata)
         self.text_to_index[text].append(len(self.vectors) - 1)
     
-    def search(self, query: str, top_k: int = 5) -> List[Dict]:
+    def search(self, query: str, top_k: int = 5, timeout: int = 10) -> List[Dict]:
         """
-        搜索与查询文本最相似的文本
+        搜索与查询文本最相似的文本（带超时）
         
         参数:
             query: 查询文本
             top_k: 返回的最相似结果数量
+            timeout: 超时时间（秒）
             
         返回:
             包含相似结果和元数据的字典列表
+            
+        异常:
+            TimeoutError: 当操作超时时
         """
         if not self.vectors:
             return []
+        
+        # 设置超时处理（仅在非Windows系统上）
+        if os.name != 'nt':  # 非Windows系统
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(timeout)
+        
+        try:
+            query_vector = self._get_embedding(query)
+            if query_vector is None:
+                return []
+                
+            # 计算余弦相似度
+            query_vector = np.array(query_vector)
+            vectors = np.array(self.vectors)
+            similarities = np.dot(vectors, query_vector) / (
+                np.linalg.norm(vectors, axis=1) * np.linalg.norm(query_vector)
+            )
             
-        query_vector = self._get_embedding(query)
-        if query_vector is None:
+            # 获取最相似的top_k个结果
+            top_indices = np.argsort(similarities)[-top_k:][::-1]
+            
+            results = []
+            for idx in top_indices:
+                result = {
+                    'text': self.metadata[idx]['text'],
+                    'similarity': float(similarities[idx]),
+                    'metadata': {k: v for k, v in self.metadata[idx].items() if k != 'text'}
+                }
+                results.append(result)
+                
+            return results
+            
+        except TimeoutError:
+            self.logger.warning(f"记忆检索超时 ({timeout}秒)")
             return []
-            
-        # 计算余弦相似度
-        query_vector = np.array(query_vector)
-        vectors = np.array(self.vectors)
-        similarities = np.dot(vectors, query_vector) / (
-            np.linalg.norm(vectors, axis=1) * np.linalg.norm(query_vector)
-        )
-        
-        # 获取最相似的top_k个结果
-        top_indices = np.argsort(similarities)[-top_k:][::-1]
-        
-        results = []
-        for idx in top_indices:
-            result = {
-                'text': self.metadata[idx]['text'],
-                'similarity': float(similarities[idx]),
-                'metadata': {k: v for k, v in self.metadata[idx].items() if k != 'text'}
-            }
-            results.append(result)
-            
-        return results
+        finally:
+            # 取消超时设置（仅在非Windows系统上）
+            if os.name != 'nt':
+                signal.alarm(0)
     
-    def save_to_file(self, file_path: str):
+    def save_to_file(self, file_path: str = None):
         """
         将向量数据库保存到文件
         
         参数:
-            file_path: 保存路径
+            file_path: 保存路径，如果为None则使用默认路径
         """
+        if file_path is None:
+            file_path = self.db_file_path
+            
         data = {
+            'character_name': self.character_name,
             'model': self.model,
             'vectors': self.vectors,
-            'metadata': self.metadata
+            'metadata': self.metadata,
+            'last_updated': datetime.now().isoformat()
         }
         
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            
+        self.logger.info(f"向量数据库已保存到 {file_path}")
 
-    def load_from_file(self, file_path: str):
+    def load_from_file(self, file_path: str = None):
         """
         从文件加载向量数据库
         
         参数:
-            file_path: 加载路径
+            file_path: 加载路径，如果为None则使用默认路径
         """
+        if file_path is None:
+            file_path = self.db_file_path
+            
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"文件 {file_path} 不存在")
+            self.logger.info(f"数据库文件不存在，将创建新的数据库: {file_path}")
+            return
             
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            self.character_name = data.get('character_name', self.character_name)
+            self.model = data.get('model', self.model)
+            self.vectors = data.get('vectors', [])
+            self.metadata = data.get('metadata', [])
             
-        self.model = data.get('model', self.model)
-        self.vectors = data.get('vectors', [])
-        self.metadata = data.get('metadata', [])
-        
-        # 重建文本到索引的映射
-        self.text_to_index = defaultdict(list)
-        for idx, meta in enumerate(self.metadata):
-            text = meta.get('text', '')
-            if text:
-                self.text_to_index[text].append(idx)
+            # 重建文本到索引的映射
+            self.text_to_index = defaultdict(list)
+            self.loaded_texts = set()
+            for idx, meta in enumerate(self.metadata):
+                text = meta.get('text', '')
+                if text:
+                    self.text_to_index[text].append(idx)
+                    self.loaded_texts.add(text)
+                    
+            self.logger.info(f"成功加载向量数据库，共 {len(self.vectors)} 条记录")
+            
+        except Exception as e:
+            self.logger.error(f"加载数据库失败: {e}")
+            # 初始化为空数据库
+            self.vectors = []
+            self.metadata = []
+            self.text_to_index = defaultdict(list)
+            self.loaded_texts = set()
 
     def load_from_log(self, file_path: str, incremental: bool = True):
         """
@@ -197,6 +263,85 @@ class ChatHistoryVectorDB:
                 except json.JSONDecodeError:
                     print(f"跳过无法解析的行: {line}")
                     continue
+    
+    def add_chat_turn(self, user_message: str, assistant_message: str, timestamp: str = None):
+        """
+        添加一轮对话到向量数据库
+        
+        参数:
+            user_message: 用户消息
+            assistant_message: 助手回复
+            timestamp: 时间戳，如果为None则使用当前时间
+        """
+        if timestamp is None:
+            timestamp = datetime.now().isoformat()
+        
+        # 将用户消息和助手回复组合成一个对话单元（用于向量化）
+        conversation_text = f"用户: {user_message}\n助手: {assistant_message}"
+        
+        # 添加到向量数据库（不在metadata中重复存储text）
+        metadata = {
+            'user_message': user_message,
+            'assistant_message': assistant_message,
+            'timestamp': timestamp,
+            'type': 'conversation'
+        }
+        
+        self.add_text(conversation_text, metadata)
+        self.logger.info(f"添加对话记录到向量数据库: {user_message[:50]}...")
+    
+    def initialize_database(self):
+        """
+        初始化数据库（加载现有数据）
+        """
+        self.load_from_file()
+        self.logger.info(f"记忆数据库初始化完成，角色: {self.character_name}")
+    
+    def get_relevant_memory(self, query: str, top_k: int = 3, timeout: int = 10, min_similarity: float = 0.3) -> str:
+        """
+        获取相关记忆并格式化为提示词
+        
+        参数:
+            query: 查询文本
+            top_k: 返回的最相似结果数量
+            timeout: 超时时间（秒）
+            min_similarity: 最小相似度阈值
+            
+        返回:
+            格式化的记忆提示词
+        """
+        try:
+            results = self.search(query, top_k, timeout)
+            
+            if not results:
+                return ""
+            
+            # 过滤低相似度的结果
+            filtered_results = [r for r in results if r['similarity'] >= min_similarity]
+            
+            if not filtered_results:
+                return ""
+            
+            # 格式化为提示词
+            memory_prompt = "以下是相关的历史对话记录，可以作为参考：\n\n"
+            
+            for i, result in enumerate(filtered_results, 1):
+                metadata = result['metadata']
+                if metadata.get('type') == 'conversation':
+                    memory_prompt += f"记录 {i}:\n"
+                    memory_prompt += f"用户: {metadata.get('user_message', '')}\n"
+                    memory_prompt += f"助手: {metadata.get('assistant_message', '')}\n"
+                    memory_prompt += f"时间: {metadata.get('timestamp', '')}\n\n"
+                else:
+                    memory_prompt += f"记录 {i}: {result['text']}\n\n"
+            
+            memory_prompt += "请参考以上历史记录，保持对话的连贯性和一致性。\n"
+            
+            return memory_prompt
+            
+        except Exception as e:
+            self.logger.error(f"获取相关记忆失败: {e}")
+            return ""
 
 
 # 使用示例
@@ -211,7 +356,7 @@ if __name__ == "__main__":
     #vector_db.add_text("测试文本", {"role": "test", "timestamp": "2023-01-01"})
     
     # 搜索相似文本
-    results = vector_db.search("我的名字是什么", top_k=3)
+    results = vector_db.search("", top_k=3)
     print("搜索结果:")
     for res in results:
         print(f"文本: {res['text']}, 相似度: {res['similarity']:.4f}")

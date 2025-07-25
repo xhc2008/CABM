@@ -96,8 +96,8 @@ def chat():
         # 添加用户消息
         chat_service.add_message("user", message)
         
-        # 调用对话API
-        response = chat_service.chat_completion(stream=False)
+        # 调用对话API（传递用户查询用于记忆检索）
+        response = chat_service.chat_completion(stream=False, user_query=message)
         
         # 获取助手回复
         assistant_message = None
@@ -144,8 +144,8 @@ def chat_stream():
         # 创建流式响应生成器
         def generate():
             try:
-                # 调用对话API（流式）
-                stream_gen = chat_service.chat_completion(stream=True)
+                # 调用对话API（流式，传递用户查询用于记忆检索）
+                stream_gen = chat_service.chat_completion(stream=True, user_query=message)
                 full_content = ""
                 
                 # 逐步返回响应
@@ -155,6 +155,18 @@ def chat_stream():
                         # 将完整消息添加到历史记录
                         if full_content:
                             chat_service.add_message("assistant", full_content)
+                            
+                            # 添加到记忆数据库
+                            try:
+                                character_id = chat_service.config_service.current_character_id or "default"
+                                chat_service.memory_service.add_conversation(
+                                    user_message=message,
+                                    assistant_message=full_content,
+                                    character_name=character_id
+                                )
+                            except Exception as e:
+                                print(f"添加对话到记忆数据库失败: {e}")
+                                
                         yield "data: [DONE]\n\n"
                         break
                     

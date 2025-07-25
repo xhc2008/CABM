@@ -63,6 +63,19 @@ def setup_environment():
                 logger.error(f"背景图片生成失败: {str(e)}")
                 logger.warning("将使用默认背景")
         
+        # 初始化记忆服务
+        logger.info("正在初始化记忆数据库...")
+        try:
+            from services.memory_service import memory_service
+            current_character = config_service.current_character_id or "default"
+            if memory_service.initialize_character_memory(current_character):
+                logger.info(f"记忆数据库初始化成功: {current_character}")
+            else:
+                logger.warning("记忆数据库初始化失败")
+        except Exception as e:
+            logger.error(f"记忆数据库初始化失败: {str(e)}")
+            logger.warning("将在没有记忆功能的情况下继续运行")
+        
         return True
     except Exception as e:
         logger.error(f"环境设置失败: {str(e)}")
