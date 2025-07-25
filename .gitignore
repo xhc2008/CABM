@@ -1,10 +1,15 @@
 # 环境变量文件
 .env
+
+#测试文件
 .kiro/
 .vscode/
 data/history/
+data/memory/
 plan.txt
 backups/
+log.txt
+
 # Python缓存文件
 __pycache__/
 *.py[cod]

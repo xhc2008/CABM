@@ -14,8 +14,9 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils.api_utils import make_api_request, APIError, handle_api_error, parse_stream_data
 from utils.history_utils import HistoryManager
+from utils.prompt_logger import prompt_logger
 from services.config_service import config_service
-# 注意：为了避免循环导入，scene_service将在ChatService类中导入
+# 注意：为了避免循环导入，scene_service和memory_service将在ChatService类中导入
 
 class Message:
     """消息类"""
@@ -62,8 +63,15 @@ class ChatService:
         history_dir = app_config["history_dir"]
         self.history_manager = HistoryManager(history_dir)
         
+        # 导入记忆服务（避免循环导入）
+        from services.memory_service import memory_service
+        self.memory_service = memory_service
+        
         # 初始化时加载历史记录
         self._load_history_on_startup()
+        
+        # 初始化当前角色的记忆数据库
+        self._initialize_character_memory()
     
     def add_message(self, role: str, content: str) -> Message:
         """
@@ -156,6 +164,11 @@ class ChatService:
             if msg["role"] != "system":  # 系统消息会通过set_system_prompt单独设置
                 self.history.append(Message.from_dict(msg))
     
+    def _initialize_character_memory(self):
+        """初始化当前角色的记忆数据库"""
+        character_id = self.config_service.current_character_id or "default"
+        self.memory_service.initialize_character_memory(character_id)
+    
     def set_character(self, character_id: str) -> bool:
         """
         设置角色
@@ -173,6 +186,9 @@ class ChatService:
             
             # 设置系统提示词
             self.set_system_prompt("character")
+            
+            # 初始化该角色的记忆数据库
+            self.memory_service.set_current_character(character_id)
             
             # 加载该角色的历史记录
             app_config = self.config_service.get_app_config()
@@ -216,14 +232,16 @@ class ChatService:
     def chat_completion(
         self, 
         messages: Optional[List[Dict[str, str]]] = None, 
-        stream: bool = True
+        stream: bool = True,
+        user_query: str = None
     ) -> Union[Dict[str, Any], Generator[Dict[str, Any], None, None]]:
         """
-        调用对话API
+        调用对话API（集成记忆检索）
         
         Args:
             messages: 消息列表，如果为None则使用历史记录
             stream: 是否使用流式输出
+            user_query: 用户查询，用于记忆检索和日志记录
             
         Returns:
             如果stream为False，返回完整响应
@@ -256,6 +274,42 @@ class ChatService:
                 system_prompt = f"{general_prompt}\n\n{character_config['prompt']}"
                 messages.insert(0, {"role": "system", "content": system_prompt})
         
+        # 如果有用户查询，进行记忆检索
+        memory_context = ""
+        if user_query:
+            try:
+                character_id = self.config_service.current_character_id or "default"
+                memory_context = self.memory_service.search_memory(
+                    query=user_query,
+                    character_name=character_id,
+                    top_k=3,
+                    timeout=10
+                )
+                
+                # 如果有相关记忆，添加到最后一条用户消息中
+                if memory_context and messages:
+                    # 找到最后一条用户消息
+                    for i in range(len(messages) - 1, -1, -1):
+                        if messages[i]["role"] == "user":
+                            original_content = messages[i]["content"]
+                            messages[i]["content"] = memory_context + "\n\n" + original_content
+                            break
+                            
+            except Exception as e:
+                print(f"记忆检索失败: {e}")
+                memory_context = ""
+        
+        # 记录完整提示词到日志
+        try:
+            character_id = self.config_service.current_character_id or "default"
+            prompt_logger.log_prompt(
+                messages=messages,
+                character_name=character_id,
+                user_query=user_query
+            )
+        except Exception as e:
+            print(f"记录提示词日志失败: {e}")
+        
         request_data = {
             **chat_config,
             "messages": messages,
@@ -282,12 +336,21 @@ class ChatService:
             if stream:
                 def stream_generator():
                     response.encoding = "utf-8"
+                    full_content = ""
                     
                     for line in response.iter_lines(decode_unicode=True):
                         if line:
                             parsed_data = parse_stream_data(line)
                             if parsed_data:
+                                # 收集完整内容用于后续添加到记忆
+                                if "choices" in parsed_data and len(parsed_data["choices"]) > 0:
+                                    delta = parsed_data["choices"][0].get("delta", {})
+                                    if "content" in delta:
+                                        full_content += delta["content"]
+                                
                                 yield parsed_data
+                    
+                    # 注意：记忆添加逻辑已移至app.py中处理，避免重复添加
                 
                 return stream_generator()
             
@@ -295,8 +358,21 @@ class ChatService:
             if "choices" in data and len(data["choices"]) > 0:
                 message = data["choices"][0].get("message", {})
                 if message and "content" in message:
+                    assistant_message = message["content"]
                     # 将助手回复添加到历史记录
-                    self.add_message("assistant", message["content"])
+                    self.add_message("assistant", assistant_message)
+                    
+                    # 添加到记忆数据库
+                    if user_query:
+                        try:
+                            character_id = self.config_service.current_character_id or "default"
+                            self.memory_service.add_conversation(
+                                user_message=user_query,
+                                assistant_message=assistant_message,
+                                character_name=character_id
+                            )
+                        except Exception as e:
+                            print(f"添加对话到记忆数据库失败: {e}")
             
             return data
             
