@@ -38,6 +38,12 @@ class ChatHistoryVectorDB:
         
         # 设置日志
         self.logger = logging.getLogger(f"MemoryDB_{character_name}")
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+            self.logger.setLevel(logging.INFO)
         
         # 确保数据目录存在
         self.memory_dir = "data/memory"
@@ -145,6 +151,16 @@ class ChatHistoryVectorDB:
                     'metadata': {k: v for k, v in self.metadata[idx].items() if k != 'text'}
                 }
                 results.append(result)
+            
+            # 记录检索结果到日志
+            if results:
+                self.logger.info(f"记忆检索查询: '{query}' -> 找到 {len(results)} 条相关记录")
+                for i, result in enumerate(results, 1):
+                    similarity = result['similarity']
+                    text_preview = result['text'][:100] + "..." if len(result['text']) > 100 else result['text']
+                    self.logger.info(f"  记录 {i}: 相似度={similarity:.3f}, 内容='{text_preview}'")
+            else:
+                self.logger.info(f"记忆检索查询: '{query}' -> 未找到相关记录")
                 
             return results
             
@@ -320,22 +336,35 @@ class ChatHistoryVectorDB:
             filtered_results = [r for r in results if r['similarity'] >= min_similarity]
             
             if not filtered_results:
+                self.logger.info(f"记忆过滤后无结果: 最小相似度阈值={min_similarity}, 原始结果数={len(results)}")
                 return ""
             
+            self.logger.info(f"记忆过滤结果: {len(filtered_results)}/{len(results)} 条记录通过相似度阈值 {min_similarity}")
+            
             # 格式化为提示词
-            memory_prompt = "以下是相关的历史对话记录，可以作为参考：\n\n"
+            memory_prompt = "以下是相关的记忆，可以作为参考：\n\n"
             
             for i, result in enumerate(filtered_results, 1):
                 metadata = result['metadata']
                 if metadata.get('type') == 'conversation':
+                    user_msg = metadata.get('user_message', '')
+                    assistant_msg = metadata.get('assistant_message', '')
+                    timestamp = metadata.get('timestamp', '')
+                    
                     memory_prompt += f"记录 {i}:\n"
-                    memory_prompt += f"用户: {metadata.get('user_message', '')}\n"
-                    memory_prompt += f"助手: {metadata.get('assistant_message', '')}\n"
-                    memory_prompt += f"时间: {metadata.get('timestamp', '')}\n\n"
+                    memory_prompt += f"用户: {user_msg}\n"
+                    memory_prompt += f"你: {assistant_msg}\n"
+                    memory_prompt += f"时间: {timestamp}\n\n"
+                    
+                    # 记录详细的记忆内容到日志
+                    self.logger.info(f"  -> 记录 {i}: 用户='{user_msg[:50]}...', 你='{assistant_msg[:50]}...', 相似度={result['similarity']:.3f}")
                 else:
                     memory_prompt += f"记录 {i}: {result['text']}\n\n"
+                    self.logger.info(f"  -> 记录 {i}: '{result['text'][:50]}...', 相似度={result['similarity']:.3f}")
             
-            memory_prompt += "请参考以上历史记录，保持对话的连贯性和一致性。\n"
+            memory_prompt += "请参考历史记录，保持对话的连贯性和一致性。\n"
+            
+            self.logger.info(f"生成记忆提示词: {len(memory_prompt)} 字符")
             
             return memory_prompt
             

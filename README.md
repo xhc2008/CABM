@@ -12,15 +12,15 @@
 - 前端的主页面（但是极简风）
 - 角色系统（可切换不同角色）
 - 分段流式输出（灵魂所在~）
+- 记忆系统（使用向量数据库长期保存记忆）
 - 很多的bug
 
 **正在开发：**
-- 修bug
 - 场景切换（让AI切换场景或生成新场景）
-- 记忆系统（使用向量数据库长期保存记忆）
 - 故事模式（根据大纲推动故事发展，区别于“闲聊模式”）
 - 角色的表情/动作（蹲一个免费的画师）
 - ~~角色语音~~（硬件受限，等我换个有独显的电脑再说）
+- 很多的bug
 
 
 ## 项目简介
@@ -71,16 +71,18 @@ cp .env.example .env
 ```
 # 对话API配置
 CHAT_API_URL=https://api.siliconflow.cn/v1/chat/completions
-CHAT_API_KEY=your_chat_api_key_here
+CHAT_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+CHAT_MODEL=deepseek-ai/DeepSeek-V3
 
 # 图像生成API配置
 IMAGE_API_URL=https://api.siliconflow.cn/v1/images/generations
-IMAGE_API_KEY=your_image_api_key_here
+IMAGE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+IMAGE_MODEL=Kwai-Kolors/Kolors
 
-# 应用配置
-DEBUG=False
-PORT=5000
-HOST=0.0.0.0
+# 嵌入向量API配置
+EMBEDDING_API_URL=https://api.siliconflow.cn/v1/embeddings
+EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMBEDDING_MODEL=BAAI/bge-m3
 ```
 
 ## 使用说明
