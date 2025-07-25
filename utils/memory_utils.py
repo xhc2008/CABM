@@ -4,33 +4,34 @@ import requests
 from typing import List, Dict, Optional, Union
 import numpy as np
 from collections import defaultdict
+from env_utils import get_env_var
 
 class ChatHistoryVectorDB:
-    def __init__(self, api_key: str, model: str = "BAAI/bge-large-zh-v1.5"):
+    def __init__(self, api_key: str = None, model: str = None):
         """
         初始化向量数据库
         
         参数:
-            api_key: Silicon Flow API的密钥
-            model: 使用的嵌入模型，默认为"BAAI/bge-large-zh-v1.5"
+            api_key: Silicon Flow API的密钥，如果为None则从环境变量读取
+            model: 使用的嵌入模型，如果为None则从环境变量读取
         """
-        self.api_key = api_key
-        self.model = model
-        self.url = "https://api.siliconflow.cn/v1/embeddings"
+        self.api_key = api_key or get_env_var('EMBEDDING_API_KEY')
+        self.model = model or get_env_var('EMBEDDING_MODEL', 'BAAI/bge-m3')
+        self.url = get_env_var('EMBEDDING_API_URL', 'https://api.siliconflow.cn/v1/embeddings')
         self.vectors = []  # 存储所有向量
         self.metadata = []  # 存储对应的元数据
         self.text_to_index = defaultdict(list)  # 文本到索引的映射
+        self.loaded_texts = set()  # 记录已加载的文本，避免重复处理
         
     def _get_embedding(self, text: str) -> Optional[List[float]]:
         """
-        调用API获取文本的嵌入向量
-        
-        参数:
-            text: 要嵌入的文本
-            
-        返回:
-            嵌入向量列表或None(如果失败)
+        调用API获取文本的嵌入向量（带缓存检查）
         """
+        # 如果已有该文本的向量，直接返回
+        if text in self.text_to_index:
+            return self.vectors[self.text_to_index[text][0]]
+            
+        # 否则调用API获取
         payload = {
             "model": self.model,
             "input": text
@@ -51,44 +52,7 @@ class ChatHistoryVectorDB:
         except Exception as e:
             print(f"获取嵌入时发生异常: {e}")
             return None
-    
-    def load_from_log(self, file_path: str):
-        """
-        从日志文件加载数据并生成向量
-        
-        参数:
-            file_path: 日志文件路径
-        """
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"文件 {file_path} 不存在")
-            
-        with open(file_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                try:
-                    entry = json.loads(line.strip())
-                    content = entry.get('content', '')
-                    if not content or len(content.strip()) < 1:
-                        continue
-                        
-                    # 获取嵌入向量
-                    vector = self._get_embedding(content)
-                    if vector is None:
-                        continue
-                        
-                    # 存储数据和元数据
-                    self.vectors.append(vector)
-                    metadata = {
-                        'text': content,
-                        'timestamp': entry.get('timestamp', ''),
-                        'role': entry.get('role', '')
-                    }
-                    self.metadata.append(metadata)
-                    self.text_to_index[content].append(len(self.vectors) - 1)
-                    
-                except json.JSONDecodeError:
-                    print(f"跳过无法解析的行: {line}")
-                    continue
-    
+
     def add_text(self, text: str, metadata: Optional[Dict] = None):
         """
         添加单个文本到向量数据库
@@ -166,7 +130,7 @@ class ChatHistoryVectorDB:
         
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-    
+
     def load_from_file(self, file_path: str):
         """
         从文件加载向量数据库
@@ -191,29 +155,71 @@ class ChatHistoryVectorDB:
             if text:
                 self.text_to_index[text].append(idx)
 
+    def load_from_log(self, file_path: str, incremental: bool = True):
+        """
+        从日志文件加载数据并生成向量（构建知识库，支持增量加载）
+        
+        参数:
+            file_path: 日志文件路径
+            incremental: 是否增量加载（只处理新内容）
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"文件 {file_path} 不存在")
+            
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    entry = json.loads(line.strip())
+                    content = entry.get('content', '')
+                    if not content or len(content.strip()) < 1:
+                        continue
+                        
+                    # 增量加载模式下，跳过已处理的文本
+                    if incremental and content in self.loaded_texts:
+                        continue
+                        
+                    # 获取嵌入向量（使用缓存机制）
+                    vector = self._get_embedding(content)
+                    if vector is None:
+                        continue
+                        
+                    # 存储数据和元数据
+                    self.vectors.append(vector)
+                    metadata = {
+                        'text': content,
+                        'timestamp': entry.get('timestamp', ''),
+                        'role': entry.get('role', '')
+                    }
+                    self.metadata.append(metadata)
+                    self.text_to_index[content].append(len(self.vectors) - 1)
+                    self.loaded_texts.add(content)
+                    
+                except json.JSONDecodeError:
+                    print(f"跳过无法解析的行: {line}")
+                    continue
+
 
 # 使用示例
 if __name__ == "__main__":
-    # 初始化向量数据库
-    api_key = "your_api_key_here"  # 替换为你的API密钥
-    vector_db = ChatHistoryVectorDB(api_key)
-    
-    # 从日志文件加载数据
-    vector_db.load_from_log("Silver_Wolf_history.log")
-    
+    # 初始化向量数据库（从环境变量自动读取配置）
+    vector_db = ChatHistoryVectorDB()
+    print("初始化完成")
+
+    vector_db.load_from_file("vector_db.json")
+    print("加载完成")
     # 添加单个文本
-    vector_db.add_text("测试文本", {"role": "test", "timestamp": "2023-01-01"})
+    #vector_db.add_text("测试文本", {"role": "test", "timestamp": "2023-01-01"})
     
     # 搜索相似文本
-    results = vector_db.search("你好", top_k=3)
+    results = vector_db.search("我的名字是什么", top_k=3)
     print("搜索结果:")
     for res in results:
         print(f"文本: {res['text']}, 相似度: {res['similarity']:.4f}")
         print(f"元数据: {res['metadata']}\n")
     
     # 保存向量数据库
-    vector_db.save_to_file("vector_db.json")
+    # vector_db.save_to_file("vector_db.json")
     
-    # 加载向量数据库
-    new_vector_db = ChatHistoryVectorDB(api_key)
-    new_vector_db.load_from_file("vector_db.json")
+    # # 加载向量数据库
+    # new_vector_db = ChatHistoryVectorDB()
+    # new_vector_db.load_from_file("vector_db.json")
