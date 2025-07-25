@@ -64,7 +64,7 @@ pip install flask requests python-dotenv
 cp .env.example .env
 ```
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
-如果使用其他平台，需要把API_URL换成对应的URL
+如果使用其他平台，需要替换对应的API_URL
 
 编辑`.env`文件，填写以下信息：
 
