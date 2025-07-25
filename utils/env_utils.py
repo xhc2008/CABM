@@ -6,6 +6,22 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
+# 自动加载环境变量
+_env_loaded = False
+
+def _auto_load_env():
+    """自动加载环境变量（仅加载一次）"""
+    global _env_loaded
+    if not _env_loaded:
+        base_dir = Path(__file__).resolve().parent.parent
+        env_path = base_dir / ".env"
+        if env_path.exists():
+            load_dotenv(env_path)
+            _env_loaded = True
+
+# 在模块导入时自动加载环境变量
+_auto_load_env()
+
 def load_env_vars(env_file=".env"):
     """
     加载环境变量文件
@@ -33,8 +49,10 @@ def load_env_vars(env_file=".env"):
     required_vars = [
         "CHAT_API_URL", 
         "CHAT_API_KEY",
+        "CHAT_MODEL",
         "IMAGE_API_URL",
-        "IMAGE_API_KEY"
+        "IMAGE_API_KEY",
+        "IMAGE_MODEL"
     ]
     
     missing_vars = [var for var in required_vars if not os.getenv(var)]

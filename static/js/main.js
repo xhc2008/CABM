@@ -93,7 +93,6 @@ let isProcessing = false;
 let isPaused = false;
 
 let messageHistory = [];
-let typingSpeed = 100; // 打字速度（毫秒/字符）
 let currentTypingTimeout = null;
 
 let currentConfirmCallback = null;
@@ -208,7 +207,7 @@ async function sendMessage() {
     streamProcessor.setCallbacks(
         // 字符回调 - 每个字符输出时调用
         (fullContent) => {
-            updateCurrentMessage('assistant', fullContent, true);
+            updateCurrentMessage('assistant', fullContent.substring(addedToHistoryLength), true);
         },
         // 暂停回调 - 遇到标点符号暂停时调用
         (fullContent) => {
@@ -279,7 +278,7 @@ async function sendMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        updateCurrentMessage('assistant', '');
+        updateCurrentMessage('assistant', '\n');
 
         // 读取流式响应
         while (true) {
@@ -565,28 +564,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
 
 
-// 打字机效果
-/*function typeMessage(content) {
-    let i = 0;
 
-    currentMessage.textContent = '';
-
-    function type() {
-
-        if (i < content.length) {
-
-            currentMessage.textContent += content.charAt(i);
-
-            i++;
-
-            currentTypingTimeout = setTimeout(type, typingSpeed);
-
-        }
-
-    }
-
-    type();
-}*/
 
 
 
