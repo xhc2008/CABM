@@ -86,7 +86,11 @@ def open_browser(url, delay=1.5):
     def _open_browser():
         time.sleep(delay)  # 等待服务器启动
         logger.info(f"正在浏览器中打开应用: {url}")
-        webbrowser.open(url)
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            logger.warning(f"无法自动打开浏览器: {e}")
+            logger.info(f"请手动在浏览器中访问: {url}")
     
     browser_thread = Thread(target=_open_browser)
     browser_thread.daemon = True
@@ -101,8 +105,9 @@ def start_server(host, port, debug=False, open_browser_flag=True):
         # 构建URL
         url = f"http://{host}:{port}"
         
-        # 如果需要，启动浏览器
-        if open_browser_flag:
+        # 如果需要，启动浏览器（只在非重载模式下打开）
+        # WERKZEUG_RUN_MAIN 环境变量在Flask重载时会被设置
+        if open_browser_flag and not os.environ.get('WERKZEUG_RUN_MAIN'):
             open_browser(url)
         
         # 启动应用
@@ -112,7 +117,8 @@ def start_server(host, port, debug=False, open_browser_flag=True):
         app.run(
             host=host,
             port=port,
-            debug=debug
+            debug=debug,
+            use_reloader=debug  # 只在debug模式下启用重载器
         )
         
         return True
@@ -147,7 +153,7 @@ def main():
     host = args.host or app_config["host"]
     port = args.port or app_config["port"]
     debug = args.debug or app_config["debug"]
-    open_browser_flag = not args.no_browser
+    open_browser_flag = not args.no_browser and app_config.get("auto_open_browser", True)
     
     # 启动服务器
     if not start_server(host, port, debug, open_browser_flag):

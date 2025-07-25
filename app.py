@@ -345,5 +345,7 @@ if __name__ == '__main__':
     # 启动应用
     app.run(
         host=app_config["host"],
-        port=app_config["port"]
+        port=app_config["port"],
+        debug=app_config["debug"],
+        use_reloader=app_config["debug"]  # 只在debug模式下启用重载器
     )

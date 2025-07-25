@@ -57,6 +57,7 @@ APP_CONFIG = {
     "max_history_length": 4,  # 最大对话历史长度（发送给AI的上下文长度）
     "history_dir": "data/history",  # 历史记录存储目录
     "show_scene_name": True,  # 是否在前端显示场景名称
+    "auto_open_browser": get_env_var("AUTO_OPEN_BROWSER", "True").lower() == "true",  # 是否自动打开浏览器
 }
 
 def get_chat_config():

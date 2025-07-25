@@ -87,12 +87,22 @@ class MemoryService:
             self.logger.warning("没有指定角色，无法搜索记忆")
             return ""
         
+        self.logger.info(f"开始记忆搜索: 角色={character_name}, 查询='{query}', top_k={top_k}, 超时={timeout}秒")
+        
         # 确保角色记忆数据库已初始化
         if not self.initialize_character_memory(character_name):
+            self.logger.error(f"角色记忆数据库初始化失败: {character_name}")
             return ""
         
         memory_db = self.memory_databases[character_name]
-        return memory_db.get_relevant_memory(query, top_k, timeout)
+        result = memory_db.get_relevant_memory(query, top_k, timeout)
+        
+        if result:
+            self.logger.info(f"记忆搜索完成: 生成了 {len(result)} 字符的记忆上下文")
+        else:
+            self.logger.info("记忆搜索完成: 未找到相关记忆")
+        
+        return result
     
     def add_conversation(self, user_message: str, assistant_message: str, character_name: str = None):
         """

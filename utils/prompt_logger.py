@@ -32,14 +32,15 @@ class PromptLogger:
         参数:
             messages: 发送给模型的消息列表
             character_name: 角色名称
-            user_query: 用户查询
+            user_query: 用户查询（原始请求）
         """
         try:
             # 构建日志条目
             log_entry = {
                 "timestamp": datetime.now().isoformat(),
                 "character_name": character_name,
-                "user_query": user_query,
+                "original_user_request": user_query,  # 明确标识为原始用户请求
+                "user_query": user_query,  # 保持向后兼容
                 "messages": messages,
                 "total_messages": len(messages)
             }
@@ -50,7 +51,22 @@ class PromptLogger:
             
             # 写入日志文件
             with open(self.log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+                # 写入分隔线和标题
+                f.write("=" * 80 + "\n")
+                character_info = f" - 角色: {character_name}" if character_name else ""
+                f.write(f"[{datetime.now().isoformat()}] 发送给AI的完整请求记录{character_info}\n")
+                f.write("=" * 80 + "\n")
+                
+                # 写入原始用户请求（突出显示）
+                if user_query:
+                    f.write("🔥【原始用户请求 - 未经任何加工】🔥:\n")
+                    f.write(f">>> {user_query}\n")
+                    f.write("-" * 50 + "\n")
+                
+                # 写入完整的消息结构
+                f.write("【发送给AI的完整消息】:\n")
+                f.write(json.dumps(log_entry, ensure_ascii=False, indent=2) + "\n")
+                f.write("=" * 80 + "\n\n")
             
             self.logger.info(f"记录提示词日志: {len(messages)} 条消息, {total_chars} 字符")
             
@@ -67,7 +83,7 @@ class PromptLogger:
             user_prompt: 用户提示词
             memory_context: 记忆上下文
             character_name: 角色名称
-            user_query: 原始用户查询
+            user_query: 原始用户查询（未经任何加工的用户输入）
         """
         try:
             # 构建完整的消息列表
