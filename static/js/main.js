@@ -1319,3 +1319,29 @@ function hideContinuePrompt() {
         currentScreenClickHandler = null;
     }
 }
+
+
+function registrationShortcuts(config) {
+    document.addEventListener('keydown', e => { 
+        if (e.key in config) {
+            // For single-letter keys, require Alt to be pressed
+            if (e.key.length === 1) {
+                if (e.altKey) {
+                    config[e.key]();
+                }
+            }
+            else {
+                config[e.key]();
+            }
+        }
+    });
+}
+
+registrationShortcuts({
+    Enter: continueOutput,
+    s: skipTyping,
+    h: toggleHistory,
+    b: changeBackground,
+    c: clearChat,
+    ç: clearChat // 为了解决部分快捷键冲突
+});
