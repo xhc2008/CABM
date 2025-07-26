@@ -13,7 +13,7 @@ CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
 
 # 角色设定
 CHARACTER_DESCRIPTION = """
-天才骇客少女，毒舌但会在意朋友，常用网络梗。
+天才骇客少女
 """
 
 # AI系统提示词

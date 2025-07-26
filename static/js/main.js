@@ -1046,13 +1046,13 @@ function confirmBackToHome() {
 
     if (messageHistory.length > 0) {
 
-        showConfirmModal('返回主页将清空当前对话，确定要返回吗？', () => {
+        showConfirmModal('确定要返回吗？', () => {
 
             // 清空对话历史
 
-            messageHistory = [];
+            // messageHistory = [];
 
-            historyMessages.innerHTML = '';
+            // historyMessages.innerHTML = '';
 
             // 返回主页
 
@@ -1242,7 +1242,7 @@ function enableUserInput() {
 }
 
 // 显示"点击屏幕继续"提示
-function showContinuePrompt(promptText = '点击屏幕继续') {
+function showContinuePrompt(promptText = '▽') {
     // 激活继续按钮来显示提示
     continueButton.classList.add('active');
 
