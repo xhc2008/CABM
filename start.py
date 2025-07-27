@@ -81,11 +81,26 @@ def setup_environment():
         logger.error(f"环境设置失败: {str(e)}")
         return False
 
-def open_browser(url, delay=1.5):
+def open_browser(host, port, delay=1.5):
     """在浏览器中打开URL"""
     def _open_browser():
         time.sleep(delay)  # 等待服务器启动
+        
+        # 如果host是0.0.0.0，获取本地IP地址用于浏览器访问
+        if host == "0.0.0.0":
+            try:
+                from utils.network_utils import get_local_ip
+                local_ip = get_local_ip()
+                browser_host = local_ip if local_ip else "127.0.0.1"
+            except Exception as e:
+                logger.warning(f"获取本地IP失败: {e}")
+                browser_host = "127.0.0.1"
+        else:
+            browser_host = host
+        
+        url = f"http://{browser_host}:{port}"
         logger.info(f"正在浏览器中打开应用: {url}")
+        
         try:
             webbrowser.open(url)
         except Exception as e:
@@ -102,16 +117,35 @@ def start_server(host, port, debug=False, open_browser_flag=True):
         # 导入Flask应用
         from app import app
         
-        # 构建URL
-        url = f"http://{host}:{port}"
-        
         # 如果需要，启动浏览器（只在非重载模式下打开）
         # WERKZEUG_RUN_MAIN 环境变量在Flask重载时会被设置
         if open_browser_flag and not os.environ.get('WERKZEUG_RUN_MAIN'):
-            open_browser(url)
+            open_browser(host, port)
         
-        # 启动应用
-        logger.info(f"正在启动Web服务器，地址: {url}")
+        # 显示服务器信息
+        if host == "0.0.0.0":
+            try:
+                from utils.network_utils import get_local_ip, get_all_local_ips
+                local_ip = get_local_ip()
+                all_ips = get_all_local_ips()
+                
+                logger.info(f"正在启动Web服务器...")
+                logger.info(f"本地访问地址: http://127.0.0.1:{port}")
+                if local_ip and local_ip != "127.0.0.1":
+                    logger.info(f"局域网访问地址: http://{local_ip}:{port}")
+                
+                # 显示所有可用的IP地址
+                if len(all_ips) > 1:
+                    logger.info("所有可用地址:")
+                    for ip in all_ips:
+                        logger.info(f"  http://{ip}:{port}")
+                        
+            except Exception as e:
+                logger.warning(f"获取网络信息失败: {e}")
+                logger.info(f"正在启动Web服务器，地址: http://{host}:{port}")
+        else:
+            logger.info(f"正在启动Web服务器，地址: http://{host}:{port}")
+        
         logger.info("按Ctrl+C停止服务器")
         
         app.run(
