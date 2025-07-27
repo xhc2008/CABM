@@ -85,7 +85,18 @@ IMAGE_MODEL=Kwai-Kolors/Kolors
 EMBEDDING_API_URL=https://api.siliconflow.cn/v1/embeddings
 EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EMBEDDING_MODEL=BAAI/bge-m3
+
+# 应用配置（可选）
+DEBUG=False                    # 是否启用调试模式
+PORT=5000                     # 服务器端口
+HOST=0.0.0.0                  # 服务器监听地址（0.0.0.0表示监听所有接口）
+AUTO_OPEN_BROWSER=True        # 是否自动打开浏览器
 ```
+
+**网络配置说明：**
+- `HOST=0.0.0.0`：服务器会监听所有网络接口，支持局域网访问
+- 启动时会自动检测并使用最合适的本地IP地址打开浏览器（优先192.168开头的地址）
+- 如果你只想本地访问，可以设置 `HOST=127.0.0.1`
 
 ## 使用说明
 
@@ -127,7 +138,11 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - `--debug`: 启用调试模式
 - `--no-browser`: 不自动打开浏览器
 
-启动后，应用会自动在浏览器中打开，或者你可以手动访问：`http://localhost:5000`
+启动后，应用会自动在浏览器中打开。程序会智能选择最合适的本地IP地址（优先使用192.168开头的地址），确保在各种浏览器中都能正常访问。
+
+你也可以手动访问以下地址：
+- 本地访问：`http://localhost:5000` 或 `http://127.0.0.1:5000`
+- 局域网访问：`http://[你的本地IP]:5000`（启动时会显示具体地址）
 
 ### 基本操作
 

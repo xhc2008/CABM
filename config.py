@@ -59,14 +59,14 @@ NEGATIVE_PROMPTS = "模糊, 扭曲, 变形, 低质量, 像素化, 低分辨率, 
 APP_CONFIG = {
     "debug": get_env_var("DEBUG", "False").lower() == "true",
     "port": int(get_env_var("PORT", "5000")),
-    "host": get_env_var("HOST", "0.0.0.0"),
+    "host": get_env_var("HOST", "0.0.0.0"),  # 服务器监听地址，0.0.0.0表示监听所有接口
     "static_folder": "static",
     "template_folder": "templates",
     "image_cache_dir": "static/images/cache",
     "max_history_length": 10,  # 最大对话历史长度（发送给AI的上下文长度）
     "history_dir": "data/history",  # 历史记录存储目录
     "show_scene_name": True,  # 是否在前端显示场景名称
-    "auto_open_browser": get_env_var("AUTO_OPEN_BROWSER", "True").lower() == "true",  # 是否自动打开浏览器
+    "auto_open_browser": get_env_var("AUTO_OPEN_BROWSER", "True").lower() == "true",  # 是否自动打开浏览器（会自动使用本地IP地址）
 }
 
 def get_chat_config():
