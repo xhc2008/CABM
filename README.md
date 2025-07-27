@@ -17,6 +17,7 @@
 
 **正在开发：**
 - 记忆权重（记忆遗忘）
+- 用户画像（智能体对用户的印象）
 - 场景切换（让AI切换场景或生成新场景）
 - 故事模式（根据大纲推动故事发展，区别于“闲聊模式”）
 - 角色的表情/动作（蹲一个免费的画师）
@@ -235,9 +236,14 @@ def get_character_config():
 ```
 
 ## 贡献
+[![Contributors](https://img.shields.io/github/contributors/xhc2008/CABM?color=blue)](https://github.com/xhc2008/CABM/graphs/contributors)  
 
-欢迎提交Pull Request或Issue来帮助改进这个项目。
+欢迎提交 Pull Request 或 Issue！  
 
 ## 许可证
 
-[MIT License](LICENSE)
+[GNU General Public License v3.0](LICENSE)
+
+## 图片来源声明
+本项目部分图片来自网络，来源和授权状态无法确认。  
+如果您是版权所有者，请与我们联系，我们将立即处理。
