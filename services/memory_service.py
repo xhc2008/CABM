@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils.memory_utils import ChatHistoryVectorDB
 from services.config_service import config_service
+from config import get_memory_config
 
 class MemoryService:
     """记忆服务类"""
@@ -67,15 +68,15 @@ class MemoryService:
             return self.memory_databases[self.current_character]
         return None
     
-    def search_memory(self, query: str, character_name: str = None, top_k: int = 3, timeout: int = 10) -> str:
+    def search_memory(self, query: str, character_name: str = None, top_k: int = None, timeout: int = None) -> str:
         """
         搜索记忆并返回格式化的提示词
         
         参数:
             query: 查询文本
             character_name: 角色名称，如果为None则使用当前角色
-            top_k: 返回的最相似结果数量
-            timeout: 超时时间（秒）
+            top_k: 返回的最相似结果数量，如果为None则使用配置中的值
+            timeout: 超时时间（秒），如果为None则使用配置中的值
             
         返回:
             格式化的记忆提示词
@@ -86,6 +87,13 @@ class MemoryService:
         if not character_name:
             self.logger.warning("没有指定角色，无法搜索记忆")
             return ""
+        
+        # 从配置中获取默认值
+        memory_config = get_memory_config()
+        if top_k is None:
+            top_k = memory_config['top_k']
+        if timeout is None:
+            timeout = memory_config['timeout']
         
         self.logger.info(f"开始记忆搜索: 角色={character_name}, 查询='{query}', top_k={top_k}, 超时={timeout}秒")
         

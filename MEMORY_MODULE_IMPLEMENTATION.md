@@ -26,9 +26,8 @@
   ```python
   memory_context = self.memory_service.search_memory(
       query=user_query,
-      character_name=character_id,
-      top_k=3,
-      timeout=10
+      character_name=character_id
+      # top_k 和 timeout 现在从配置文件读取
   )
   ```
 
