@@ -313,7 +313,7 @@ class ChatHistoryVectorDB:
         self.load_from_file()
         self.logger.info(f"记忆数据库初始化完成，角色: {self.character_name}")
     
-    def get_relevant_memory(self, query: str, top_k: int = 3, timeout: int = 10, min_similarity: float = 0.3) -> str:
+    def get_relevant_memory(self, query: str, top_k: int = 5, timeout: int = 10, min_similarity: float = 0.3) -> str:
         """
         获取相关记忆并格式化为提示词
         
@@ -385,7 +385,7 @@ if __name__ == "__main__":
     #vector_db.add_text("测试文本", {"role": "test", "timestamp": "2023-01-01"})
     
     # 搜索相似文本
-    results = vector_db.search("", top_k=3)
+    results = vector_db.search("", top_k=5)  # 使用默认值
     print("搜索结果:")
     for res in results:
         print(f"文本: {res['text']}, 相似度: {res['similarity']:.4f}")

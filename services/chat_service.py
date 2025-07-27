@@ -16,6 +16,7 @@ from utils.api_utils import make_api_request, APIError, handle_api_error, parse_
 from utils.history_utils import HistoryManager
 from utils.prompt_logger import prompt_logger
 from services.config_service import config_service
+from config import get_memory_config
 # 注意：为了避免循环导入，scene_service和memory_service将在ChatService类中导入
 
 class Message:
@@ -281,9 +282,7 @@ class ChatService:
                 character_id = self.config_service.current_character_id or "default"
                 memory_context = self.memory_service.search_memory(
                     query=user_query,
-                    character_name=character_id,
-                    top_k=3,
-                    timeout=10
+                    character_name=character_id
                 )
                 
                 # 如果有相关记忆，添加到最后一条用户消息中

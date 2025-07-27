@@ -24,7 +24,7 @@ const messageInput = document.getElementById('messageInput');
 
 const sendButton = document.getElementById('sendButton');
 
-const clearButton = document.getElementById('clearButton');
+// const clearButton = document.getElementById('clearButton'); // 已禁用：清空对话按钮
 
 const backgroundButton = document.getElementById('backgroundButton');
 
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sendButton.addEventListener('click', sendMessage);
 
-    clearButton.addEventListener('click', clearChat);
+    // clearButton.addEventListener('click', clearChat); // 已禁用：清空对话按钮事件
 
     backgroundButton.addEventListener('click', changeBackground);
 
@@ -234,6 +234,15 @@ async function sendMessage() {
                 addToHistory('assistant', remainingContent, characterName);
             }
 
+            // **获取提取的【】内容并处理**
+            const extractedContents = streamProcessor.getExtractedBracketContents();
+            if (extractedContents.length > 0) {
+                console.log('提取的【】内容:', extractedContents); // **这里可以看到提取的内容**
+                // 在这里可以对提取的内容进行进一步处理
+                // 例如：解析心情状态、系统指令等
+                handleExtractedBracketContents(extractedContents);
+            }
+
             // 隐藏继续提示
             hideContinuePrompt();
 
@@ -344,8 +353,8 @@ async function sendMessage() {
 
 
 
-// 清空对话
-
+// 清空对话 - 已禁用但保留功能代码
+/*
 async function clearChat() {
 
     // 检查是否正在处理请求
@@ -417,6 +426,7 @@ async function clearChat() {
     }
 
 }
+*/
 
 
 
@@ -545,8 +555,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
     }
 
-    //console.log(content+test)
-    // 如果是流式输出，直接更新内容
+    // 如果是流式输出，直接更新内容（【】内容已在流式处理器中过滤）
 
     if (isStreaming) {
 
@@ -556,9 +565,9 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
     }
 
-    // 直接显示消息
-
-    currentMessage.textContent = content;
+    // 对于非流式输出，需要手动过滤【】内容
+    const filteredContent = content.replace(/【[^】]*】/g, '');
+    currentMessage.textContent = filteredContent;
 
 }
 
@@ -572,13 +581,16 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
 // 添加消息到历史记录
 function addToHistory(role, content, customName = null) {
+    // 过滤内容中的【】标记
+    const filteredContent = content.replace(/【[^】]*】/g, '');
+
     // 添加到内存中的历史记录
 
     messageHistory.push({
 
         role: role === 'assistant_continue' ? 'assistant' : role,
 
-        content: content
+        content: filteredContent
 
     });
 
@@ -611,9 +623,9 @@ function addToHistory(role, content, customName = null) {
 
     // 为每个段落添加角色名称前缀
     if (role === 'assistant') {
-        contentDiv.textContent = content;
+        contentDiv.textContent = filteredContent;
     } else {
-        contentDiv.textContent = content;
+        contentDiv.textContent = filteredContent;
     }
 
     messageDiv.appendChild(roleSpan);
@@ -1303,6 +1315,30 @@ function showContinuePrompt(promptText = '▽') {
 // 全局变量来存储当前的点击监听器
 let currentScreenClickHandler = null;
 
+// **处理提取的【】内容的函数**
+function handleExtractedBracketContents(contents) {
+    // 这里是处理提取内容的地方，你可以在这里添加自定义逻辑
+    console.log('处理提取的【】内容:', contents);
+    
+    // 示例：解析心情状态
+    contents.forEach((content, index) => {
+        console.log(`第${index + 1}个【】内容:`, content);
+        
+        // 如果内容是数字，可能是心情状态
+        if (/^\d+$/.test(content.trim())) {
+            const moodNumber = parseInt(content.trim());
+            const moods = ['', '平静', '兴奋', '愤怒', '失落'];
+            if (moodNumber >= 1 && moodNumber <= 4) {
+                console.log(`检测到心情状态: ${moodNumber} - ${moods[moodNumber]}`);
+                // 在这里可以根据心情状态做相应处理，比如改变UI样式等
+            }
+        }
+    });
+    
+    // 你可以在这里添加更多的处理逻辑
+    // 例如：存储到全局变量、发送到服务器、更新UI等
+}
+
 // 隐藏"点击屏幕继续"提示
 function hideContinuePrompt() {
     // 隐藏点击继续提示
@@ -1342,6 +1378,6 @@ registrationShortcuts({
     s: skipTyping,
     h: toggleHistory,
     b: changeBackground,
-    c: clearChat,
-    ç: clearChat // 为了解决部分快捷键冲突
+    // c: clearChat, // 已禁用：清空对话快捷键
+    // ç: clearChat // 已禁用：清空对话快捷键（为了解决部分快捷键冲突）
 });
