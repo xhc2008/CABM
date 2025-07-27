@@ -342,7 +342,7 @@ class ChatHistoryVectorDB:
             self.logger.info(f"记忆过滤结果: {len(filtered_results)}/{len(results)} 条记录通过相似度阈值 {min_similarity}")
             
             # 格式化为提示词
-            memory_prompt = "以下是相关的记忆，可以作为参考：\n\n"
+            memory_prompt = "这是相关的记忆，可以作为参考：\n\n"
             
             for i, result in enumerate(filtered_results, 1):
                 metadata = result['metadata']
@@ -362,7 +362,7 @@ class ChatHistoryVectorDB:
                     memory_prompt += f"记录 {i}: {result['text']}\n\n"
                     self.logger.info(f"  -> 记录 {i}: '{result['text'][:50]}...', 相似度={result['similarity']:.3f}")
             
-            memory_prompt += "请参考历史记录，保持对话的连贯性和一致性。\n"
+            memory_prompt += "请参考以上历史记录，保持对话的连贯性和一致性。\n\n以下是本次用户输入："
             
             self.logger.info(f"生成记忆提示词: {len(memory_prompt)} 字符")
             
