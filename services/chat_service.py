@@ -6,7 +6,6 @@ import sys
 import json
 import time
 import re
-import os
 from typing import List, Dict, Any, Optional, Generator, Union, Tuple
 from pathlib import Path
 
@@ -74,14 +73,6 @@ class ChatService:
         
         # 初始化当前角色的记忆数据库
         self._initialize_character_memory()
-        
-        self.openai_anwser = True
-        try:
-            from openai import OpenAI
-            self.client = OpenAI(api_key=os.getenv("CHAT_API_KEY"), base_url=os.getenv("CHAT_API_URL"))
-        except ImportError:
-            self.openai_anwser = False
-            print("未找到openai模块，请安装openai模块")
     
     def add_message(self, role: str, content: str) -> Message:
         """
@@ -318,69 +309,72 @@ class ChatService:
         except Exception as e:
             print(f"记录提示词日志失败: {e}")
         
+        request_data = {
+            **chat_config,
+            "messages": messages,
+            "stream": stream,
+            "enable_thinking": False
+        }
+        
+        # 准备请求头
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
         try:
             # 发送API请求
-            # response, data = make_api_request(
-            #     url=url,
-            #     method="POST",
-            #     headers=headers,
-            #     json_data=request_data,
-            #     stream=stream
-            # )
+            response, data = make_api_request(
+                url=url,
+                method="POST",
+                headers=headers,
+                json_data=request_data,
+                stream=stream
+            )
             
             # 处理流式响应
             if stream:
-                del_list = ['model', 'stream', 'top_k']
-                for key in del_list:
-                    if key in chat_config:
-                        del chat_config[key]
-                
                 def stream_generator():
-                    stream_ans = self.client.chat.completions.create(
-                        model=os.getenv("CHAT_MODEL"),
-                        messages=messages,
-                        stream=True,
-                        **chat_config
-                    )
-                    for chunk in stream_ans:
-                        if chunk.choices[0].delta.content:
-                            yield chunk.choices[0].delta.content
+                    response.encoding = "utf-8"
+                    full_content = ""
+                    
+                    for line in response.iter_lines(decode_unicode=True):
+                        if line:
+                            parsed_data = parse_stream_data(line)
+                            if parsed_data:
+                                # 收集完整内容用于后续添加到记忆
+                                if "choices" in parsed_data and len(parsed_data["choices"]) > 0:
+                                    delta = parsed_data["choices"][0].get("delta", {})
+                                    if "content" in delta:
+                                        full_content += delta["content"]
+                                
+                                yield parsed_data
+                    
+                    # 注意：记忆添加逻辑已移至app.py中处理，避免重复添加
                 
-                # def stream_generator__():
-                #     response.encoding = "utf-8"
-                    
-                #     for line in response.iter_lines(decode_unicode=True):
-                #         if line:
-                #             parsed_data = parse_stream_data(line)
-                #             if parsed_data:                             
-                #                 yield parsed_data
-                    
-                #     # 注意：记忆添加逻辑已移至app.py中处理，避免重复添加
                 return stream_generator()
             
-            ### 以下代码应该弃用! 在app.py中, 只接收流式返回!
-            # else:
-            #     # 处理非流式响应
-            #     if "choices" in data and len(data["choices"]) > 0:
-            #         message = data["choices"][0].get("message", {})
-            #         if message and "content" in message:
-            #             assistant_message = message["content"]
-            #             # 将助手回复添加到历史记录
-            #             self.add_message("assistant", assistant_message)
-                        
-            #             # 添加到记忆数据库
-            #             if user_query:
-            #                 try:
-            #                     character_id = self.config_service.current_character_id or "default"
-            #                     self.memory_service.add_conversation(
-            #                         user_message=user_query,
-            #                         assistant_message=assistant_message,
-            #                         character_name=character_id
-            #                     )
-            #                 except Exception as e:
-            #                     print(f"添加对话到记忆数据库失败: {e}")
-                
-            #     return data
+            # 处理非流式响应
+            if "choices" in data and len(data["choices"]) > 0:
+                message = data["choices"][0].get("message", {})
+                if message and "content" in message:
+                    assistant_message = message["content"]
+                    # 将助手回复添加到历史记录
+                    self.add_message("assistant", assistant_message)
+                    
+                    # 添加到记忆数据库
+                    if user_query:
+                        try:
+                            character_id = self.config_service.current_character_id or "default"
+                            self.memory_service.add_conversation(
+                                user_message=user_query,
+                                assistant_message=assistant_message,
+                                character_name=character_id
+                            )
+                        except Exception as e:
+                            print(f"添加对话到记忆数据库失败: {e}")
+            
+            return data
             
         except APIError as e:
             # 处理API错误
