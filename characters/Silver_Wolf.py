@@ -8,7 +8,7 @@ CHARACTER_NAME = "银狼"
 CHARACTER_NAME_EN = "Silver_Wolf"
 
 # 角色外观
-CHARACTER_IMAGE = "static/images/Silver_Wolf.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/Silver_Wolf/1.png"  # 角色立绘路径
 CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
 
 # 角色设定

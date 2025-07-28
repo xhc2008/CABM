@@ -135,6 +135,26 @@ class ConfigService:
         """获取图像API密钥"""
         return get_env_var("IMAGE_API_KEY")
     
+    def get_option_api_url(self):
+        """获取选项生成API URL"""
+        return get_env_var("OPTION_API_URL")
+    
+    def get_option_api_key(self):
+        """获取选项生成API密钥"""
+        return get_env_var("OPTION_API_KEY")
+    
+    def get_option_config(self):
+        """获取选项生成配置"""
+        if not self.config_loaded:
+            raise RuntimeError("配置未加载")
+        return config.get_option_config()
+    
+    def get_option_system_prompt(self):
+        """获取选项生成系统提示词"""
+        if not self.config_loaded:
+            raise RuntimeError("配置未加载")
+        return config.get_option_system_prompt()
+    
     def get_character_config(self, character_id: Optional[str] = None) -> Dict[str, Any]:
         """
         获取角色配置

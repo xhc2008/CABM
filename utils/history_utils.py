@@ -6,9 +6,11 @@ import os
 import json
 import time
 import collections
+import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Deque
 from pathlib import Path
+from config import get_app_config
 
 class HistoryManager:
     """历史记录管理器"""
@@ -85,6 +87,20 @@ class HistoryManager:
         )
         print(f"已加载 {len(self.history_cache[character_id])} 条 {character_id} 的历史记录到内存")
     
+    def _clean_assistant_content(self, content: str) -> str:
+        """
+        清理assistant消息内容，去除【】及其内部的内容
+        
+        Args:
+            content: 原始消息内容
+            
+        Returns:
+            清理后的消息内容
+        """
+        # 使用正则表达式去除【】及其内部的内容
+        cleaned_content = re.sub(r'【[^】]*】', '', content)
+        return cleaned_content
+    
     def save_message(self, character_id: str, role: str, content: str) -> None:
         """
         保存消息到历史记录
@@ -94,6 +110,10 @@ class HistoryManager:
             role: 消息角色
             content: 消息内容
         """
+        # 如果是assistant消息且启用了清理功能，清理内容去除【】及其内部的内容
+        if role == "assistant" and get_app_config().get("clean_assistant_history", True):
+            content = self._clean_assistant_content(content)
+        
         # 获取当前时间戳
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
