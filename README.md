@@ -16,11 +16,12 @@
 - 很多的bug
 
 **正在开发：**
-- 记忆权重（记忆遗忘）
 - 用户画像（智能体对用户的印象）
 - 场景切换（让AI切换场景或生成新场景）
 - 故事模式（根据大纲推动故事发展，区别于“闲聊模式”）
-- 角色的表情/动作（蹲一个免费的画师）
+- 角色的表情/动作
+- AI生成选项
+- ~~记忆权重，记忆遗忘~~（意义不大，暂不考虑）
 - ~~角色语音~~（硬件受限，等我换个有独显的电脑再说）
 - 很多的bug
 
@@ -211,7 +212,7 @@ CHARACTER_NAME = "角色名称"
 CHARACTER_NAME_EN = "Character Name"
 
 # 角色外观
-CHARACTER_IMAGE = "static/images/your_character.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/your_character/1.png"  # 角色立绘路径
 CHARACTER_COLOR = "#ffeb3b"  # 角色名称颜色
 
 # 角色设定

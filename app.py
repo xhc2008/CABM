@@ -15,6 +15,7 @@ from services.config_service import config_service
 from services.chat_service import chat_service
 from services.image_service import image_service
 from services.scene_service import scene_service
+from services.option_service import option_service
 from utils.api_utils import APIError
 
 # 初始化配置
@@ -58,10 +59,10 @@ def index():
         background_url = f"/static/{rel_path.replace(os.sep, '/')}"
     
     # 检查默认角色图片是否存在，如果不存在则创建一个提示
-    character_image_path = os.path.join(app.static_folder, 'images', 'default.png')
+    character_image_path = os.path.join(app.static_folder, 'images', 'default', '1.png')
     if not os.path.exists(character_image_path):
         print(f"警告: 默认角色图片不存在: {character_image_path}")
-        print("请将角色图片放置在 static/images/default.png")
+        print("请将角色图片放置在 static/images/default/1.png")
     
     # 获取当前场景
     current_scene = scene_service.get_current_scene()
@@ -166,6 +167,22 @@ def chat_stream():
                                 )
                             except Exception as e:
                                 print(f"添加对话到记忆数据库失败: {e}")
+                            
+                            # 生成选项
+                            try:
+                                character_config = chat_service.get_character_config()
+                                conversation_history = [msg.to_dict() for msg in chat_service.get_history()]
+                                options = option_service.generate_options(
+                                    conversation_history=conversation_history,
+                                    character_config=character_config,
+                                    user_query=message
+                                )
+                                
+                                # 发送选项数据
+                                if options:
+                                    yield f"data: {json.dumps({'options': options})}\n\n"
+                            except Exception as e:
+                                print(f"生成选项失败: {e}")
                                 
                         yield "data: [DONE]\n\n"
                         break

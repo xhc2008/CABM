@@ -37,6 +37,8 @@ const continueButton = document.getElementById('continueButton');
 const skipButton = document.getElementById('skipButton');
 
 const clickToContinue = document.getElementById('clickToContinue');
+const optionButtonsContainer = document.getElementById('optionButtonsContainer');
+const optionButtons = document.getElementById('optionButtons');
 
 const historyModal = document.getElementById('historyModal');
 
@@ -251,6 +253,12 @@ async function sendMessage() {
 
             // 重置暂停状态
             isPaused = false;
+            
+            // 显示选项按钮（如果有的话）
+            if (window.pendingOptions && window.pendingOptions.length > 0) {
+                showOptionButtons(window.pendingOptions);
+                window.pendingOptions = null; // 清空待处理的选项
+            }
         }
     );
 
@@ -260,6 +268,9 @@ async function sendMessage() {
     // 添加到历史记录
     addToHistory('user', message);
 
+    // 隐藏选项按钮
+    hideOptionButtons();
+    
     // 清空输入框
     messageInput.value = '';
 
@@ -326,6 +337,12 @@ async function sendMessage() {
                             if (data.content) {
                                 // 将数据添加到流式处理器
                                 streamProcessor.addData(data.content);
+                            }
+                            
+                            // 处理选项数据
+                            if (data.options) {
+                                // 存储选项数据，等待输出完成后显示
+                                window.pendingOptions = data.options;
                             }
                         } catch (e) {
                             console.error('解析JSON失败:', e, jsonStr);
@@ -1005,6 +1022,9 @@ async function selectCharacter(characterId) {
             updateCurrentMessage('assistant', currentCharacter.welcome);
 
         }
+        
+        // 隐藏选项按钮
+        hideOptionButtons();
 
         // 关闭角色选择弹窗
 
@@ -1314,6 +1334,44 @@ function showContinuePrompt(promptText = '▽') {
 
 // 全局变量来存储当前的点击监听器
 let currentScreenClickHandler = null;
+
+// 显示选项按钮
+function showOptionButtons(options) {
+    // 清空现有选项
+    optionButtons.innerHTML = '';
+    
+    // 创建选项按钮
+    options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.className = 'option-button';
+        button.textContent = option;
+        button.addEventListener('click', () => {
+            selectOption(option);
+        });
+        optionButtons.appendChild(button);
+    });
+    
+    // 显示选项容器
+    optionButtonsContainer.classList.add('show');
+}
+
+// 隐藏选项按钮
+function hideOptionButtons() {
+    optionButtonsContainer.classList.remove('show');
+    optionButtons.innerHTML = '';
+}
+
+// 选择选项
+function selectOption(option) {
+    // 隐藏选项按钮
+    hideOptionButtons();
+    
+    // 将选项内容设置到输入框
+    messageInput.value = option;
+    
+    // 自动发送消息
+    sendMessage();
+}
 
 // **处理提取的【】内容的函数**
 function handleExtractedBracketContents(contents) {

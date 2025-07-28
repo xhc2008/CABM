@@ -46,7 +46,7 @@ def setup_environment():
         os.makedirs(cache_dir, exist_ok=True)
         
         # 检查默认角色图片
-        character_image_path = Path("static/images/default.png")
+        character_image_path = Path("static/images/default/1.png")
         if not character_image_path.exists():
             logger.warning(f"默认角色图片不存在: {character_image_path}")
             logger.warning("将使用占位符图片")

@@ -312,7 +312,8 @@ class ChatService:
         request_data = {
             **chat_config,
             "messages": messages,
-            "stream": stream
+            "stream": stream,
+            "enable_thinking": False
         }
         
         # 准备请求头
