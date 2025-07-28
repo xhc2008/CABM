@@ -152,50 +152,32 @@ def chat_stream():
                 # 逐步返回响应
                 for chunk in stream_gen:
                     # 如果是结束标记
-                    if chunk.get("done"):
-                        # 将完整消息添加到历史记录
-                        if full_content:
-                            chat_service.add_message("assistant", full_content)
-                            
-                            # 添加到记忆数据库
-                            try:
-                                character_id = chat_service.config_service.current_character_id or "default"
-                                chat_service.memory_service.add_conversation(
-                                    user_message=message,
-                                    assistant_message=full_content,
-                                    character_name=character_id
-                                )
-                            except Exception as e:
-                                print(f"添加对话到记忆数据库失败: {e}")
-                            
-                            # 生成选项
-                            try:
-                                character_config = chat_service.get_character_config()
-                                conversation_history = [msg.to_dict() for msg in chat_service.get_history()]
-                                options = option_service.generate_options(
-                                    conversation_history=conversation_history,
-                                    character_config=character_config,
-                                    user_query=message
-                                )
-                                
-                                # 发送选项数据
-                                if options:
-                                    yield f"data: {json.dumps({'options': options})}\n\n"
-                            except Exception as e:
-                                print(f"生成选项失败: {e}")
-                                
-                        yield "data: [DONE]\n\n"
-                        break
+                    # if '[DONE]' in chunk:
+                    #     break
                     
                     # 处理增量内容
-                    if "choices" in chunk and len(chunk["choices"]) > 0:
-                        delta = chunk["choices"][0].get("delta", {})
-                        if "content" in delta:
-                            content = delta["content"]
-                            full_content += content
+                    if chunk is not None:
+                        content = chunk
+                        full_content += content
+                        
+                        # 直接转发原始数据，让前端处理
+                        yield f"data: {json.dumps({'content': content})}\n\n"
                             
-                            # 直接转发原始数据，让前端处理
-                            yield f"data: {json.dumps({'content': content})}\n\n"
+                # 将完整消息添加到历史记录
+                if full_content:
+                    chat_service.add_message("assistant", full_content)
+                    # 添加到记忆数据库
+                    try:
+                        character_id = chat_service.config_service.current_character_id or "default"
+                        chat_service.memory_service.add_conversation(
+                            user_message=message,
+                            assistant_message=full_content,
+                            character_name=character_id
+                        )
+                    except Exception as e:
+                        print(f"添加对话到记忆数据库失败: {e}")
+                        
+                yield "data: [DONE]\n\n"
                 
             except Exception as e:
                 error_msg = str(e)

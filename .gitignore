@@ -1,12 +1,15 @@
 # 环境变量文件
 .env
 
+.history/
+static/images/default/
 #测试文件
+test.py
+
 .kiro/
 .vscode/
 data/history/
 data/memory/
-data/images/
 plan.txt
 backups/
 log.txt
