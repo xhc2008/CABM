@@ -85,9 +85,9 @@ class OptionService:
             
             # 根据OpenAI库规范，添加禁用思考的参数
             # 对于支持reasoning的模型（如o1系列），可以通过reasoning参数控制
-            model_name = os.getenv("OPTION_MODEL", "").lower()
-            if "o1" in model_name or "reasoning" in model_name:
-                request_params["reasoning"] = False
+            # model_name = os.getenv("OPTION_MODEL", "").lower()
+            # if "o1" in model_name or "reasoning" in model_name:
+            #     request_params["reasoning"] = False
             
             # 使用 OpenAI 库调用选项生成API
             response = self.client.chat.completions.create(**request_params)
