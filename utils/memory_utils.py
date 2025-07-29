@@ -1,6 +1,5 @@
 import json
 import os
-import requests
 import signal
 import logging
 from datetime import datetime
@@ -29,12 +28,23 @@ class ChatHistoryVectorDB:
         """
         self.api_key = api_key or get_env_var('EMBEDDING_API_KEY')
         self.model = model or get_env_var('EMBEDDING_MODEL', 'BAAI/bge-m3')
-        self.url = get_env_var('EMBEDDING_API_URL', 'https://api.siliconflow.cn/v1/embeddings')
+        self.base_url = get_env_var('EMBEDDING_API_BASE_URL', 'https://api.siliconflow.cn/v1')
         self.character_name = character_name
         self.vectors = []  # 存储所有向量
         self.metadata = []  # 存储对应的元数据
         self.text_to_index = defaultdict(list)  # 文本到索引的映射
         self.loaded_texts = set()  # 记录已加载的文本，避免重复处理
+        
+        # 初始化 OpenAI 客户端
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
+        except ImportError:
+            print("未找到openai模块，请安装openai模块")
+            self.client = None
         
         # 设置日志
         self.logger = logging.getLogger(f"MemoryDB_{character_name}")
@@ -60,24 +70,18 @@ class ChatHistoryVectorDB:
         if text in self.text_to_index:
             return self.vectors[self.text_to_index[text][0]]
             
-        # 否则调用API获取
-        payload = {
-            "model": self.model,
-            "input": text
-        }
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
+        # 检查客户端是否可用
+        if not self.client:
+            print("OpenAI客户端未初始化")
+            return None
+            
         try:
-            response = requests.post(self.url, json=payload, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                return data['data'][0]['embedding']
-            else:
-                print(f"获取嵌入失败，状态码: {response.status_code}, 响应: {response.text}")
-                return None
+            # 使用 OpenAI 库调用嵌入API
+            response = self.client.embeddings.create(
+                model=self.model,
+                input=text
+            )
+            return response.data[0].embedding
         except Exception as e:
             print(f"获取嵌入时发生异常: {e}")
             return None

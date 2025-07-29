@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from utils.api_utils import make_api_request, APIError, handle_api_error
 from services.config_service import config_service
 
 class ImageConfig:
@@ -87,6 +86,17 @@ class ImageService:
         
         # 当前背景图片路径
         self.current_background = None
+        
+        # 初始化 OpenAI 客户端
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=os.getenv("IMAGE_API_KEY"),
+                base_url=os.getenv("IMAGE_API_BASE_URL")
+            )
+        except ImportError:
+            print("未找到openai模块，请安装openai模块")
+            self.client = None
     
     def generate_image(self, image_config: Optional[ImageConfig] = None) -> Dict[str, Any]:
         """
@@ -97,41 +107,38 @@ class ImageService:
             
         Returns:
             包含图像URL和信息的字典
-            
-        Raises:
-            APIError: 当API调用失败时
         """
-        # 获取API配置
-        url = self.config_service.get_image_api_url()
-        api_key = self.config_service.get_image_api_key()
+        # 检查客户端是否可用
+        if not self.client:
+            # 使用备用图像
+            fallback_image = self.get_fallback_image()
+            if fallback_image:
+                self.current_background = fallback_image
+                return {
+                    "success": False,
+                    "error": "OpenAI客户端未初始化",
+                    "image_path": str(fallback_image),
+                    "fallback": True
+                }
+            raise Exception("OpenAI客户端未初始化且无备用图像")
         
         # 准备图像配置
         if image_config is None:
             image_config = ImageConfig()
         
-        # 准备请求数据
-        request_data = image_config.to_dict()
-        
-        # 准备请求头
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
         try:
-            # 发送API请求
-            response, data = make_api_request(
-                url=url,
-                method="POST",
-                headers=headers,
-                json_data=request_data,
-                stream=False
+            # 使用 OpenAI 库调用图像生成API
+            response = self.client.images.generate(
+                model=image_config.model,
+                prompt=image_config.prompt,
+                size=image_config.image_size,
+                n=image_config.batch_size
             )
             
             # 处理响应
-            if "images" in data and len(data["images"]) > 0:
+            if response.data and len(response.data) > 0:
                 # 下载图像
-                image_url = data["images"][0]["url"]
+                image_url = response.data[0].url
                 image_path = self.download_image(image_url)
                 
                 # 更新当前背景
@@ -142,23 +149,26 @@ class ImageService:
                     "image_path": str(image_path),
                     "image_url": image_url,
                     "config": image_config.to_dict(),
-                    "seed": data.get("seed", image_config.seed)
+                    "seed": image_config.seed
                 }
             
-            raise APIError("图像生成失败：响应中没有图像数据")
+            raise Exception("图像生成失败：响应中没有图像数据")
             
-        except APIError as e:
-            # 处理API错误
-            error_info = handle_api_error(e)
+        except Exception as e:
+            print(f"图像生成失败: {e}")
             
             # 使用备用图像
             fallback_image = self.get_fallback_image()
             if fallback_image:
                 self.current_background = fallback_image
-                error_info["image_path"] = str(fallback_image)
-                error_info["fallback"] = True
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "image_path": str(fallback_image),
+                    "fallback": True
+                }
             
-            raise APIError(error_info["error"], e.status_code, error_info)
+            raise e
     
     def download_image(self, url: str) -> Path:
         """

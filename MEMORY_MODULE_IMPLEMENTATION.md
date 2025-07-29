@@ -101,7 +101,7 @@
 ### 环境变量
 ```bash
 # 嵌入向量API配置
-EMBEDDING_API_URL=https://api.siliconflow.cn/v1/embeddings
+EMBEDDING_API_BASE_URL=https://api.siliconflow.cn/v1
 EMBEDDING_API_KEY=your_api_key_here
 EMBEDDING_MODEL=BAAI/bge-m3
 ```

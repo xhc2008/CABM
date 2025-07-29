@@ -119,29 +119,42 @@ class ConfigService:
             raise RuntimeError("配置未加载")
         return config.get_stream_config()
     
-    def get_chat_api_url(self):
-        """获取对话API URL"""
-        return get_env_var("CHAT_API_URL")
+    def get_chat_api_base_url(self):
+        """获取对话API Base URL"""
+        return get_env_var("CHAT_API_BASE_URL")
     
     def get_chat_api_key(self):
         """获取对话API密钥"""
         return get_env_var("CHAT_API_KEY")
     
-    def get_image_api_url(self):
-        """获取图像API URL"""
-        return get_env_var("IMAGE_API_URL")
+    def get_image_api_base_url(self):
+        """获取图像API Base URL"""
+        return get_env_var("IMAGE_API_BASE_URL")
     
     def get_image_api_key(self):
         """获取图像API密钥"""
         return get_env_var("IMAGE_API_KEY")
     
-    def get_option_api_url(self):
-        """获取选项生成API URL"""
-        return get_env_var("OPTION_API_URL")
+    def get_option_api_base_url(self):
+        """获取选项生成API Base URL"""
+        return get_env_var("OPTION_API_BASE_URL")
     
     def get_option_api_key(self):
         """获取选项生成API密钥"""
         return get_env_var("OPTION_API_KEY")
+    
+    # 保持向后兼容性的方法
+    def get_chat_api_url(self):
+        """获取对话API URL（向后兼容）"""
+        return self.get_chat_api_base_url()
+    
+    def get_image_api_url(self):
+        """获取图像API URL（向后兼容）"""
+        return self.get_image_api_base_url()
+    
+    def get_option_api_url(self):
+        """获取选项生成API URL（向后兼容）"""
+        return self.get_option_api_base_url()
     
     def get_option_config(self):
         """获取选项生成配置"""
@@ -213,8 +226,8 @@ if __name__ == "__main__":
     # 测试配置服务
     if config_service.initialize():
         print("配置服务初始化成功")
-        print(f"对话API URL: {config_service.get_chat_api_url()}")
-        print(f"图像API URL: {config_service.get_image_api_url()}")
+        print(f"对话API Base URL: {config_service.get_chat_api_base_url()}")
+        print(f"图像API Base URL: {config_service.get_image_api_base_url()}")
         print(f"对话模型: {config_service.get_chat_config()['model']}")
         print(f"图像模型: {config_service.get_image_config()['model']}")
         print(f"流式输出启用: {config_service.get_stream_config()['enable_streaming']}")
