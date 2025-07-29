@@ -28,7 +28,7 @@ OPTION_CONFIG = {
     "max_tokens": 100,            # 最大生成token数
     "temperature": 0.7,           # 温度参数
     "stream": False,              # 选项生成不使用流式
-    "enable_thinking": False,     # 是否启用思考
+    'enable_thinking': False,     # 取消选项的模型思考功能
 }
 
 # 记忆模块配置
