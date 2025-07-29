@@ -10,6 +10,7 @@ test.py
 .vscode/
 data/history/
 data/memory/
+data/images/
 plan.txt
 backups/
 log.txt

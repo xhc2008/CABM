@@ -848,19 +848,27 @@ async function loadCharacters() {
 // 更新角色图片
 
 function updateCharacterImage() {
-
-    // 获取角色图片元素
-
+    // 获取角色图片元素和容器
     const characterImage = document.getElementById('characterImage');
+    const characterContainer = document.querySelector('.character-container');
 
     // 如果有当前角色，更新图片
-
     if (currentCharacter && characterImage) {
-
         characterImage.src = currentCharacter.image;
-
+        
+        // 移除所有角色定位类
+        if (characterContainer) {
+            characterContainer.classList.remove(
+                'character-lingyin',
+                'character-silver-wolf',
+                'character-default'
+            );
+            
+            // 添加对应角色的定位类
+            const characterClass = `character-${currentCharacter.id}`;
+            characterContainer.classList.add(characterClass);
+        }
     }
-
 }
 
 
