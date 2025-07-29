@@ -176,6 +176,22 @@ def chat_stream():
                         )
                     except Exception as e:
                         print(f"添加对话到记忆数据库失败: {e}")
+                    
+                    # 生成选项
+                    try:
+                        conversation_history = chat_service.format_messages()
+                        character_config = chat_service.get_character_config()
+                        options = option_service.generate_options(
+                            conversation_history=conversation_history,
+                            character_config=character_config,
+                            user_query=message
+                        )
+                        
+                        if options:
+                            # 发送选项数据
+                            yield f"data: {json.dumps({'options': options})}\n\n"
+                    except Exception as e:
+                        print(f"选项生成失败: {e}")
                         
                 yield "data: [DONE]\n\n"
                 
