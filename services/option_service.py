@@ -72,16 +72,25 @@ class OptionService:
         user_prompt = self._build_user_prompt(conversation_history, character_config, user_query)
         
         try:
-            # 使用 OpenAI 库调用选项生成API
-            response = self.client.chat.completions.create(
-                model=os.getenv("OPTION_MODEL"),
-                max_tokens=option_config["max_tokens"],
-                temperature=option_config["temperature"],
-                messages=[
+            # 构建请求参数
+            request_params = {
+                "model": os.getenv("OPTION_MODEL"),
+                "max_tokens": option_config["max_tokens"],
+                "temperature": option_config["temperature"],
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ]
-            )
+            }
+            
+            # 根据OpenAI库规范，添加禁用思考的参数
+            # 对于支持reasoning的模型（如o1系列），可以通过reasoning参数控制
+            model_name = os.getenv("OPTION_MODEL", "").lower()
+            if "o1" in model_name or "reasoning" in model_name:
+                request_params["reasoning"] = False
+            
+            # 使用 OpenAI 库调用选项生成API
+            response = self.client.chat.completions.create(**request_params)
             
             # 处理响应
             if response.choices and len(response.choices) > 0:
