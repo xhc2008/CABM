@@ -75,12 +75,15 @@ class ChatService:
         # 初始化当前角色的记忆数据库
         self._initialize_character_memory()
         
-        self.openai_anwser = True
+        self.openai_answer = True
         try:
             from openai import OpenAI
-            self.client = OpenAI(api_key=os.getenv("CHAT_API_KEY"), base_url=os.getenv("CHAT_API_URL"))
+            self.client = OpenAI(
+                api_key=os.getenv("CHAT_API_KEY"), 
+                base_url=os.getenv("CHAT_API_BASE_URL")
+            )
         except ImportError:
-            self.openai_anwser = False
+            self.openai_answer = False
             print("未找到openai模块，请安装openai模块")
     
     def add_message(self, role: str, content: str) -> Message:

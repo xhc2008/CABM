@@ -4,13 +4,13 @@
 """
 import sys
 import json
+import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from utils.api_utils import make_api_request, APIError, handle_api_error
 from services.config_service import config_service
 
 class OptionService:
@@ -23,6 +23,17 @@ class OptionService:
         # 确保配置服务已初始化
         if not self.config_service.initialized:
             self.config_service.initialize()
+        
+        # 初始化 OpenAI 客户端
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=os.getenv("OPTION_API_KEY"),
+                base_url=os.getenv("OPTION_API_BASE_URL")
+            )
+        except ImportError:
+            print("未找到openai模块，请安装openai模块")
+            self.client = None
     
     def generate_options(
         self, 
@@ -49,62 +60,41 @@ class OptionService:
         if not option_config.get("enable_option_generation", True):
             return []
         
-        # 获取API配置
-        url = self.config_service.get_option_api_url()
-        api_key = self.config_service.get_option_api_key()
+        # 检查客户端是否可用
+        if not self.client:
+            print("OpenAI客户端未初始化，跳过选项生成")
+            return []
+        
+        # 获取系统提示词
         system_prompt = self.config_service.get_option_system_prompt()
         
         # 构建用户提示词
         user_prompt = self._build_user_prompt(conversation_history, character_config, user_query)
         
-        # 准备请求数据
-        request_data = {
-            "model": option_config["model"],
-            "max_tokens": option_config["max_tokens"],
-            "temperature": option_config["temperature"],
-            "stream": option_config["stream"],
-            "enable_thinking": False,  # 关闭思考
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        }
-        
-        # 准备请求头
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
         try:
-            # 发送API请求
-            response, data = make_api_request(
-                url=url,
-                method="POST",
-                headers=headers,
-                json_data=request_data,
-                stream=False
+            # 使用 OpenAI 库调用选项生成API
+            response = self.client.chat.completions.create(
+                model=os.getenv("OPTION_MODEL"),
+                max_tokens=option_config["max_tokens"],
+                temperature=option_config["temperature"],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
             )
             
             # 处理响应
-            if "choices" in data and len(data["choices"]) > 0:
-                message = data["choices"][0].get("message", {})
-                if message and "content" in message:
-                    content = message["content"].strip()
-                    
-                    # 按换行符分割选项
-                    options = [opt.strip() for opt in content.split('\n') if opt.strip()]
-                    
-                    # 限制最多3个选项
-                    return options[:3]
+            if response.choices and len(response.choices) > 0:
+                content = response.choices[0].message.content.strip()
+                
+                # 按换行符分割选项
+                options = [opt.strip() for opt in content.split('\n') if opt.strip()]
+                
+                # 限制最多3个选项
+                return options[:3]
             
             return []
             
-        except APIError as e:
-            # 处理API错误
-            error_info = handle_api_error(e)
-            print(f"选项生成API错误: {error_info['error']}")
-            return []
         except Exception as e:
             print(f"选项生成失败: {str(e)}")
             return []

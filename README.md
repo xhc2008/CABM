@@ -67,37 +67,31 @@ pip install flask requests python-dotenv
 cp .env.example .env
 ```
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
-如果使用其他平台，需要替换对应的API_URL
+如果使用其他平台，需要替换对应的API_BASE_URL
 
 编辑`.env`文件，填写以下信息：
 
 ```
 # 对话API配置
-CHAT_API_URL=https://api.siliconflow.cn/v1/chat/completions
+CHAT_API_BASE_URL=https://api.siliconflow.cn/v1
 CHAT_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 CHAT_MODEL=deepseek-ai/DeepSeek-V3
 
 # 图像生成API配置
-IMAGE_API_URL=https://api.siliconflow.cn/v1/images/generations
+IMAGE_API_BASE_URL=https://api.siliconflow.cn/v1
 IMAGE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 IMAGE_MODEL=Kwai-Kolors/Kolors
 
 # 嵌入向量API配置
-EMBEDDING_API_URL=https://api.siliconflow.cn/v1/embeddings
+EMBEDDING_API_BASE_URL=https://api.siliconflow.cn/v1
 EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EMBEDDING_MODEL=BAAI/bge-m3
 
-# 应用配置（可选）
-DEBUG=False                    # 是否启用调试模式
-PORT=5000                     # 服务器端口
-HOST=0.0.0.0                  # 服务器监听地址（0.0.0.0表示监听所有接口）
-AUTO_OPEN_BROWSER=True        # 是否自动打开浏览器
+# 选项生成API配置
+OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
+OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OPTION_MODEL=Qwen/Qwen3-32B
 ```
-
-**网络配置说明：**
-- `HOST=0.0.0.0`：服务器会监听所有网络接口，支持局域网访问
-- 启动时会自动检测并使用最合适的本地IP地址打开浏览器（优先192.168开头的地址）
-- 如果你只想本地访问，可以设置 `HOST=127.0.0.1`
 
 ## 使用说明
 
@@ -259,7 +253,3 @@ def get_character_config():
 ## 许可证
 
 [GNU General Public License v3.0](LICENSE)
-
-## 图片来源声明
-本项目部分图片来自网络，来源和授权状态无法确认。  
-如果您是版权所有者，请与我们联系，我们将立即处理。

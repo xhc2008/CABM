@@ -47,13 +47,13 @@ def load_env_vars(env_file=".env"):
     
     # 验证必要的环境变量
     required_vars = [
-        "CHAT_API_URL", 
+        "CHAT_API_BASE_URL", 
         "CHAT_API_KEY",
         "CHAT_MODEL",
-        "IMAGE_API_URL",
+        "IMAGE_API_BASE_URL",
         "IMAGE_API_KEY",
         "IMAGE_MODEL",
-        "EMBEDDING_API_URL",
+        "EMBEDDING_API_BASE_URL",
         "EMBEDDING_API_KEY",
         "EMBEDDING_MODEL"
     ]
@@ -84,9 +84,9 @@ if __name__ == "__main__":
     # 测试环境变量加载
     if load_env_vars():
         print("环境变量加载成功")
-        print(f"CHAT_API_URL: {get_env_var('CHAT_API_URL')}")
-        print(f"IMAGE_API_URL: {get_env_var('IMAGE_API_URL')}")
-        print(f"EMBEDDING_API_URL: {get_env_var('EMBEDDING_API_URL')}")
+        print(f"CHAT_API_BASE_URL: {get_env_var('CHAT_API_BASE_URL')}")
+        print(f"IMAGE_API_BASE_URL: {get_env_var('IMAGE_API_BASE_URL')}")
+        print(f"EMBEDDING_API_BASE_URL: {get_env_var('EMBEDDING_API_BASE_URL')}")
         print(f"EMBEDDING_MODEL: {get_env_var('EMBEDDING_MODEL')}")
     else:
         sys.exit(1)
