@@ -73,14 +73,21 @@ class OptionService:
         
         try:
             # 构建请求参数
+            extra_body_list = [
+                'temperature',
+                'max_tokens',
+                'enable_thinking'
+            ]
+            extra_body_dict = {
+                k: option_config[k] for k in extra_body_list if k in option_config
+            }
             request_params = {
                 "model": os.getenv("OPTION_MODEL"),
-                "max_tokens": option_config["max_tokens"],
-                "temperature": option_config["temperature"],
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
-                ]
+                ],
+                'extra_body': extra_body_dict
             }
             
             # 根据OpenAI库规范，添加禁用思考的参数
