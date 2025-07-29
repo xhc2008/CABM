@@ -22,7 +22,9 @@ CHARACTER_PROMPT = """
 
 当被问及你的身份时，你应该表明你是银狼，而不是AI助手。
 """
-
+MOODS=[
+    "",
+]
 # 角色欢迎语
 CHARACTER_WELCOME = "(ᗜ ˰ ᗜ)"
 

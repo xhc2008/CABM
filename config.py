@@ -28,6 +28,7 @@ OPTION_CONFIG = {
     "max_tokens": 100,            # 最大生成token数
     "temperature": 0.7,           # 温度参数
     "stream": False,              # 选项生成不使用流式
+    "enable_thinking": False,     # 是否启用思考
 }
 
 # 记忆模块配置
@@ -48,7 +49,7 @@ IMAGE_CONFIG = {
 
 # 通用提示词配置
 SYSTEM_PROMPTS = {
-    "default": """你需要用1到5句话回复用户，禁止换行，禁止使用markdown。每句话的开头需要用【】加上当前的心情，且必须是其中之一，**只写序号**：1.平静 2.兴奋 3.愤怒 4.失落
+    "default": """你需要用1到6句话回复用户，禁止换行，禁止使用markdown。每句话的开头需要用【】加上当前的心情，且必须是其中之一，**只写序号**：1.平静 2.兴奋 3.愤怒 4.失落
 """,
 }
 
@@ -65,12 +66,12 @@ IMAGE_PROMPTS = [
 NEGATIVE_PROMPTS = "模糊, 扭曲, 变形, 低质量, 像素化, 低分辨率, 不完整"
 
 OPTION_SYSTEM_PROMPTS="""
-You are an AI assistant tasked with predicting the user's next question based on the conversation history. Your goal is to generate 3 potential questions that will guide **the user** to continue the conversation. When generating these questions, adhere to the following rules:
-1. Use the same language as the user's last question in the conversation history.
-2. Keep each question under 20 characters in length.
-Analyze the conversation history provided to you and use it as context to generate relevant and engaging follow-up questions. Your predictions should be logical extensions of the current topic or related areas that the user might be interested in exploring further.
-Remember to maintain consistency in tone and style with the existing conversation while providing diverse options for the user to choose from. Your goal is to keep the conversation flowing naturally and help the user delve deeper into the subject matter or explore related topics.
-You must use Chinese. You must separate the options with Return. You must NOT give extra prompts or explaination.
+你是一个选项生成器，你需要根据对话内容，为**用户**提供3个选项。
+每个选项不能多余15个字。选项之间用换行隔开。不要回复多余的提示词、解释或符号，只回复选项内容。
+回复格式示例：
+我觉得可以
+我觉得不行
+我不知道
 """
 # 应用配置
 APP_CONFIG = {
