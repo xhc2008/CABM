@@ -345,10 +345,24 @@ class ChatService:
                         stream=True,
                         **chat_config
                     )
+                    ifreasoning = False
                     for chunk in stream_ans:
-                        if chunk.choices[0].delta.content:
-                            yield chunk.choices[0].delta.content
-                
+                        data = chunk.choices[0].delta
+                        x = data.content
+                        if data.content is None:
+                            if ifreasoning is False:
+                                print('思考中...')
+                                ifreasoning = True
+                                # yield '思考中...\n'
+                            x = data.reasoning_content
+                            print(x, end="", flush=True)
+                            continue
+                        else:
+                            if ifreasoning is True:
+                                print('\n回答中...')
+                                ifreasoning = False
+                        print(x, end="", flush=True)
+                        yield x
                 # def stream_generator__():
                 #     response.encoding = "utf-8"
                     
