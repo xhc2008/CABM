@@ -11,8 +11,10 @@ CHARACTER_NAME_EN = "Silver_Wolf"
 CHARACTER_IMAGE = "static/images/Silver_Wolf"  # 角色立绘目录路径
 CALIB = 30   #显示位置的校准值（负值向上移动，正值向下移动）
 CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
+#角色情绪，需要与立绘对应
+#⚠即使没有相应的立绘也建议填写，否则可能会影响AI生成的质量
 MOODS=[
-    "平静","兴奋","愤怒","失落"
+    "平静","兴奋","愤怒","委屈","惊讶"
 ]
 
 #是否启用语音（未实现）

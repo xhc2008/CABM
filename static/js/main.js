@@ -242,15 +242,6 @@ async function sendMessage() {
                 addToHistory('assistant', remainingContent, characterName);
             }
 
-            // **获取提取的【】内容并处理**
-            const extractedContents = streamProcessor.getExtractedBracketContents();
-            if (extractedContents.length > 0) {
-                console.log('提取的【】内容:', extractedContents); // **这里可以看到提取的内容**
-                // 在这里可以对提取的内容进行进一步处理
-                // 例如：解析心情状态、系统指令等
-                handleExtractedBracketContents(extractedContents);
-            }
-
             // 隐藏继续提示
             hideContinuePrompt();
 
@@ -259,12 +250,18 @@ async function sendMessage() {
 
             // 重置暂停状态
             isPaused = false;
-            
+
             // 显示选项按钮（如果有的话）
             if (window.pendingOptions && window.pendingOptions.length > 0) {
                 showOptionButtons(window.pendingOptions);
                 window.pendingOptions = null; // 清空待处理的选项
             }
+        },
+        // 【】内容实时处理回调 - 检测到完整【】时立即并行调用
+        (bracketContent) => {
+            console.log('实时检测到【】内容:', bracketContent);
+            // 立即并行处理【】内容，不等待输出完成
+            handleExtractedBracketContents([bracketContent]);
         }
     );
 
@@ -276,7 +273,7 @@ async function sendMessage() {
 
     // 隐藏选项按钮
     hideOptionButtons();
-    
+
     // 清空输入框
     messageInput.value = '';
 
@@ -344,7 +341,7 @@ async function sendMessage() {
                                 // 将数据添加到流式处理器
                                 streamProcessor.addData(data.content);
                             }
-                            
+
                             // 处理选项数据
                             if (data.options) {
                                 // 存储选项数据，等待输出完成后显示
@@ -865,7 +862,7 @@ function updateCharacterImage() {
     if (currentCharacter && characterImage) {
         // 加载角色的所有图片
         loadCharacterImages(currentCharacter.id);
-        
+
         // 根据CALIB值调整位置
         if (characterContainer && typeof currentCharacter.calib !== 'undefined') {
             // 基准值为50%，根据CALIB值进行调整
@@ -1043,7 +1040,7 @@ async function selectCharacter(characterId) {
             updateCurrentMessage('assistant', currentCharacter.welcome);
 
         }
-        
+
         // 隐藏选项按钮
         hideOptionButtons();
 
@@ -1395,7 +1392,7 @@ let currentScreenClickHandler = null;
 function showOptionButtons(options) {
     // 清空现有选项
     optionButtons.innerHTML = '';
-    
+
     // 创建选项按钮
     options.forEach((option, index) => {
         const button = document.createElement('button');
@@ -1406,7 +1403,7 @@ function showOptionButtons(options) {
         });
         optionButtons.appendChild(button);
     });
-    
+
     // 显示选项容器
     optionButtonsContainer.classList.add('show');
 }
@@ -1421,10 +1418,10 @@ function hideOptionButtons() {
 function selectOption(option) {
     // 隐藏选项按钮
     hideOptionButtons();
-    
+
     // 将选项内容设置到输入框
     messageInput.value = option;
-    
+
     // 自动发送消息
     sendMessage();
 }
@@ -1434,11 +1431,11 @@ function selectOption(option) {
 // function handleExtractedBracketContents(contents) {
 //     // 这里是处理提取内容的地方，你可以在这里添加自定义逻辑
 //     console.log('处理提取的【】内容:', contents);
-    
+
 //     // 示例：解析心情状态
 //     contents.forEach((content, index) => {
 //         console.log(`第${index + 1}个【】内容:`, content);
-        
+
 //         // 如果内容是数字，可能是心情状态
 //         if (/^\d+$/.test(content.trim())) {
 //             const moodNumber = parseInt(content.trim());
@@ -1449,7 +1446,7 @@ function selectOption(option) {
 //             }
 //         }
 //     });
-    
+
 //     // 你可以在这里添加更多的处理逻辑
 //     // 例如：存储到全局变量、发送到服务器、更新UI等
 // }
@@ -1473,7 +1470,7 @@ function hideContinuePrompt() {
 
 
 function registrationShortcuts(config) {
-    document.addEventListener('keydown', e => { 
+    document.addEventListener('keydown', e => {
         if (e.key in config) {
             // For single-letter keys, require Alt to be pressed
             if (e.key.length === 1) {
@@ -1499,13 +1496,16 @@ registrationShortcuts({
 
 // 处理提取的【】内容
 function handleExtractedBracketContents(extractedContents) {
+    // 确保 extractedContents 是数组
+    const contents = Array.isArray(extractedContents) ? extractedContents : [extractedContents];
+
     // 处理每个提取的内容
-    for (const content of extractedContents) {
+    for (const content of contents) {
         console.log('处理【】内容:', content);
-        
+
         // 尝试解析为数字
         const imageNumber = parseInt(content.trim());
-        
+
         if (!isNaN(imageNumber) && imageNumber > 0) {
             // 如果是有效数字，切换到对应图片
             switchCharacterImage(imageNumber);
@@ -1523,10 +1523,10 @@ function switchCharacterImage(imageNumber) {
         console.log('没有当前角色，无法切换图片');
         return;
     }
-    
+
     // 查找对应编号的图片
     const targetImage = currentCharacterImages.find(img => img.number === imageNumber);
-    
+
     if (targetImage) {
         console.log(`切换到图片 ${imageNumber}: ${targetImage.url}`);
         const characterImage = document.getElementById('characterImage');
@@ -1554,17 +1554,17 @@ async function loadCharacterImages(characterId) {
         console.log('没有角色ID，无法加载图片');
         return;
     }
-    
+
     try {
         console.log(`加载角色 ${characterId} 的图片列表`);
-        
+
         const response = await fetch(`/api/characters/${characterId}/images`);
         const data = await response.json();
-        
+
         if (data.success) {
             currentCharacterImages = data.images;
             console.log(`成功加载 ${currentCharacterImages.length} 张图片:`, currentCharacterImages);
-            
+
             // 设置默认图片
             const characterImage = document.getElementById('characterImage');
             if (characterImage && data.default_image) {
