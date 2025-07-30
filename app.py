@@ -348,6 +348,68 @@ def exit_app():
             'error': str(e)
         }), 500
         
+@app.route('/api/characters/<character_id>/images', methods=['GET'])
+def get_character_images(character_id):
+    """获取角色的所有图片API"""
+    try:
+        # 获取角色配置
+        character_config = config_service.get_character_config(character_id)
+        if not character_config:
+            return jsonify({
+                'success': False,
+                'error': f"未找到角色: {character_id}"
+            }), 404
+        
+        # 获取角色图片目录
+        image_dir = character_config.get('image', '')
+        if not image_dir:
+            return jsonify({
+                'success': False,
+                'error': "角色未配置图片目录"
+            }), 400
+        
+        # 构建完整路径
+        full_image_dir = os.path.join(app.static_folder.replace('static', ''), image_dir)
+        
+        # 检查目录是否存在
+        if not os.path.exists(full_image_dir):
+            return jsonify({
+                'success': False,
+                'error': "角色图片目录不存在"
+            }), 404
+        
+        # 获取目录下的所有png文件
+        image_files = []
+        for filename in os.listdir(full_image_dir):
+            if filename.lower().endswith('.png'):
+                # 提取数字编号
+                name_without_ext = os.path.splitext(filename)[0]
+                try:
+                    number = int(name_without_ext)
+                    image_files.append({
+                        'number': number,
+                        'filename': filename,
+                        'url': f"/{image_dir}/{filename}"
+                    })
+                except ValueError:
+                    # 如果文件名不是数字，跳过
+                    continue
+        
+        # 按数字排序
+        image_files.sort(key=lambda x: x['number'])
+        
+        return jsonify({
+            'success': True,
+            'images': image_files,
+            'default_image': f"/{image_dir}/1.png"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/data/images/<path:filename>')
 def serve_character_image(filename):
     """提供角色图片"""

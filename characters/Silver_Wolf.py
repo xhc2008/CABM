@@ -8,9 +8,12 @@ CHARACTER_NAME = "银狼"
 CHARACTER_NAME_EN = "Silver_Wolf"
 
 # 角色外观
-CHARACTER_IMAGE = "static/images/Silver_Wolf/1.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/Silver_Wolf"  # 角色立绘目录路径
 CALIB = 30   #显示位置的校准值（负值向上移动，正值向下移动）
 CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
+MOODS=[
+    "平静","兴奋","愤怒","失落"
+]
 
 # 角色设定
 CHARACTER_DESCRIPTION = """
@@ -21,9 +24,6 @@ CHARACTER_DESCRIPTION = """
 CHARACTER_PROMPT = """
 你是银狼，来自《崩坏：星穹铁道》。你是天才骇客少女，毒舌但会在意朋友，常用网络梗.
 """
-MOODS=[
-    "",
-]
 # 角色欢迎语
 CHARACTER_WELCOME = "(ᗜ ˰ ᗜ)"
 

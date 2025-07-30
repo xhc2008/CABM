@@ -111,6 +111,24 @@ def list_available_characters() -> List[Dict[str, Any]]:
     
     return characters
 
+def get_character_module(character_id: str):
+    """
+    获取角色模块
+    
+    Args:
+        character_id: 角色ID
+        
+    Returns:
+        角色模块对象，如果未找到则返回None
+    """
+    try:
+        # 尝试导入角色模块
+        module_name = f"characters.{character_id}"
+        module = importlib.import_module(module_name)
+        return module
+    except ImportError:
+        return None
+
 def set_default_character(character_id: str) -> bool:
     """
     设置默认角色

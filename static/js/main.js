@@ -86,6 +86,8 @@ let availableCharacters = [];
 
 let currentCharacter = null;
 
+let currentCharacterImages = []; // 当前角色的所有图片
+
 
 
 // 状态变量
@@ -857,7 +859,8 @@ function updateCharacterImage() {
 
     // 如果有当前角色，更新图片
     if (currentCharacter && characterImage) {
-        characterImage.src = currentCharacter.image;
+        // 加载角色的所有图片
+        loadCharacterImages(currentCharacter.id);
         
         // 根据CALIB值调整位置
         if (characterContainer && typeof currentCharacter.calib !== 'undefined') {
@@ -1453,3 +1456,87 @@ registrationShortcuts({
     // c: clearChat, // 已禁用：清空对话快捷键
     // ç: clearChat // 已禁用：清空对话快捷键（为了解决部分快捷键冲突）
 });
+
+// 处理提取的【】内容
+function handleExtractedBracketContents(extractedContents) {
+    // 处理每个提取的内容
+    for (const content of extractedContents) {
+        console.log('处理【】内容:', content);
+        
+        // 尝试解析为数字
+        const imageNumber = parseInt(content.trim());
+        
+        if (!isNaN(imageNumber) && imageNumber > 0) {
+            // 如果是有效数字，切换到对应图片
+            switchCharacterImage(imageNumber);
+        } else {
+            console.log('【】内容不是有效数字，使用默认图片:', content);
+            // 如果不是数字或无效内容，切换到默认图片（1.png）
+            switchCharacterImage(1);
+        }
+    }
+}
+
+// 切换角色图片
+function switchCharacterImage(imageNumber) {
+    if (!currentCharacter) {
+        console.log('没有当前角色，无法切换图片');
+        return;
+    }
+    
+    // 查找对应编号的图片
+    const targetImage = currentCharacterImages.find(img => img.number === imageNumber);
+    
+    if (targetImage) {
+        console.log(`切换到图片 ${imageNumber}: ${targetImage.url}`);
+        const characterImage = document.getElementById('characterImage');
+        if (characterImage) {
+            characterImage.src = targetImage.url;
+        }
+    } else {
+        console.log(`未找到编号为 ${imageNumber} 的图片，使用默认图片`);
+        // 使用默认图片（1.png）
+        const defaultImage = currentCharacterImages.find(img => img.number === 1);
+        if (defaultImage) {
+            const characterImage = document.getElementById('characterImage');
+            if (characterImage) {
+                characterImage.src = defaultImage.url;
+            }
+        } else {
+            console.log('连默认图片都没有找到');
+        }
+    }
+}
+
+// 加载角色图片列表
+async function loadCharacterImages(characterId) {
+    if (!characterId) {
+        console.log('没有角色ID，无法加载图片');
+        return;
+    }
+    
+    try {
+        console.log(`加载角色 ${characterId} 的图片列表`);
+        
+        const response = await fetch(`/api/characters/${characterId}/images`);
+        const data = await response.json();
+        
+        if (data.success) {
+            currentCharacterImages = data.images;
+            console.log(`成功加载 ${currentCharacterImages.length} 张图片:`, currentCharacterImages);
+            
+            // 设置默认图片
+            const characterImage = document.getElementById('characterImage');
+            if (characterImage && data.default_image) {
+                characterImage.src = data.default_image;
+                console.log(`设置默认图片: ${data.default_image}`);
+            }
+        } else {
+            console.error('加载角色图片失败:', data.error);
+            currentCharacterImages = [];
+        }
+    } catch (error) {
+        console.error('加载角色图片时发生错误:', error);
+        currentCharacterImages = [];
+    }
+}
