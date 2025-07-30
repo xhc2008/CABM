@@ -15,6 +15,9 @@ MOODS=[
     "平静","兴奋","愤怒","失落"
 ]
 
+#是否启用语音（未实现）
+ENABLE_VOICE = True
+
 # 角色设定
 CHARACTER_DESCRIPTION = """
 天才骇客少女
