@@ -1,5 +1,5 @@
 Flask==3.0.0
-openai==1.54.4
+openai==1.95.1
 python-dotenv==1.0.0
 numpy==1.24.3
 requests

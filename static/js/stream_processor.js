@@ -18,6 +18,7 @@ class StreamProcessor {
         this.onCharacterCallback = null;
         this.onPauseCallback = null;
         this.onCompleteCallback = null;
+        this.onBracketContentCallback = null; // 新增：【】内容实时处理回调
         this.processingTimeout = null;
         
         // 【】内容处理相关状态
@@ -29,10 +30,11 @@ class StreamProcessor {
     /**
      * 设置回调函数
      */
-    setCallbacks(onCharacter, onPause, onComplete) {
+    setCallbacks(onCharacter, onPause, onComplete, onBracketContent = null) {
         this.onCharacterCallback = onCharacter;
         this.onPauseCallback = onPause;
         this.onCompleteCallback = onComplete;
+        this.onBracketContentCallback = onBracketContent; // 新增：【】内容实时处理回调
     }
 
     /**
@@ -107,6 +109,18 @@ class StreamProcessor {
             // 检测到】，结束收集，将内容存储到变量中
             this.isInsideBrackets = false;
             this.extractedBracketContents.push(this.bracketContent); // **这里是提取【】内容并存储的位置**
+            
+            // **立即处理【】内容 - 并行调用**
+            if (this.onBracketContentCallback && this.bracketContent.trim()) {
+                console.log('流式处理器检测到完整【】内容:', this.bracketContent.trim());
+                // 保存内容到局部变量，避免异步调用时被重置
+                const contentToProcess = this.bracketContent.trim();
+                // 使用 setTimeout 实现并行调用，不阻塞主流程
+                setTimeout(() => {
+                    this.onBracketContentCallback(contentToProcess);
+                }, 0);
+            }
+            
             this.bracketContent = '';
             // 不输出】字符，继续处理下一个字符
         } else if (this.isInsideBrackets) {
@@ -196,6 +210,16 @@ class StreamProcessor {
             } else if (char === '】' && this.isInsideBrackets) {
                 this.isInsideBrackets = false;
                 this.extractedBracketContents.push(this.bracketContent); // **跳过时也提取【】内容**
+                
+                // **跳过时也立即处理【】内容**
+                if (this.onBracketContentCallback && this.bracketContent.trim()) {
+                    console.log('跳过时检测到完整【】内容:', this.bracketContent.trim());
+                    // 保存内容到局部变量
+                    const contentToProcess = this.bracketContent.trim();
+                    // 立即调用，因为跳过时不需要延迟
+                    this.onBracketContentCallback(contentToProcess);
+                }
+                
                 this.bracketContent = '';
             } else if (this.isInsideBrackets) {
                 this.bracketContent += char;

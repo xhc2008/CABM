@@ -104,7 +104,7 @@ class ConfigService:
                 # 构建心情字符串，格式：1.心情1 2.心情2 3.心情3 4.心情4
                 mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(character_module.MOODS)])
                 # 替换通用提示词中的心情部分
-                general_prompt = general_prompt.replace("1.平静 2.兴奋 3.愤怒 4.失落", mood_str)
+                general_prompt = general_prompt.replace("<[MOODS]>", mood_str)
             
             return f"{general_prompt}\n\n{character_config['prompt']}"
         
@@ -114,7 +114,7 @@ class ConfigService:
             character_module = characters.get_character_module(self.current_character_id)
             if hasattr(character_module, 'MOODS') and character_module.MOODS:
                 mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(character_module.MOODS)])
-                prompt = prompt.replace("1.平静 2.兴奋 3.愤怒 4.失落", mood_str)
+                prompt = prompt.replace("<[MOODS]>", mood_str)
         
         return prompt
     
