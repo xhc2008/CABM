@@ -513,6 +513,10 @@ body {
     margin-bottom: 1rem;
 }
 
+.recording {
+    background-color: red;
+}
+
 /* 动画 */
 @keyframes fadeIn {
     from {

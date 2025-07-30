@@ -12,6 +12,7 @@ import requests
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
+from openai import APIError
 
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
