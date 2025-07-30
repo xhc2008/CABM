@@ -36,6 +36,8 @@ const continueButton = document.getElementById('continueButton');
 
 const skipButton = document.getElementById('skipButton');
 
+const micButton = document.getElementById('micButton');
+
 const clickToContinue = document.getElementById('clickToContinue');
 const optionButtonsContainer = document.getElementById('optionButtonsContainer');
 const optionButtons = document.getElementById('optionButtons');
@@ -137,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
     continueButton.addEventListener('click', continueOutput);
 
     skipButton.addEventListener('click', skipTyping);
+
+    micButton.addEventListener('click', toggleRecording);
 
     errorCloseButton.addEventListener('click', hideError);
 
@@ -1276,10 +1280,44 @@ function skipTyping() {
     }
 }
 
+let recognition; // 全局变量存储语音识别实例
+
+function toggleRecording() {
+    let isRecording = micButton.classList.toggle('recording');
+    if (isRecording) {
+        if (!recognition) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'zh-CN'; // 设置语言为中文
+            recognition.interimResults = false; // 不需要中间结果
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.trim();
+                if (transcript) {
+                    // 将识别到的文本设置到输入框
+                    messageInput.value += transcript;
+                }
+            };
+            recognition.onerror = (event) => {
+                console.error('语音识别错误:', event.error);
+                showError(`语音识别错误: ${event.error}`);
+            };
+            recognition.onend = () => {
+                micButton.classList.remove('recording');
+            }
+        }
+        recognition.start();
+    } else {
+        // 停止语音识别
+        if (recognition) {
+            recognition.stop();
+        }
+    }
+}
+
 // 禁用用户输入
 function disableUserInput() {
     messageInput.disabled = true;
     sendButton.disabled = true;
+    micButton.disabled = true;
     messageInput.placeholder = "AI正在回复中...";
 }
 
@@ -1287,6 +1325,7 @@ function disableUserInput() {
 function enableUserInput() {
     messageInput.disabled = false;
     sendButton.disabled = false;
+    micButton.disabled = false;
     messageInput.placeholder = "输入消息...";
 }
 
