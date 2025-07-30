@@ -1391,28 +1391,29 @@ function selectOption(option) {
 }
 
 // **处理提取的【】内容的函数**
-function handleExtractedBracketContents(contents) {
-    // 这里是处理提取内容的地方，你可以在这里添加自定义逻辑
-    console.log('处理提取的【】内容:', contents);
+// ⚠这个函数似乎没有被使用，但最好别删
+// function handleExtractedBracketContents(contents) {
+//     // 这里是处理提取内容的地方，你可以在这里添加自定义逻辑
+//     console.log('处理提取的【】内容:', contents);
     
-    // 示例：解析心情状态
-    contents.forEach((content, index) => {
-        console.log(`第${index + 1}个【】内容:`, content);
+//     // 示例：解析心情状态
+//     contents.forEach((content, index) => {
+//         console.log(`第${index + 1}个【】内容:`, content);
         
-        // 如果内容是数字，可能是心情状态
-        if (/^\d+$/.test(content.trim())) {
-            const moodNumber = parseInt(content.trim());
-            const moods = ['', '平静', '兴奋', '愤怒', '失落'];
-            if (moodNumber >= 1 && moodNumber <= 4) {
-                console.log(`检测到心情状态: ${moodNumber} - ${moods[moodNumber]}`);
-                // 在这里可以根据心情状态做相应处理，比如改变UI样式等
-            }
-        }
-    });
+//         // 如果内容是数字，可能是心情状态
+//         if (/^\d+$/.test(content.trim())) {
+//             const moodNumber = parseInt(content.trim());
+//             const moods = ['', '平静', '兴奋', '愤怒', '失落'];
+//             if (moodNumber >= 1 && moodNumber <= 4) {
+//                 console.log(`检测到心情状态: ${moodNumber} - ${moods[moodNumber]}`);
+//                 // 在这里可以根据心情状态做相应处理，比如改变UI样式等
+//             }
+//         }
+//     });
     
-    // 你可以在这里添加更多的处理逻辑
-    // 例如：存储到全局变量、发送到服务器、更新UI等
-}
+//     // 你可以在这里添加更多的处理逻辑
+//     // 例如：存储到全局变量、发送到服务器、更新UI等
+// }
 
 // 隐藏"点击屏幕继续"提示
 function hideContinuePrompt() {
