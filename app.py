@@ -7,7 +7,9 @@ import json
 import time
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
-
+from funasr import AutoModel
+from werkzeug.utils import secure_filename
+from pydub import AudioSegment
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent))
 
@@ -16,6 +18,7 @@ from services.chat_service import chat_service
 from services.image_service import image_service
 from services.scene_service import scene_service
 from services.option_service import option_service
+from services.damoasr_service import *
 from utils.api_utils import APIError
 
 # 初始化配置
@@ -35,6 +38,17 @@ app = Flask(
 
 # 设置调试模式
 app.debug = app_config["debug"]
+
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def convert_to_16k_wav(input_path, output_path):
+    """转换音频为 16kHz 单声道 WAV"""
+    audio = AudioSegment.from_file(input_path)
+    audio_16k = audio.set_frame_rate(16000).set_channels(1)
+    audio_16k.export(output_path, format="wav")
+    return output_path
 
 @app.route('/')
 def index():
@@ -79,6 +93,41 @@ def index():
         current_scene=scene_data,
         show_scene_name=show_scene_name
     )
+
+@app.route('/api/mic', methods=['POST'])
+def mic_transcribe():
+    if 'audio' not in request.files:
+        return jsonify({'error': '缺少音频文件'}), 400
+
+    file = request.files['audio']
+    if file.filename == '':
+        return jsonify({'error': '未选择文件'}), 400
+
+    filename = secure_filename(file.filename)
+    temp_input = os.path.join(UPLOAD_FOLDER, filename)
+    wav_path = os.path.join(UPLOAD_FOLDER, "temp_recording.wav")
+
+    try:
+        # 保存上传文件
+        file.save(temp_input)
+
+        # 转换格式
+        convert_to_16k_wav(temp_input, wav_path)
+
+        # 调用 ASR 服务识别
+        text = transcribe_audio(wav_path)
+
+        return jsonify({'text': text})
+
+    except Exception as e:
+        return jsonify({'error': '语音识别失败', 'detail': str(e)}), 500
+
+    finally:
+        # 清理临时文件
+        if os.path.exists(temp_input):
+            os.remove(temp_input)
+        if os.path.exists(wav_path):
+            os.remove(wav_path)
 
 @app.route('/api/chat', methods=['POST'])
 def chat():

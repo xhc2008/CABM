@@ -1277,35 +1277,62 @@ function skipTyping() {
     }
 }
 
-let recognition; // 全局变量存储语音识别实例
+let mediaRecorder;
+let audioChunks = [];
 
+// 切换录音状态
 function toggleRecording() {
-    let isRecording = micButton.classList.toggle('recording');
+    const isRecording = micButton.classList.toggle('recording');
+
     if (isRecording) {
-        if (!recognition) {
-            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'zh-CN'; // 设置语言为中文
-            recognition.interimResults = false; // 不需要中间结果
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.trim();
-                if (transcript) {
-                    // 将识别到的文本设置到输入框
-                    messageInput.value += transcript;
-                }
-            };
-            recognition.onerror = (event) => {
-                console.error('语音识别错误:', event.error);
-                showError(`语音识别错误: ${event.error}`);
-            };
-            recognition.onend = () => {
+        // 开始录音
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'recording.webm');
+
+                    // 发送到 Flask 后端
+                    fetch('/api/mic', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('后端返回:', data);
+                        if (data.text) {
+                            // 假设后端返回识别后的文本
+                            messageInput.value += data.text;
+                        }
+                    })
+                    .catch(err => {
+                        console.error('上传失败:', err);
+                        showError('录音上传失败');
+                    });
+                };
+
+                mediaRecorder.start();
+            })
+            .catch(err => {
+                console.error('麦克风访问失败:', err);
+                showError('无法访问麦克风: ' + err.message);
                 micButton.classList.remove('recording');
-            }
-        }
-        recognition.start();
+            });
     } else {
-        // 停止语音识别
-        if (recognition) {
-            recognition.stop();
+        // 停止录音（触发 onstop）
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop()); // 关闭麦克风
         }
     }
 }

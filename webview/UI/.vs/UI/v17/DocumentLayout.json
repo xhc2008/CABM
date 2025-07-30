@@ -1,0 +1,112 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\try\\CABM\\webview\\UI\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|e:\\try\\cabm\\webview\\ui\\main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|solutionrelative:main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|e:\\try\\cabm\\webview\\ui\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|e:\\try\\cabm\\webview\\ui\\main.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|solutionrelative:main.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|e:\\try\\cabm\\webview\\ui\\app.manifest||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|solutionrelative:app.manifest||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|e:\\try\\cabm\\webview\\ui\\main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{73E165FC-1CA7-41F3-BBB2-CF29CBEA2711}|UI.csproj|solutionrelative:main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 4,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e5c86464-96be-4d7c-9a8b-abcb3bbf5f92}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\try\\CABM\\webview\\UI\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "E:\\try\\CABM\\webview\\UI\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwsAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-30T17:59:37.771Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "main.Designer.cs",
+              "DocumentMoniker": "E:\\try\\CABM\\webview\\UI\\main.Designer.cs",
+              "RelativeDocumentMoniker": "main.Designer.cs",
+              "ToolTip": "E:\\try\\CABM\\webview\\UI\\main.Designer.cs",
+              "RelativeToolTip": "main.Designer.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAAAqwC0AAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-30T17:59:15.788Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "main.cs",
+              "DocumentMoniker": "E:\\try\\CABM\\webview\\UI\\main.cs",
+              "RelativeDocumentMoniker": "main.cs",
+              "ToolTip": "E:\\try\\CABM\\webview\\UI\\main.cs",
+              "RelativeToolTip": "main.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAkwAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-30T17:57:45.742Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "app.manifest",
+              "DocumentMoniker": "E:\\try\\CABM\\webview\\UI\\app.manifest",
+              "RelativeDocumentMoniker": "app.manifest",
+              "ToolTip": "E:\\try\\CABM\\webview\\UI\\app.manifest",
+              "RelativeToolTip": "app.manifest",
+              "ViewState": "AgIAADkAAAAAAAAAAADwvz0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001203|",
+              "WhenOpened": "2025-07-30T17:55:39.266Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "main.cs [\u8BBE\u8BA1]",
+              "DocumentMoniker": "E:\\try\\CABM\\webview\\UI\\main.cs",
+              "RelativeDocumentMoniker": "main.cs",
+              "ToolTip": "E:\\try\\CABM\\webview\\UI\\main.cs [\u8BBE\u8BA1]",
+              "RelativeToolTip": "main.cs [\u8BBE\u8BA1]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-30T17:55:11.146Z",
+              "EditorCaption": " [\u8BBE\u8BA1]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

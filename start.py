@@ -88,21 +88,15 @@ def open_browser(host, port, delay=1.5):
         
         # 如果host是0.0.0.0，获取本地IP地址用于浏览器访问
         if host == "0.0.0.0":
-            try:
-                from utils.network_utils import get_local_ip
-                local_ip = get_local_ip()
-                browser_host = local_ip if local_ip else "127.0.0.1"
-            except Exception as e:
-                logger.warning(f"获取本地IP失败: {e}")
-                browser_host = "127.0.0.1"
+            browser_host = "127.0.0.1"
         else:
             browser_host = host
         
         url = f"http://{browser_host}:{port}"
-        logger.info(f"正在浏览器中打开应用: {url}")
+        logger.info(f"正在打开应用: {url}")
         
         try:
-            webbrowser.open(url)
+            os.system(f".\\webview\\UI.exe {url}")
         except Exception as e:
             logger.warning(f"无法自动打开浏览器: {e}")
             logger.info(f"请手动在浏览器中访问: {url}")
