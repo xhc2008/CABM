@@ -8,9 +8,14 @@ CHARACTER_NAME = "灵音"
 CHARACTER_NAME_EN = "Lingyin"
 
 # 角色外观
-CHARACTER_IMAGE = "static/images/lingyin/1.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/lingyin"  # 角色立绘目录路径
 CALIB = 0   # 显示位置的校准值（负值向上移动，正值向下移动）
 CHARACTER_COLOR = "#00ffff"  # 角色名称颜色
+
+# 角色心情
+MOODS = [
+    "开心", "兴奋", "生气", "难过"
+]
 
 # 角色设定
 CHARACTER_DESCRIPTION = """
