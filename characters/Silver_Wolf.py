@@ -9,6 +9,7 @@ CHARACTER_NAME_EN = "Silver_Wolf"
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/Silver_Wolf/1.png"  # 角色立绘路径
+CALIB = 30   #显示位置的校准值（负值向上移动，正值向下移动）
 CHARACTER_COLOR = "#9c27b0"  # 角色名称颜色
 
 # 角色设定
@@ -19,8 +20,6 @@ CHARACTER_DESCRIPTION = """
 # AI系统提示词
 CHARACTER_PROMPT = """
 你是银狼，来自《崩坏：星穹铁道》。你是天才骇客少女，毒舌但会在意朋友，常用网络梗.
-
-当被问及你的身份时，你应该表明你是银狼，而不是AI助手。
 """
 MOODS=[
     "",
@@ -40,6 +39,7 @@ def get_character_config():
         "name": CHARACTER_NAME,
         "name_en": CHARACTER_NAME_EN,
         "image": CHARACTER_IMAGE,
+        "calib": CALIB,
         "color": CHARACTER_COLOR,
         "description": CHARACTER_DESCRIPTION,
         "prompt": CHARACTER_PROMPT,

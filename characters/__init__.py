@@ -68,6 +68,7 @@ def get_character_config(character_id: Optional[str] = None) -> Dict[str, Any]:
             "name": "AI助手",
             "name_en": "AI Assistant",
             "image": "static/images/default/1.png",
+            "calib": 0,
             "color": "#ffffff",
             "description": "默认AI助手",
             "prompt": "你是一个有用的AI助手。",
