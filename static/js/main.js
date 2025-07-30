@@ -807,6 +807,9 @@ async function loadCharacters() {
 
         currentCharacter = data.current_character;
 
+        // 调试：输出角色信息
+        console.log('当前角色信息:', currentCharacter);
+
         // 更新角色图片
 
         updateCharacterImage();
@@ -856,17 +859,17 @@ function updateCharacterImage() {
     if (currentCharacter && characterImage) {
         characterImage.src = currentCharacter.image;
         
-        // 移除所有角色定位类
-        if (characterContainer) {
-            characterContainer.classList.remove(
-                'character-lingyin',
-                'character-silver-wolf',
-                'character-default'
-            );
-            
-            // 添加对应角色的定位类
-            const characterClass = `character-${currentCharacter.id}`;
-            characterContainer.classList.add(characterClass);
+        // 根据CALIB值调整位置
+        if (characterContainer && typeof currentCharacter.calib !== 'undefined') {
+            // 基准值为50%，根据CALIB值进行调整
+            const baseTop = 50;
+            const adjustedTop = baseTop + currentCharacter.calib;
+            console.log(`角色位置调整: CALIB=${currentCharacter.calib}, 调整后位置=${adjustedTop}%`);
+            characterContainer.style.top = `${adjustedTop}%`;
+        } else if (characterContainer) {
+            // 如果没有CALIB值，使用默认位置
+            console.log('使用默认位置: 50%');
+            characterContainer.style.top = '50%';
         }
     }
 }
@@ -1014,6 +1017,9 @@ async function selectCharacter(characterId) {
         // 更新当前角色
 
         currentCharacter = data.character;
+
+        // 调试：输出角色信息
+        console.log('切换后的角色信息:', currentCharacter);
 
         // 更新角色图片
 
