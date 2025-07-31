@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 from openai import APIError
+import traceback
 
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -244,7 +245,7 @@ class ImageService:
         except APIError as e:
             # 处理API错误
             error_info = e.response if hasattr(e, "response") else {"error": str(e)}
-            
+            traceback.print_exc()
             # 如果有备用图像，使用备用图像
             if "image_path" in error_info:
                 return {
@@ -316,6 +317,8 @@ class ImageService:
 image_service = ImageService()
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
     # 测试图像服务
     try:
         # 初始化配置
