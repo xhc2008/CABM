@@ -5,6 +5,7 @@
 static/images/default/
 #测试文件
 test.py
+temp/
 
 .kiro/
 .vscode/
