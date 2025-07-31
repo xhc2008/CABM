@@ -14,6 +14,7 @@ data/images/
 plan.txt
 backups/
 log.txt
+银狼模型/
 
 # Python缓存文件
 __pycache__/

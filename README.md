@@ -67,6 +67,21 @@ pip install -r requirements.txt
 pip install flask requests python-dotenv
 ```
 
+需要语音合成的用户请手动部署`GPT-SoVITS`并在根目录创建`role`文件夹，在该文件夹下创建对应角色的文件夹，并把参考音频放入期中
+
+创建config.json
+```json
+{
+    "ref_audio":"archive_jingyuan_1.wav",                                               //参考音频
+    "ref_text":"是「罗浮」云骑将军景元。不必拘谨，「将军」只是一时的身份，你称呼我景元便可",   //参考音频的文本
+    "ref_lang":"zh"                                                                     // 参考音频的语言
+}
+```
+
+把原项目目录中的`api_v2.py`替换成本项目下的`api_v2.py`
+
+然后启动api服务，把api服务地址填写进环境内
+
 ### 2. 配置环境变量
 
 复制`.env.example`文件为`.env`，并填写API密钥和URL：

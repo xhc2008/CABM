@@ -4,10 +4,10 @@ CABM应用主文件
 import os
 import sys
 import json
+from io import BytesIO
 import time
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_from_directory, Response
-from funasr import AutoModel
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response ,send_file
 from werkzeug.utils import secure_filename
 from pydub import AudioSegment
 # 添加项目根目录到系统路径
@@ -18,6 +18,7 @@ from services.chat_service import chat_service
 from services.image_service import image_service
 from services.scene_service import scene_service
 from services.option_service import option_service
+from services.gsapi_service import ttsService
 from services.damoasr_service import *
 from utils.api_utils import APIError
 
@@ -41,7 +42,6 @@ app.debug = app_config["debug"]
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 def convert_to_16k_wav(input_path, output_path):
     """转换音频为 16kHz 单声道 WAV"""
@@ -128,7 +128,6 @@ def mic_transcribe():
             os.remove(temp_input)
         if os.path.exists(wav_path):
             os.remove(wav_path)
-
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """聊天API"""
@@ -384,11 +383,10 @@ def set_character(character_id):
 def exit_app():
     """退出应用API"""
     try:
-        # 在实际应用中，这里可能需要清理资源或保存状态
-        # 这里简化处理，直接返回成功
+        os._exit(0) 
         return jsonify({
             'success': True,
-            'message': '应用已退出'
+            'message': '应用开始退出'
         })
         
     except Exception as e:
@@ -463,6 +461,38 @@ def get_character_images(character_id):
 def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
+
+
+@app.route('/api/tts', methods=['POST'])
+def serve_tts():
+    tts = ttsService()
+    if not tts.running():
+        return jsonify({"error": "语音合成服务未启用/连接失败"}), 400
+    data = request.get_json()
+    text = data.get("text", "").strip()
+    role = data.get("role", "AI助手")
+    print(f"请求TTS: 角色={role}, 文本={text}")
+    if not text:
+        return jsonify({"error": "文本为空"}), 400
+
+    try:
+        audio_bytes = tts.get_tts(text, role)  # 应返回 bytes
+        if not audio_bytes:
+            return jsonify({"error": "TTS生成失败"}), 500
+
+        audio_io = BytesIO(audio_bytes)
+        audio_io.seek(0)
+
+        return send_file(
+            audio_io,
+            mimetype='audio/wav',
+            as_attachment=False,
+            download_name=None
+        )
+    except Exception as e:
+        print(f"TTS error: {e}")
+        return jsonify({"error": "语音合成失败"}), 500
+
 
 if __name__ == '__main__':
     # 设置系统提示词，使用角色提示词
