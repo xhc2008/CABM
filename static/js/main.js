@@ -1283,27 +1283,50 @@ function toggleRecording() {
     let isRecording = micButton.classList.toggle('recording');
     if (isRecording) {
         if (!recognition) {
-            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'zh-CN'; // 设置语言为中文
-            recognition.interimResults = false; // 不需要中间结果
+            const SpeechRecognition = window.SpeechRecognition || 
+                                    window.webkitSpeechRecognition ||
+                                    window.mozSpeechRecognition || 
+                                    window.msSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                console.error('当前浏览器不支持语音识别API');
+                showError('您的浏览器不支持语音识别功能');
+                micButton.classList.remove('recording');
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.interimResults = false;
+            
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript.trim();
                 if (transcript) {
-                    // 将识别到的文本设置到输入框
                     messageInput.value += transcript;
                 }
             };
+            
             recognition.onerror = (event) => {
                 console.error('语音识别错误:', event.error);
                 showError(`语音识别错误: ${event.error}`);
-            };
-            recognition.onend = () => {
                 micButton.classList.remove('recording');
-            }
+            };
+            
+            recognition.onend = () => {
+                if (micButton.classList.contains('recording')) {
+                    micButton.classList.remove('recording');
+                }
+            };
         }
-        recognition.start();
+        
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error('启动语音识别失败:', e);
+            showError('无法启动语音识别');
+            micButton.classList.remove('recording');
+        }
     } else {
-        // 停止语音识别
         if (recognition) {
             recognition.stop();
         }
