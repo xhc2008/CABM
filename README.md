@@ -22,7 +22,6 @@
 - 场景切换（让AI切换场景或生成新场景）
 - 故事模式（根据大纲推动故事发展，区别于“闲聊模式”）
 - 角色的表情/动作（在做了在做了）
-- 角色语音（在做了，但是代码可能要重构亿下）
 - 角色的自我认知
 - 更多的角色
 - ~~记忆权重，记忆遗忘~~（意义不大，暂不考虑）
@@ -103,6 +102,10 @@ OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
 OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 OPTION_MODEL=Qwen/Qwen3-32B
 ```
+注意如果使用`GPT-SoVITS`作为语音合成，请下载`GPT-SoVITS`整合包并把`api_v2.py`换成`\replace\api_v2.py`然后启动
+在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
+[示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
+需要在环境中把`siliconflow`换成`GPT-SoVITS`
 
 ## 使用说明
 
