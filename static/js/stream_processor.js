@@ -19,6 +19,7 @@ class StreamProcessor {
         this.onPauseCallback = null;
         this.onCompleteCallback = null;
         this.processingTimeout = null;
+        this.lastCharWasPauseMarker = false; // 新增：标记上一个字符是否为暂停标记
     }
 
     /**
@@ -38,7 +39,7 @@ class StreamProcessor {
         for (const char of data) {
             this.buffer.push(char);
         }
-        
+
         // 如果没有在处理且没有暂停，开始处理
         if (!this.processingTimeout && this.active && !this.isPaused) {
             this.processBuffer();
@@ -51,7 +52,7 @@ class StreamProcessor {
     markEnd() {
         this.buffer.push(END_MARKER);
         this.active = false;
-        
+
         // 如果没有在处理，开始处理
         if (!this.processingTimeout) {
             this.processBuffer();
@@ -85,7 +86,7 @@ class StreamProcessor {
                 this.paragraphs.push(this.currentParagraph);
                 this.currentParagraph = '';
             }
-            
+
             // 调用完成回调
             if (this.onCompleteCallback) {
                 this.onCompleteCallback(this.paragraphs.join(''));
@@ -93,22 +94,32 @@ class StreamProcessor {
             return;
         }
 
+        // 检查是否需要分割：上一个字符是暂停标记，当前字符不是暂停标记
+        if (this.lastCharWasPauseMarker && !PAUSE_MARKERS.includes(char)) {
+            // 检查下一个字符是否是结束标记
+            const nextChar = this.buffer.length > 0 ? this.buffer[0] : null;
+
+            // 只有在下一个字符不是结束标记时才暂停
+            if (nextChar !== END_MARKER) {
+                this.handlePause();
+                // 重置标记
+                this.lastCharWasPauseMarker = false;
+                // 将当前字符放回缓冲区开头，下次处理时再处理
+                this.buffer.unshift(char);
+                return;
+            }
+        }
+
         // 正常字符处理
         this.currentParagraph += char;
-        
+
         // 调用字符回调
         if (this.onCharacterCallback) {
             this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
         }
 
-        // 检查下一个字符是否是结束标记
-        const nextChar = this.buffer.length > 0 ? this.buffer[0] : null;
-
-        // 只有在下一个字符不是结束标记时才检查暂停
-        if (PAUSE_MARKERS.includes(char) && nextChar !== END_MARKER) {
-            this.handlePause();
-            return; // 暂停后直接返回，不继续处理
-        }
+        // 更新暂停标记状态
+        this.lastCharWasPauseMarker = PAUSE_MARKERS.includes(char);
 
         // 继续处理下一个字符
         this.processingTimeout = setTimeout(() => {
@@ -122,13 +133,13 @@ class StreamProcessor {
      */
     handlePause() {
         this.isPaused = true;
-        
+
         // 将当前段落添加到段落列表
         if (this.currentParagraph) {
             this.paragraphs.push(this.currentParagraph);
             this.currentParagraph = '';
         }
-        
+
         // 调用暂停回调
         if (this.onPauseCallback) {
             this.onPauseCallback(this.paragraphs.join(''));
@@ -141,7 +152,7 @@ class StreamProcessor {
     continue() {
         if (this.isPaused) {
             this.isPaused = false;
-            
+
             // 继续处理缓冲区
             if (!this.processingTimeout) {
                 this.processBuffer();
@@ -170,7 +181,7 @@ class StreamProcessor {
         }
 
         this.currentParagraph += remainingContent;
-        
+
         // 如果有内容，添加到段落列表
         if (this.currentParagraph) {
             this.paragraphs.push(this.currentParagraph);
@@ -202,6 +213,7 @@ class StreamProcessor {
         this.isPaused = false;
         this.currentParagraph = '';
         this.paragraphs = [];
+        this.lastCharWasPauseMarker = false; // 重置暂停标记状态
     }
 
 
