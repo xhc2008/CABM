@@ -92,6 +92,8 @@ def open_browser(host, port, delay=1.5):
                 from utils.network_utils import get_local_ip
                 local_ip = get_local_ip()
                 browser_host = local_ip if local_ip else "127.0.0.1"
+                print(f"如果你想要使用语音输入功能，请确保你使用的是本地地址而不是IP地址！")
+                print(f"如果你的环境为公网环境，请确保你使用的是https协议地址，否则浏览器可能会阻止调用麦克风！")
             except Exception as e:
                 logger.warning(f"获取本地IP失败: {e}")
                 browser_host = "127.0.0.1"
