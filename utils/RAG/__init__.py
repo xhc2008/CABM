@@ -9,7 +9,7 @@ class RAG:
         self.Reranker_config = config['Reranker']
         self.reranker_func = self.Reranker_config['reranker_func']
         module = import_module(
-            f'Reranker.Reranker_{self.reranker_func}')
+            f'utils.RAG.Reranker.Reranker_{self.reranker_func}')
         self.reranker = getattr(module, f'Reranker_{self.reranker_func}')(**self.Reranker_config['reranker_kwds'])
     
     def save_to_file(self, file_path: str):
@@ -30,6 +30,8 @@ class RAG:
     def req(self, query, top_k=5) -> List[str]:
         # 查询函数
         retrieval_res = self.retriever.retrieval(query)  # 获得初步查询
+        if retrieval_res is None or len(retrieval_res) == 0:
+            return []
         rerank_res = self.reranker.rerank(retrieval_res, query, k=top_k)  # 后处理, 精排
         return rerank_res
 
