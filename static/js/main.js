@@ -103,6 +103,11 @@ let currentTypingTimeout = null;
 
 let currentConfirmCallback = null;
 
+// TTS音频相关状态
+let audioQueue = []; // 音频队列
+let currentAudio = null; // 当前播放的音频
+let isPlayingAudio = false; // 是否正在播放音频
+
 
 // 初始化
 
@@ -347,6 +352,12 @@ async function sendMessage() {
                             if (data.options) {
                                 // 存储选项数据，等待输出完成后显示
                                 window.pendingOptions = data.options;
+                            }
+
+                            // 处理TTS音频数据
+                            if (data.tts) {
+                                console.log('收到TTS音频数据:', data.tts);
+                                handleTTSAudio(data.tts);
                             }
                         } catch (e) {
                             console.error('解析JSON失败:', e, jsonStr);
@@ -1242,6 +1253,11 @@ function handleConfirmNo() {
 function continueOutput() {
     console.log('continueOutput called, isPaused:', isPaused, 'streamProcessor:', streamProcessor);
 
+    // 如果正在播放音频，中断当前音频并播放下一个
+    if (isPlayingAudio) {
+        skipToNextAudio();
+    }
+
     if (isPaused && streamProcessor) {
         isPaused = false;
         hideContinuePrompt();
@@ -1257,6 +1273,9 @@ function continueOutput() {
 
 // 跳过打字效果
 function skipTyping() {
+    // 停止所有音频播放
+    stopCurrentAudio();
+
     if (streamProcessor && streamProcessor.isProcessing()) {
         // 跳过当前流式处理
         streamProcessor.skip();
@@ -1439,6 +1458,99 @@ function selectOption(option) {
     // 自动发送消息
     sendMessage();
 }
+
+// TTS音频处理函数
+
+/**
+ * 处理TTS音频数据
+ */
+function handleTTSAudio(ttsData) {
+    if (!ttsData || !ttsData.audio_url) {
+        return;
+    }
+
+    // 添加到音频队列
+    audioQueue.push({
+        text: ttsData.text,
+        audioUrl: ttsData.audio_url,
+        audio: null
+    });
+
+    // 如果当前没有播放音频，开始播放
+    if (!isPlayingAudio) {
+        playNextAudio();
+    }
+}
+
+/**
+ * 播放下一个音频
+ */
+function playNextAudio() {
+    if (audioQueue.length === 0) {
+        isPlayingAudio = false;
+        currentAudio = null;
+        return;
+    }
+
+    const audioItem = audioQueue.shift();
+    isPlayingAudio = true;
+
+    // 创建音频对象
+    const audio = new Audio(audioItem.audioUrl);
+    audioItem.audio = audio;
+    currentAudio = audio;
+
+    console.log('开始播放音频:', audioItem.text);
+
+    // 设置音频事件监听器
+    audio.onended = () => {
+        console.log('音频播放完成:', audioItem.text);
+        playNextAudio(); // 播放下一个音频
+    };
+
+    audio.onerror = (e) => {
+        console.error('音频播放失败:', e, audioItem.text);
+        playNextAudio(); // 跳过失败的音频，播放下一个
+    };
+
+    // 开始播放
+    audio.play().catch(e => {
+        console.error('音频播放启动失败:', e);
+        playNextAudio(); // 跳过失败的音频，播放下一个
+    });
+}
+
+/**
+ * 停止当前音频播放
+ */
+function stopCurrentAudio() {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        console.log('停止当前音频播放');
+    }
+    
+    // 清空音频队列
+    audioQueue = [];
+    isPlayingAudio = false;
+    currentAudio = null;
+}
+
+/**
+ * 跳到下一个音频
+ */
+function skipToNextAudio() {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        console.log('跳过当前音频');
+    }
+    
+    // 播放下一个音频
+    playNextAudio();
+}
+
+
 
 // **处理提取的【】内容的函数**
 // ⚠这个函数似乎没有被使用，但最好别删

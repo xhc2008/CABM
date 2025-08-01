@@ -17,6 +17,7 @@ from services.chat_service import chat_service
 from services.image_service import image_service
 from services.scene_service import scene_service
 from services.option_service import option_service
+from services.tts_service import get_tts_service
 from utils.api_utils import APIError
 
 # 初始化配置
@@ -129,7 +130,7 @@ def chat():
 
 @app.route('/api/chat/stream', methods=['POST'])
 def chat_stream():
-    """流式聊天API - 处理JSON格式响应"""
+    """流式聊天API - 处理JSON格式响应并支持TTS"""
     try:
         # 获取请求数据
         data = request.json
@@ -144,6 +145,9 @@ def chat_stream():
         # 添加用户消息
         chat_service.add_message("user", message)
         
+        # 获取TTS服务
+        tts_service = get_tts_service()
+        
         # 创建流式响应生成器
         def generate():
             try:
@@ -152,6 +156,7 @@ def chat_stream():
                 full_response = ""
                 parsed_mood = None
                 parsed_content = ""
+                content_buffer = ""  # 用于TTS处理的内容缓冲区
                 
                 # 逐步返回响应
                 for chunk in stream_gen:
@@ -202,12 +207,31 @@ def chat_stream():
                                                     # 新的JSON对象，直接发送全部内容
                                                     yield f"data: {json.dumps({'content': new_content})}\n\n"
                                                     parsed_content = new_content
+                                                    content_buffer = new_content
                                                 else:
                                                     # 同一个JSON对象的增量更新
                                                     content_diff = new_content[len(parsed_content):]
                                                     if content_diff:
                                                         yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                                        content_buffer += content_diff
                                                     parsed_content = new_content
+                                                
+                                                # 处理TTS - 检查是否有完整的句子
+                                                if tts_service.is_enabled():
+                                                    sentences = tts_service.split_sentences(content_buffer)
+                                                    if len(sentences) > 1:
+                                                        # 处理除最后一个句子外的所有句子
+                                                        for sentence in sentences[:-1]:
+                                                            if sentence.strip():
+                                                                try:
+                                                                    audio_path = tts_service.generate_tts_audio(sentence)
+                                                                    if audio_path:
+                                                                        yield f"data: {json.dumps({'tts': {'text': sentence, 'audio_url': f'/api/audio/{os.path.basename(audio_path)}'}})}\n\n"
+                                                                except Exception as e:
+                                                                    print(f"TTS生成失败: {e}")
+                                                        
+                                                        # 保留最后一个句子作为新的buffer
+                                                        content_buffer = sentences[-1] if sentences else ""
                                                 
                                     except json.JSONDecodeError:
                                         # JSON不完整，继续等待更多数据
@@ -227,12 +251,31 @@ def chat_stream():
                                                     # 新的JSON对象，直接发送全部内容
                                                     yield f"data: {json.dumps({'content': current_content})}\n\n"
                                                     parsed_content = current_content
+                                                    content_buffer = current_content
                                                 else:
                                                     # 同一个JSON对象的增量更新
                                                     content_diff = current_content[len(parsed_content):]
                                                     if content_diff:
                                                         yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                                        content_buffer += content_diff
                                                     parsed_content = current_content
+                                                
+                                                # 处理TTS - 检查是否有完整的句子
+                                                if tts_service.is_enabled():
+                                                    sentences = tts_service.split_sentences(content_buffer)
+                                                    if len(sentences) > 1:
+                                                        # 处理除最后一个句子外的所有句子
+                                                        for sentence in sentences[:-1]:
+                                                            if sentence.strip():
+                                                                try:
+                                                                    audio_path = tts_service.generate_tts_audio(sentence)
+                                                                    if audio_path:
+                                                                        yield f"data: {json.dumps({'tts': {'text': sentence, 'audio_url': f'/api/audio/{os.path.basename(audio_path)}'}})}\n\n"
+                                                                except Exception as e:
+                                                                    print(f"TTS生成失败: {e}")
+                                                        
+                                                        # 保留最后一个句子作为新的buffer
+                                                        content_buffer = sentences[-1] if sentences else ""
                                     except Exception:
                                         pass
                                         
@@ -240,6 +283,15 @@ def chat_stream():
                             print(f"解析JSON响应失败: {e}")
                             # 如果JSON解析失败，尝试作为普通文本处理
                             yield f"data: {json.dumps({'content': chunk})}\n\n"
+                
+                # 处理剩余的TTS内容
+                if tts_service.is_enabled() and content_buffer.strip():
+                    try:
+                        audio_path = tts_service.generate_tts_audio(content_buffer)
+                        if audio_path:
+                            yield f"data: {json.dumps({'tts': {'text': content_buffer, 'audio_url': f'/api/audio/{os.path.basename(audio_path)}'}})}\n\n"
+                    except Exception as e:
+                        print(f"最后句子TTS生成失败: {e}")
                             
                 # 将完整消息添加到历史记录（存储原始响应内容）
                 if full_response:
@@ -502,6 +554,28 @@ def get_character_images(character_id):
 def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
+
+@app.route('/api/audio/<filename>')
+def serve_audio_file(filename):
+    """提供TTS音频文件"""
+    try:
+        tts_service = get_tts_service()
+        audio_path = tts_service.get_audio_file_path(filename)
+        
+        if not audio_path.exists():
+            return jsonify({
+                'success': False,
+                'error': '音频文件不存在'
+            }), 404
+        
+        return send_from_directory(str(audio_path.parent), filename, mimetype='audio/mpeg')
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     # 设置系统提示词，使用角色提示词

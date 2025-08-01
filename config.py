@@ -94,6 +94,15 @@ IMAGE_CONFIG = {
     "guidance_scale": 7.5,          # 引导比例
 }
 
+# TTS语音合成配置
+TTS_CONFIG = {
+    "model": get_env_var("TTS_MODEL", "FunAudioLLM/CosyVoice2-0.5B"),  # TTS模型
+    "voice": get_env_var("TTS_VOICE", "speech:Silver_Wolf:23u1nw85ak:vwjijtppoeceamvjxxpg"),  # 音色
+    "response_format": "mp3",       # 音频格式
+    "audio_dir": "data/audio",      # 音频存储目录
+    "enable_tts": get_env_var("ENABLE_TTS", "True").lower() == "true",  # 是否启用TTS
+}
+
 # 通用提示词配置
 SYSTEM_PROMPTS = {
     "default": """你必须以严格的JSON格式，按顺序输出以下字段：
@@ -178,6 +187,10 @@ def get_option_system_prompt():
     """获取选项生成系统提示词"""
     return OPTION_SYSTEM_PROMPTS
 
+def get_tts_config():
+    """获取TTS配置"""
+    return TTS_CONFIG.copy()
+
 def validate_config():
     """验证配置完整性"""
     # 验证对话模型配置
@@ -204,12 +217,16 @@ def validate_config():
     required_option_keys = ["enable_option_generation", "model", "max_tokens", "temperature"]
     missing_option_keys = [key for key in required_option_keys if key not in OPTION_CONFIG]
     
+    # 验证TTS配置
+    required_tts_keys = ["model", "voice", "response_format", "audio_dir", "enable_tts"]
+    missing_tts_keys = [key for key in required_tts_keys if key not in TTS_CONFIG]
+    
     # 验证应用配置
     required_app_keys = ["debug", "port", "host", "image_cache_dir", "history_dir", "max_history_length", "show_scene_name", "clean_assistant_history"]
     missing_app_keys = [key for key in required_app_keys if key not in APP_CONFIG]
     
     # 合并所有缺失的配置项
-    all_missing = missing_chat_keys + missing_image_keys + missing_stream_keys + missing_memory_keys + missing_option_keys + missing_app_keys
+    all_missing = missing_chat_keys + missing_image_keys + missing_stream_keys + missing_memory_keys + missing_option_keys + missing_tts_keys + missing_app_keys
     
     if all_missing:
         raise ValueError(f"配置不完整，缺少以下配置项: {', '.join(all_missing)}")
