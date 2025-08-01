@@ -4,13 +4,16 @@
 ⚠警告：除非你知道自己在做什么，否则请不要修改这里的配置
 """
 from utils.env_utils import get_env_var
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
 # 对话模型配置
 CHAT_CONFIG = {
     "model": get_env_var("CHAT_MODEL","deepseek-ai/DeepSeek-V3"),  # 默认模型
     "max_tokens": 512,   # 最大生成token数
     "top_k": 5,           # Top-K采样
-    "temperature": 1.2,   # 温度参数，控制创造性
+    "temperature": 0.9,   # 温度参数，控制创造性
     "stream": True,       # 是否使用流式响应
 }
 
@@ -36,6 +39,50 @@ MEMORY_CONFIG = {
     "top_k": 5,                   # 记忆检索返回的最相似结果数量
     "timeout": 10,                # 记忆检索超时时间（秒）
     "min_similarity": 0.3,        # 最小相似度阈值
+}
+
+RAG_CONFIG = {
+    ## 多路召回选择
+    "Multi_Recall":{
+        'BM25': {
+            'lan': 'zh'  # ['zh', 'en']  语言选择
+        },
+        "Cosine_Similarity":{
+            ## 嵌入选择('Model', 'API')选择其中一个!
+            
+            # 'embed_func': 'Model',
+            # 'embed_kwds': {
+            #     'emb_model_name_or_path': 'BAAI/bge-large-zh',  # 模型名称或路径
+            #     'max_len': 512,  # 每段文本最大长度
+            #     'bath_size': 64,  # 批量推理大小
+            #     'device': 'cuda',  # ['cuda', 'cpu']  # 使用cuda或cpu进行推理
+            # },
+            
+            'embed_func': 'API',
+            'embed_kwds': {
+                'base_url': 'https://api.siliconflow.cn/v1',  # 嵌入模型的url地址
+                'api_key': os.getenv("MEMORY_API_KEY"),
+                'model': 'BAAI/bge-m3'
+            },
+            
+            'vector_dim': 1024,  # 嵌入维度(必须和嵌入模型的输出维度一样! 默认bge是1024, 不用调!)
+        }
+    },
+    'Reranker': {
+        # 'reranker_func': 'Model',  # Choice ['Model', 'API']
+        # 'reranker_kwds': {
+        #     'rerank_model_name_or_path': 'BAAI/bge-reranker-large',
+        #     'device': 'cuda'
+        # }
+        
+        'reranker_func': 'API',
+        'reranker_kwds': {
+            'base_url': 'https://api.siliconflow.cn/v1',
+            'api_key': os.getenv("MEMORY_API_KEY"),
+            'model': 'netease-youdao/bce-reranker-base_v1'
+        }
+    }
+    
 }
 
 # 图像生成模型配置
@@ -118,6 +165,10 @@ def get_stream_config():
 def get_memory_config():
     """获取记忆模块配置"""
     return MEMORY_CONFIG.copy()
+
+def get_RAG_config():
+    """获取RAG模块配置"""
+    return RAG_CONFIG.copy()
 
 def get_option_config():
     """获取选项生成配置"""

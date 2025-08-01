@@ -7,6 +7,7 @@ static/images/default/
 test.py
 temp/
 
+test/
 .kiro/
 .vscode/
 data/history/
@@ -63,3 +64,4 @@ static/images/cache/
 # 系统文件
 .DS_Store
 Thumbs.db
+utils/RAG/Retriever.py
