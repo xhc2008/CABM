@@ -14,7 +14,7 @@
 - 分段流式输出（灵魂所在~）
 - 记忆系统（使用向量数据库长期保存记忆）
 - AI生成选项
-- ~~语音输入~~（问题太多了，目前几乎用不了）
+- 语音输入（问题太多了，目前几乎用不了）
 - 很多的bug
 
 **正在开发：**
@@ -107,6 +107,7 @@ OPTION_MODEL=Qwen/Qwen3-32B
 [示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
 需要在环境中把`siliconflow`换成`GPT-SoVITS`
 
+如果你希望使用其他的语音生成系统参考\replace\api_v2.py这是我魔改的接口
 ## 使用说明
 
 ### 启动应用
