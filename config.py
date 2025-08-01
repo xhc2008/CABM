@@ -50,20 +50,20 @@ RAG_CONFIG = {
         "Cosine_Similarity":{
             ## 嵌入选择('Model', 'API')选择其中一个!
             
-            'embed_func': 'Model',
-            'embed_kwds': {
-                'emb_model_name_or_path': 'BAAI/bge-large-zh',  # 模型名称或路径
-                'max_len': 512,  # 每段文本最大长度
-                'bath_size': 64,  # 批量推理大小
-                'device': 'cuda',  # ['cuda', 'cpu']  # 使用cuda或cpu进行推理
-            },
-            
-            # 'embed_func': 'API',
+            # 'embed_func': 'Model',
             # 'embed_kwds': {
-            #     'base_url': 'https://api.siliconflow.cn/v1',  # 嵌入模型的url地址
-            #     'api_key': os.getenv('sil_key'),
-            #     'model': 'BAAI/bge-m3'
+            #     'emb_model_name_or_path': 'BAAI/bge-large-zh',  # 模型名称或路径
+            #     'max_len': 512,  # 每段文本最大长度
+            #     'bath_size': 64,  # 批量推理大小
+            #     'device': 'cuda',  # ['cuda', 'cpu']  # 使用cuda或cpu进行推理
             # },
+            
+            'embed_func': 'API',
+            'embed_kwds': {
+                'base_url': 'https://api.siliconflow.cn/v1',  # 嵌入模型的url地址
+                'api_key': os.getenv("MEMORY_API_KEY"),
+                'model': 'BAAI/bge-m3'
+            },
             
             'vector_dim': 1024,  # 嵌入维度(必须和嵌入模型的输出维度一样! 默认bge是1024, 不用调!)
         }
@@ -77,8 +77,8 @@ RAG_CONFIG = {
         
         'reranker_func': 'API',
         'reranker_kwds': {
-            'base_url': 'https://api.siliconflow.cn/v1/',
-            'api_key': os.getenv('sil_key'),
+            'base_url': 'https://api.siliconflow.cn/v1',
+            'api_key': os.getenv("MEMORY_API_KEY"),
             'model': 'netease-youdao/bce-reranker-base_v1'
         }
     }

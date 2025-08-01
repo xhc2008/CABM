@@ -11,6 +11,7 @@ try:
                      max_len: int = 512, 
                      bath_size: int = 64, 
                      device: Literal['cuda', 'cpu'] = None):
+            logger.info("初始化EMB：%s",emb_model_name_or_path)
             if 'bge' in emb_model_name_or_path:
                 self.DEFAULT_QUERY_BGE_INSTRUCTION_ZH = "为这个句子生成表示以用于检索相关文章："
             else:

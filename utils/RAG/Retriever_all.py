@@ -40,7 +40,7 @@ class Retriever:
             self.logger.info(f"Loading {recall_func}...")
             func_kwds = self.recall_config[recall_func]
             try:
-                module = import_module(f"Multi_Recall.{recall_func}")  # 动态导入包
+                module = import_module(f"utils.RAG.Multi_Recall.{recall_func}")  # 动态导入包
             except Exception as e:
                 self.logger.error(f"Error loading {recall_func}: {e}")
                 print_exc()
