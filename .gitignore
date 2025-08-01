@@ -42,6 +42,7 @@ var/
 venv/
 ENV/
 env/
+.conda/
 
 # IDE文件
 .idea/
