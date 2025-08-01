@@ -1,0 +1,5 @@
+支持硅基流动的TTS与GPT-SoVITS的TTS
+添加Pydub包
+添加conda环境的清单，可以通过conda env create -f environment.yaml直接复现环境
+添加对于conda虚拟环境的绕过
+添加银狼的参考音频与文本
