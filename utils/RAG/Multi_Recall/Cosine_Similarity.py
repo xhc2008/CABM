@@ -179,15 +179,18 @@ class Cosine_Similarity(Retriever):
 
         sims = np.array(sims)
         # 3. 找到相似度最高的top_k个索引
-        topk_idx = sims.argsort()[::-1][:top_k]
+        topk_idx = sims.argsort()[::-1][:top_k//3+1]
 
         res = []
-        for idx in topk_idx:
-            # 4. 过滤阈值
-            if sims[idx] < self.threshold:
-                continue
-            if idx in id_to_doc:
-                res.append(id_to_doc[idx])
+        for idx in topk_idx:  # 遍历最接近的向量
+            idx = int(idx)
+            dist = sims[idx]
+            if dist < self.threshold:
+                break
+            res.append(id_to_doc[max(idx-1, 0)])  #TODO 保留上下文信息
+            res.append(id_to_doc[idx])
+            res.append(id_to_doc[min(len(id_to_doc)-1, idx+1)])
+        res = list(set(res))
         return res
     
 
