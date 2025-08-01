@@ -343,6 +343,7 @@ class ChatService:
                         model=os.getenv("CHAT_MODEL"),
                         messages=messages,
                         stream=True,
+                        response_format={"type": "json_object"},
                         **chat_config
                     )
                     ifreasoning = False

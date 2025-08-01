@@ -256,12 +256,6 @@ async function sendMessage() {
                 showOptionButtons(window.pendingOptions);
                 window.pendingOptions = null; // 清空待处理的选项
             }
-        },
-        // 【】内容实时处理回调 - 检测到完整【】时立即并行调用
-        (bracketContent) => {
-            console.log('实时检测到【】内容:', bracketContent);
-            // 立即并行处理【】内容，不等待输出完成
-            handleExtractedBracketContents([bracketContent]);
         }
     );
 
@@ -336,7 +330,14 @@ async function sendMessage() {
                                 throw new Error(data.error);
                             }
 
-                            // 处理内容
+                            // 处理mood字段 - 立即处理表情变化
+                            if (data.mood !== undefined) {
+                                console.log('收到mood数据:', data.mood);
+                                // 立即并行处理表情变化
+                                handleMoodChange(data.mood);
+                            }
+
+                            // 处理content字段
                             if (data.content) {
                                 // 将数据添加到流式处理器
                                 streamProcessor.addData(data.content);
@@ -575,19 +576,8 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
     }
 
-    // 如果是流式输出，直接更新内容（【】内容已在流式处理器中过滤）
-
-    if (isStreaming) {
-
-        currentMessage.textContent = content;
-
-        return;
-
-    }
-
-    // 对于非流式输出，需要手动过滤【】内容
-    const filteredContent = content.replace(/【[^】]*】/g, '');
-    currentMessage.textContent = filteredContent;
+    // 直接更新内容（JSON格式下不需要过滤【】内容）
+    currentMessage.textContent = content;
 
 }
 
@@ -601,8 +591,7 @@ function updateCurrentMessage(role, content, isStreaming = false) {
 
 // 添加消息到历史记录
 function addToHistory(role, content, customName = null) {
-    // 过滤内容中的【】标记
-    const filteredContent = content.replace(/【[^】]*】/g, '');
+    // JSON格式下不需要过滤【】标记
 
     // 添加到内存中的历史记录
 
@@ -610,7 +599,7 @@ function addToHistory(role, content, customName = null) {
 
         role: role === 'assistant_continue' ? 'assistant' : role,
 
-        content: filteredContent
+        content: content
 
     });
 
@@ -643,9 +632,9 @@ function addToHistory(role, content, customName = null) {
 
     // 为每个段落添加角色名称前缀
     if (role === 'assistant') {
-        contentDiv.textContent = filteredContent;
+        contentDiv.textContent = content;
     } else {
-        contentDiv.textContent = filteredContent;
+        contentDiv.textContent = content;
     }
 
     messageDiv.appendChild(roleSpan);
@@ -932,7 +921,9 @@ function renderCharacterList() {
 
         const image = document.createElement('img');
 
-        image.src = character.image;
+        image.src = character.image.endsWith('/')
+            ? `${character.image}1.png`
+            : `${character.image}/1.png`;
 
         image.alt = character.name;
 
@@ -1517,7 +1508,24 @@ registrationShortcuts({
     // ç: clearChat // 已禁用：清空对话快捷键（为了解决部分快捷键冲突）
 });
 
-// 处理提取的【】内容
+// 处理mood变化（新的JSON格式）
+function handleMoodChange(moodNumber) {
+    console.log('处理mood变化:', moodNumber);
+
+    // 确保mood是有效数字
+    const imageNumber = parseInt(moodNumber);
+
+    if (!isNaN(imageNumber) && imageNumber > 0) {
+        // 如果是有效数字，切换到对应图片
+        switchCharacterImage(imageNumber);
+    } else {
+        console.log('mood不是有效数字，使用默认图片:', moodNumber);
+        // 如果不是数字或无效内容，切换到默认图片（1.png）
+        switchCharacterImage(1);
+    }
+}
+
+// 处理提取的【】内容（保留用于兼容性，但在新格式下不再使用）
 function handleExtractedBracketContents(extractedContents) {
     // 确保 extractedContents 是数组
     const contents = Array.isArray(extractedContents) ? extractedContents : [extractedContents];
