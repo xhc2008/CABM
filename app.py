@@ -6,8 +6,10 @@ import sys
 import json
 import time
 import re
+from io import BytesIO
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_from_directory, Response
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response, send_file
+from pydub import AudioSegment
 import traceback
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent))
@@ -17,6 +19,7 @@ from services.chat_service import chat_service
 from services.image_service import image_service
 from services.scene_service import scene_service
 from services.option_service import option_service
+from services.ttsapi_service import ttsService
 from utils.api_utils import APIError
 
 # 初始化配置
@@ -38,6 +41,13 @@ app = Flask(
 
 # 设置调试模式
 app.debug = app_config["debug"]
+
+def convert_to_16k_wav(input_path, output_path):
+    """转换音频为 16kHz 单声道 WAV"""
+    audio = AudioSegment.from_file(input_path)
+    audio_16k = audio.set_frame_rate(16000).set_channels(1)
+    audio_16k.export(output_path, format="wav")
+    return output_path
 
 @app.route('/')
 def index():
