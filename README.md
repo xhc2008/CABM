@@ -3,8 +3,8 @@
 "当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。"
 
 ~~（不就是个Gal吗）~~
-> ## **⚠️ 注意：本项目目前处于开发阶段，核心功能尚未实现，其他的功能和优化也正在进行中。欢迎贡献代码或提出建议。**
-
+> ## **⚠️ 注意：本项目目前处于开发阶段，核心功能尚实现大半，其他的功能和优化也正在进行中。欢迎贡献代码或提出建议。**
+> ## **提出贡献需请先阅读[CONTRIBUTING.md](https://github.com/xhc2008/CABM/blob/main/CONTRIBUTING.md)**
 ## 开发状态
 
 **已完成功能：**
@@ -14,8 +14,8 @@
 - 分段流式输出（灵魂所在~）
 - 记忆系统（使用向量数据库长期保存记忆）
 - AI生成选项
-- ~~语音输入~~（问题太多了，目前几乎用不了）
-- 很多的bug
+- 语音输入（需要本地或是SSL证书，否则浏览器会拒绝）
+- 很多的bug，已经修复很多了
 
 **正在开发：**
 - 用户画像（角色对用户的印象）
@@ -63,10 +63,9 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 pip install -r requirements.txt
 ```
 
-或者手动安装：
-
+或者使用conda一键部署（有点大病）
 ```bash
-pip install flask requests python-dotenv
+conda CABM create -f environment.yml
 ```
 
 ### 2. 配置环境变量
@@ -79,34 +78,15 @@ cp .env.example .env
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 如果使用其他平台，需要替换对应的API_BASE_URL
 
-编辑`.env`文件，填写以下信息：
+编辑`.env`文件，填写APIKEY
 
-```
-# 对话API配置
-CHAT_API_BASE_URL=https://api.siliconflow.cn/v1
-CHAT_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-CHAT_MODEL=deepseek-ai/DeepSeek-V3
 
-# 图像生成API配置
-IMAGE_API_BASE_URL=https://api.siliconflow.cn/v1
-IMAGE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-IMAGE_MODEL=Kwai-Kolors/Kolors
-
-# 嵌入向量API配置
-EMBEDDING_API_BASE_URL=https://api.siliconflow.cn/v1
-EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-EMBEDDING_MODEL=BAAI/bge-m3
-
-# 选项生成API配置
-OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
-OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-OPTION_MODEL=Qwen/Qwen3-32B
-```
 注意如果使用`GPT-SoVITS`作为语音合成，请下载`GPT-SoVITS`整合包并把`api_v2.py`换成`\replace\api_v2.py`然后启动
 在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
 [示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
 需要在环境中把`siliconflow`换成`GPT-SoVITS`
 
+注意如果使用`siliconflow`作为语音合成，需要你将参考音频放到data\ref_audio并且把参考文本以<角色名>.txt放到data\ref_audio
 ## 使用说明
 
 ### 启动应用
@@ -162,44 +142,8 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - **更换背景**：点击"更换背景"按钮生成新的背景图片
 - **自动/手动模式**：点击"自动"按钮切换打字机效果的自动/手动模式
 - **跳过打字**：在自动模式下，点击"跳过"按钮可以立即显示完整回复
-
-## 项目结构
-
-```
-cabm/
-├── .env                  # 环境变量（API密钥等）
-├── .env.example          # 环境变量示例文件
-├── .gitignore            # Git忽略文件
-├── requirements.txt      # Python依赖包列表
-├── config.py             # 配置文件
-├── app.py                # 主应用入口
-├── start.py              # 启动脚本
-├── start.bat             # Windows启动批处理文件
-├── start.sh              # Linux/macOS启动脚本
-├── stream.py             # 分段流式输出的demo
-├── characters/           # 角色配置
-│   ├── __init__.py       # 角色管理模块
-│   ├── Silver_Wolf.py    # 银狼角色配置
-│   └── lingyin.py        # 灵音角色配置
-├── static/               # 静态资源
-│   ├── css/              # 样式文件
-│   ├── js/               # JavaScript文件
-│   └── images/           # 图片资源和缓存
-├── templates/            # HTML模板
-├── services/             # 服务组件
-│   ├── chat_service.py   # 对话服务
-│   ├── image_service.py  # 图像服务
-│   ├── config_service.py # 配置服务
-│   └── scene_service.py  # 场景服务
-├── utils/                # 工具函数
-│   ├── api_utils.py      # API工具
-│   ├── env_utils.py      # 环境变量工具
-│   └── history_utils.py  # 历史记录工具
-└── data/                 # 数据存储
-    ├── history/          # 对话历史记录
-    ├── images/           # 图片存储
-    └── scenes/           # 场景数据
-```
+- **语音朗读**：使用本地或在线朗读（使用该角色音色）
+- **语音输入**：语音输入（需要本地地址/SSL证书）≈输入法的语音输入
 
 ## 注意事项
 
