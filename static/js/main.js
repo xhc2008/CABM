@@ -21,7 +21,6 @@ const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
 
 // const clearButton = document.getElementById('clearButton'); // 已禁用：清空对话按钮
-const playaudioButton = document.getElementById('playaudioButton');
 
 const backgroundButton = document.getElementById('backgroundButton');
 
@@ -122,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('click', sendMessage);
 
     // clearButton.addEventListener('click', clearChat); // 已禁用：清空对话按钮事件
-    playaudioButton.addEventListener('click', playAudio);
 
     backgroundButton.addEventListener('click', changeBackground);
 
@@ -448,67 +446,6 @@ async function clearChat() {
 
 }
 */
-var first = 0; // 用于调试
-async function playAudio() {
-    if (isProcessing) {
-        showError('正在处理请求，请稍候');
-        return;
-    }
-
-    const text = currentMessage.textContent.trim();
-    if (!text) {
-        showError('无法朗读空内容');
-        return;
-    }
-    if (first === 0) {
-        first = 1; 
-        // 弹窗首次合成需加载模型，较慢，使用浏览器自带弹窗
-        alert('首次合成可能需要较长时间，请耐心等待。');
-    }
-    showLoading();
-
-    try {
-        const response = await fetch('/api/tts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                role: currentCharacter ? currentCharacter.name : 'AI助手'
-            })
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error || '获取音频失败');
-        }
-
-        const blob = await response.blob();
-        if (blob.size === 0) {
-            throw new Error('收到的音频数据为空');
-        }
-
-        const audio = new Audio();
-        const url = URL.createObjectURL(blob);
-        audio.src = url;
-
-        audio.onended = () => {
-            URL.revokeObjectURL(url);
-        };
-        audio.onerror = () => {
-            showError('音频播放失败');
-            URL.revokeObjectURL(url);
-        };
-
-        await audio.play();
-    } catch (error) {
-        console.error('播放音频失败:', error);
-        showError(`播放失败: ${error.message}`);
-    } finally {
-        hideLoading();
-    }
-}
 
 
 
