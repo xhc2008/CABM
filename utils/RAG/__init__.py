@@ -1,6 +1,6 @@
 import os
 from typing import List
-from .Retriever import Retriever
+from .Retriever_all import Retriever
 from importlib import import_module
 class RAG:
     def __init__(self, config: dict):
