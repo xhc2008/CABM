@@ -49,8 +49,10 @@ IMAGE_CONFIG = {
 
 # 通用提示词配置
 SYSTEM_PROMPTS = {
-    "default": """你需要用1到6句话回复用户，禁止换行，禁止使用markdown。每句话的开头如果可以用【】加上当前的表情，且必须是其中之一，尽量减少表情的变化，**只写序号**：<[MOODS]>
-""",
+    "default": """你必须以严格的JSON格式，按顺序输出以下字段：
+    "mood": <int> 当前的表情，且必须是其中之一，**只写序号**：<[MOODS]>
+    "content": <string> 用1到6句话回复用户，禁止换行，禁止使用markdown。
+    你的身份：""",
 }
 
 # 图像提示词配置
@@ -85,7 +87,7 @@ APP_CONFIG = {
     "history_dir": "data/history",  # 历史记录存储目录
     "show_scene_name": True,  # 是否在前端显示场景名称
     "auto_open_browser": get_env_var("AUTO_OPEN_BROWSER", "True").lower() == "true",  # 是否自动打开浏览器（会自动使用本地IP地址）
-    "clean_assistant_history": get_env_var("CLEAN_ASSISTANT_HISTORY", "True").lower() == "true",  # 是否清理assistant消息中的【】标记
+    "clean_assistant_history": get_env_var("CLEAN_ASSISTANT_HISTORY", "True").lower() == "true",  # 已弃用：JSON格式下不再需要清理【】标记
 }
 
 def get_chat_config():

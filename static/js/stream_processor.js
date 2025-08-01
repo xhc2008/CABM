@@ -18,23 +18,16 @@ class StreamProcessor {
         this.onCharacterCallback = null;
         this.onPauseCallback = null;
         this.onCompleteCallback = null;
-        this.onBracketContentCallback = null; // 新增：【】内容实时处理回调
         this.processingTimeout = null;
-        
-        // 【】内容处理相关状态
-        this.isInsideBrackets = false;
-        this.bracketContent = '';
-        this.extractedBracketContents = []; // **提取【】内容的存储位置**
     }
 
     /**
      * 设置回调函数
      */
-    setCallbacks(onCharacter, onPause, onComplete, onBracketContent = null) {
+    setCallbacks(onCharacter, onPause, onComplete) {
         this.onCharacterCallback = onCharacter;
         this.onPauseCallback = onPause;
         this.onCompleteCallback = onComplete;
-        this.onBracketContentCallback = onBracketContent; // 新增：【】内容实时处理回调
     }
 
     /**
@@ -100,51 +93,22 @@ class StreamProcessor {
             return;
         }
 
-        // **【】内容检测和提取逻辑开始**
-        if (char === '【') {
-            // 检测到【，开始收集括号内容，不输出这个字符
-            this.isInsideBrackets = true;
-            this.bracketContent = '';
-        } else if (char === '】' && this.isInsideBrackets) {
-            // 检测到】，结束收集，将内容存储到变量中
-            this.isInsideBrackets = false;
-            this.extractedBracketContents.push(this.bracketContent); // **这里是提取【】内容并存储的位置**
-            
-            // **立即处理【】内容 - 并行调用**
-            if (this.onBracketContentCallback && this.bracketContent.trim()) {
-                console.log('流式处理器检测到完整【】内容:', this.bracketContent.trim());
-                // 保存内容到局部变量，避免异步调用时被重置
-                const contentToProcess = this.bracketContent.trim();
-                // 使用 setTimeout 实现并行调用，不阻塞主流程
-                setTimeout(() => {
-                    this.onBracketContentCallback(contentToProcess);
-                }, 0);
-            }
-            
-            this.bracketContent = '';
-            // 不输出】字符，继续处理下一个字符
-        } else if (this.isInsideBrackets) {
-            // 在【】内部，收集字符但不输出
-            this.bracketContent += char;
-        } else {
-            // 正常字符，输出
-            this.currentParagraph += char;
-            
-            // 调用字符回调
-            if (this.onCharacterCallback) {
-                this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
-            }
-
-            // 检查下一个字符是否是结束标记
-            const nextChar = this.buffer.length > 0 ? this.buffer[0] : null;
-
-            // 只有在下一个字符不是结束标记时才检查暂停
-            if (PAUSE_MARKERS.includes(char) && nextChar !== END_MARKER) {
-                this.handlePause();
-                return; // 暂停后直接返回，不继续处理
-            }
+        // 正常字符处理
+        this.currentParagraph += char;
+        
+        // 调用字符回调
+        if (this.onCharacterCallback) {
+            this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
         }
-        // **【】内容检测和提取逻辑结束**
+
+        // 检查下一个字符是否是结束标记
+        const nextChar = this.buffer.length > 0 ? this.buffer[0] : null;
+
+        // 只有在下一个字符不是结束标记时才检查暂停
+        if (PAUSE_MARKERS.includes(char) && nextChar !== END_MARKER) {
+            this.handlePause();
+            return; // 暂停后直接返回，不继续处理
+        }
 
         // 继续处理下一个字符
         this.processingTimeout = setTimeout(() => {
@@ -195,37 +159,14 @@ class StreamProcessor {
             this.processingTimeout = null;
         }
 
-        // 将所有缓冲区内容添加到当前段落，同时处理【】内容
+        // 将所有缓冲区内容添加到当前段落
         let remainingContent = '';
         while (this.buffer.length > 0) {
             const char = this.buffer.shift();
             if (char === END_MARKER) {
                 break;
             }
-            
-            // 处理【】内容
-            if (char === '【') {
-                this.isInsideBrackets = true;
-                this.bracketContent = '';
-            } else if (char === '】' && this.isInsideBrackets) {
-                this.isInsideBrackets = false;
-                this.extractedBracketContents.push(this.bracketContent); // **跳过时也提取【】内容**
-                
-                // **跳过时也立即处理【】内容**
-                if (this.onBracketContentCallback && this.bracketContent.trim()) {
-                    console.log('跳过时检测到完整【】内容:', this.bracketContent.trim());
-                    // 保存内容到局部变量
-                    const contentToProcess = this.bracketContent.trim();
-                    // 立即调用，因为跳过时不需要延迟
-                    this.onBracketContentCallback(contentToProcess);
-                }
-                
-                this.bracketContent = '';
-            } else if (this.isInsideBrackets) {
-                this.bracketContent += char;
-            } else {
-                remainingContent += char;
-            }
+            remainingContent += char;
         }
 
         this.currentParagraph += remainingContent;
@@ -261,27 +202,9 @@ class StreamProcessor {
         this.isPaused = false;
         this.currentParagraph = '';
         this.paragraphs = [];
-        
-        // 重置【】内容处理状态
-        this.isInsideBrackets = false;
-        this.bracketContent = '';
-        this.extractedBracketContents = [];
     }
 
-    /**
-     * 获取提取的【】内容
-     * **这是获取提取内容的方法**
-     */
-    getExtractedBracketContents() {
-        return this.extractedBracketContents;
-    }
 
-    /**
-     * 清空提取的【】内容
-     */
-    clearExtractedBracketContents() {
-        this.extractedBracketContents = [];
-    }
 
     /**
      * 获取当前完整内容

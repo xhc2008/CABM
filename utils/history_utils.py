@@ -90,6 +90,7 @@ class HistoryManager:
     def _clean_assistant_content(self, content: str) -> str:
         """
         清理assistant消息内容，去除【】及其内部的内容
+        注意：此方法在新的JSON格式下已弃用，保留仅为兼容性
         
         Args:
             content: 原始消息内容
@@ -110,9 +111,9 @@ class HistoryManager:
             role: 消息角色
             content: 消息内容
         """
-        # 如果是assistant消息且启用了清理功能，清理内容去除【】及其内部的内容
-        if role == "assistant" and get_app_config().get("clean_assistant_history", True):
-            content = self._clean_assistant_content(content)
+        # 注意：在新的JSON格式下，我们直接存储原始响应内容，不再清理【】标记
+        # 因为JSON格式的响应已经将mood和content分离，历史记录中存储的是完整的原始响应
+        # clean_assistant_history配置已弃用
         
         # 获取当前时间戳
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
