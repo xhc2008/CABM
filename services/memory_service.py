@@ -7,13 +7,13 @@ import sys
 import logging
 from typing import Dict, Optional
 from pathlib import Path
-
+import traceback
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils.memory_utils import ChatHistoryVectorDB
 from services.config_service import config_service
-from config import get_memory_config
+from config import get_memory_config,  get_RAG_config
 
 class MemoryService:
     """记忆服务类"""
@@ -45,7 +45,7 @@ class MemoryService:
         try:
             if character_name not in self.memory_databases:
                 # 创建新的记忆数据库
-                memory_db = ChatHistoryVectorDB(character_name=character_name)
+                memory_db = ChatHistoryVectorDB(RAG_config=get_RAG_config() , character_name=character_name)
                 memory_db.initialize_database()
                 self.memory_databases[character_name] = memory_db
                 self.logger.info(f"初始化角色记忆数据库: {character_name}")
@@ -54,6 +54,7 @@ class MemoryService:
             return True
             
         except Exception as e:
+            traceback.print_exc()
             self.logger.error(f"初始化角色记忆数据库失败 {character_name}: {e}")
             return False
     
@@ -140,6 +141,7 @@ class MemoryService:
             memory_db.save_to_file()
         except Exception as e:
             self.logger.error(f"保存记忆数据库失败: {e}")
+            traceback.print_exc()
     
     def set_current_character(self, character_name: str) -> bool:
         """
@@ -172,7 +174,6 @@ class MemoryService:
         memory_db = self.memory_databases[character_name]
         return {
             "character_name": character_name,
-            "total_records": len(memory_db.vectors),
             "model": memory_db.model,
             "database_file": memory_db.db_file_path
         }
