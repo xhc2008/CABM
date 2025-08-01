@@ -6,10 +6,8 @@ import sys
 import json
 import time
 import re
-from io import BytesIO
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_from_directory, Response, send_file
-from pydub import AudioSegment
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 import traceback
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent))
@@ -19,7 +17,6 @@ from services.chat_service import chat_service
 from services.image_service import image_service
 from services.scene_service import scene_service
 from services.option_service import option_service
-from services.ttsapi_service import ttsService
 from utils.api_utils import APIError
 
 # 初始化配置
@@ -39,13 +36,6 @@ app = Flask(
 
 # 设置调试模式
 app.debug = app_config["debug"]
-
-def convert_to_16k_wav(input_path, output_path):
-    """转换音频为 16kHz 单声道 WAV"""
-    audio = AudioSegment.from_file(input_path)
-    audio_16k = audio.set_frame_rate(16000).set_channels(1)
-    audio_16k.export(output_path, format="wav")
-    return output_path
 
 @app.route('/')
 def index():
@@ -512,36 +502,6 @@ def get_character_images(character_id):
 def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
-
-@app.route('/api/tts', methods=['POST'])
-def serve_tts():
-    tts = ttsService()
-    if not tts.running():
-        return jsonify({"error": "语音合成服务未启用/连接失败"}), 400
-    data = request.get_json()
-    text = data.get("text", "").strip()
-    role = data.get("role", "AI助手")
-    print(f"请求TTS: 角色={role}, 文本={text}")
-    if not text:
-        return jsonify({"error": "文本为空"}), 400
-
-    try:
-        audio_bytes = tts.get_tts(text, role)  # 应返回 bytes
-        if not audio_bytes:
-            return jsonify({"error": "TTS生成失败"}), 500
-
-        audio_io = BytesIO(audio_bytes)
-        audio_io.seek(0)
-
-        return send_file(
-            audio_io,
-            mimetype='audio/wav',
-            as_attachment=False,
-            download_name=None
-        )
-    except Exception as e:
-        print(f"TTS error: {e}")
-        return jsonify({"error": "语音合成失败"}), 500
 
 if __name__ == '__main__':
     # 设置系统提示词，使用角色提示词
