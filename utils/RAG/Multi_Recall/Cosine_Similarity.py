@@ -11,6 +11,7 @@ try:
                      max_len: int = 512, 
                      bath_size: int = 64, 
                      device: Literal['cuda', 'cpu'] = None):
+            logger.info('初始化Embedding_Model: %s', emb_model_name_or_path)
             if 'bge' in emb_model_name_or_path:
                 self.DEFAULT_QUERY_BGE_INSTRUCTION_ZH = "为这个句子生成表示以用于检索相关文章："
             else:
@@ -64,6 +65,7 @@ try:
     from openai import OpenAI
     class Embedding_API:
         def __init__(self, base_url, api_key: str, model: str):
+            logger.info('初始化Embedding_API: %s', model)
             self.base_url = base_url
             self.api_key = api_key
             self.model = model
