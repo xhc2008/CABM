@@ -30,6 +30,8 @@ if not config_service.initialize():
 # 获取应用配置
 app_config = config_service.get_app_config()
 
+# 设置语音服务
+tts = ttsService()
 # 创建Flask应用
 app = Flask(
     __name__,
@@ -515,7 +517,7 @@ def serve_character_image(filename):
 
 @app.route('/api/tts', methods=['POST'])
 def serve_tts():
-    tts = ttsService()
+    global tts
     if not tts.running():
         return jsonify({"error": "语音合成服务未启用/连接失败"}), 400
     data = request.get_json()

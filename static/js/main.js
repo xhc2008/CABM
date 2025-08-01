@@ -1,7 +1,3 @@
-// DOM元素
-
-// 页面元素
-
 const homePage = document.getElementById('homePage');
 
 const chatPage = document.getElementById('chatPage');
@@ -234,9 +230,11 @@ async function sendMessage() {
 
             // 显示继续提示（不传递文字参数，避免添加到聊天内容）
             showContinuePrompt();
+            playAudio();
         },
         // 完成回调 - 所有内容处理完成时调用
         (fullContent) => {
+            playAudio();
             // 添加任何剩余的未添加到历史记录的内容
             const remainingContent = fullContent.substring(addedToHistoryLength);
             if (remainingContent) {
@@ -1332,8 +1330,13 @@ function skipTyping() {
 }
 
 let recognition; // 全局变量存储语音识别实例
+var first_mic = 0;
 
 function toggleRecording() {
+    if (first_mic === 0) {
+        first_mic = 1;
+        alert('请确保你访问的地址为本地地址或https协议地址，否则浏览器可能会阻止调用麦克风！！！');
+    }
     let isRecording = micButton.classList.toggle('recording');
     if (isRecording) {
         if (!recognition) {
