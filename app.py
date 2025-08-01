@@ -8,7 +8,7 @@ import time
 import re
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
-
+import traceback
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent))
 
@@ -51,6 +51,7 @@ def index():
                 background = result["image_path"]
         except Exception as e:
             print(f"背景图片生成失败: {str(e)}")
+            traceback.print_exc()
     
     # 将背景路径转换为URL
     background_url = None
@@ -253,6 +254,7 @@ def chat_stream():
                         )
                     except Exception as e:
                         print(f"添加对话到记忆数据库失败: {e}")
+                        traceback.print_exc()
                     
                     # 生成选项
                     try:
@@ -269,12 +271,14 @@ def chat_stream():
                             yield f"data: {json.dumps({'options': options})}\n\n"
                     except Exception as e:
                         print(f"选项生成失败: {e}")
+                        traceback.print_exc()
                         
                 yield "data: [DONE]\n\n"
                 
             except Exception as e:
                 error_msg = str(e)
                 print(f"流式响应错误: {error_msg}")
+                traceback.print_exc()
                 yield f"data: {json.dumps({'error': error_msg})}\n\n"
                 yield "data: [DONE]\n\n"
         
@@ -294,6 +298,7 @@ def chat_stream():
             'error': e.message
         }), 500
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -333,6 +338,7 @@ def generate_background():
             'error': e.message
         }), 500
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -355,6 +361,7 @@ def clear_history():
         })
         
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -377,6 +384,7 @@ def list_characters():
         })
         
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -403,6 +411,7 @@ def set_character(character_id):
         }), 404
         
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -420,6 +429,7 @@ def exit_app():
         })
         
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -482,6 +492,7 @@ def get_character_images(character_id):
         })
         
     except Exception as e:
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)

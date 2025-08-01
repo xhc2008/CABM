@@ -330,7 +330,10 @@ class ChatService:
             #     json_data=request_data,
             #     stream=stream
             # )
-            
+            print(f"~ 发送对话请求:")
+            for message in messages:
+                print(f"{message['role']}: {message['content'][:50]}...")
+            print('~')
             # 处理流式响应
             if stream:
                 del_list = ['model', 'stream', 'top_k']
