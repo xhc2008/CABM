@@ -101,6 +101,10 @@ let currentTypingTimeout = null;
 let currentConfirmCallback = null;
 
 
+// 音频缓存对象和首次播放标记
+const audioCache = {};
+let firstAudioPlay = true;
+
 // 初始化
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -213,48 +217,52 @@ async function sendMessage() {
     streamProcessor.setCallbacks(
         // 字符回调 - 每个字符输出时调用
         (fullContent) => {
-            updateCurrentMessage('assistant', fullContent.substring(addedToHistoryLength), true);
+            // 暂不更新文本
         },
-        // 暂停回调 - 遇到标点符号暂停时调用
+        // 暂停回调
         (fullContent) => {
-            // 设置暂停状态
             isPaused = true;
-
-            // 只添加新的内容段落到历史记录
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                addToHistory('assistant', newContent, characterName);
-                addedToHistoryLength = fullContent.length;
+                prefetchAudio(newContent, characterName, () => {
+                    addToHistory('assistant', newContent, characterName);
+                    updateCurrentMessage('assistant', newContent);
+                    addedToHistoryLength = fullContent.length;
+                    showContinuePrompt();
+                    playAudio();
+                });
+            } else {
+                showContinuePrompt();
+                playAudio();
             }
-
-            // 显示继续提示（不传递文字参数，避免添加到聊天内容）
-            showContinuePrompt();
-            playAudio();
         },
-        // 完成回调 - 所有内容处理完成时调用
+        // 完成回调
         (fullContent) => {
-            playAudio();
-            // 添加任何剩余的未添加到历史记录的内容
             const remainingContent = fullContent.substring(addedToHistoryLength);
             if (remainingContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                addToHistory('assistant', remainingContent, characterName);
-            }
-
-            // 隐藏继续提示
-            hideContinuePrompt();
-
-            // 启用用户输入
-            enableUserInput();
-
-            // 重置暂停状态
-            isPaused = false;
-
-            // 显示选项按钮（如果有的话）
-            if (window.pendingOptions && window.pendingOptions.length > 0) {
-                showOptionButtons(window.pendingOptions);
-                window.pendingOptions = null; // 清空待处理的选项
+                prefetchAudio(remainingContent, characterName, () => {
+                    addToHistory('assistant', remainingContent, characterName);
+                    updateCurrentMessage('assistant', remainingContent);
+                    hideContinuePrompt();
+                    enableUserInput();
+                    isPaused = false;
+                    if (window.pendingOptions && window.pendingOptions.length > 0) {
+                        showOptionButtons(window.pendingOptions);
+                        window.pendingOptions = null;
+                    }
+                    playAudio();
+                });
+            } else {
+                hideContinuePrompt();
+                enableUserInput();
+                isPaused = false;
+                if (window.pendingOptions && window.pendingOptions.length > 0) {
+                    showOptionButtons(window.pendingOptions);
+                    window.pendingOptions = null;
+                }
+                playAudio();
             }
         }
     );
@@ -460,19 +468,36 @@ async function playAudio() {
         showError('无法朗读空内容');
         return;
     }
-    if (first === 0) {
-        first = 1; 
-        // 弹窗首次合成需加载模型，较慢，使用浏览器自带弹窗
-        alert('首次合成可能需要较长时间，请耐心等待。');
+
+    // 判断缓存
+    let audioBlob = audioCache[text];
+    if (audioBlob) {
+        try {
+            const audio = new Audio();
+            const url = URL.createObjectURL(audioBlob);
+            audio.src = url;
+            audio.onended = () => { URL.revokeObjectURL(url); };
+            audio.onerror = () => { showError('音频播放失败'); URL.revokeObjectURL(url); };
+            window.currentAudio = audio; // 保存当前音频对象
+            await audio.play();
+        } catch (error) {
+            console.error('播放音频失败:', error);
+            showError(`播放失败: ${error.message}`);
+        }
+        return;
     }
-    showLoading();
+
+    // 首次播放需要等待和弹窗
+    if (firstAudioPlay) {
+        firstAudioPlay = false;
+        alert('首次合成可能需要较长时间，请耐心等待。');
+        showLoading();
+    }
 
     try {
         const response = await fetch('/api/tts', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
                 role: currentCharacter ? currentCharacter.name : 'AI助手'
@@ -488,19 +513,15 @@ async function playAudio() {
         if (blob.size === 0) {
             throw new Error('收到的音频数据为空');
         }
+        // 缓存音频
+        audioCache[text] = blob;
 
         const audio = new Audio();
         const url = URL.createObjectURL(blob);
         audio.src = url;
-
-        audio.onended = () => {
-            URL.revokeObjectURL(url);
-        };
-        audio.onerror = () => {
-            showError('音频播放失败');
-            URL.revokeObjectURL(url);
-        };
-
+        audio.onended = () => { URL.revokeObjectURL(url); };
+        audio.onerror = () => { showError('音频播放失败'); URL.revokeObjectURL(url); };
+        window.currentAudio = audio; // 保存当前音频对象
         await audio.play();
     } catch (error) {
         console.error('播放音频失败:', error);
@@ -1301,6 +1322,12 @@ function handleConfirmNo() {
 // 继续输出
 
 function continueOutput() {
+    // 自动中断正在播放的语音
+    if (window.currentAudio && typeof window.currentAudio.pause === 'function') {
+        window.currentAudio.pause();
+        window.currentAudio.currentTime = 0;
+        window.currentAudio = null;
+    }
     console.log('continueOutput called, isPaused:', isPaused, 'streamProcessor:', streamProcessor);
 
     if (isPaused && streamProcessor) {
@@ -1676,4 +1703,33 @@ async function loadCharacterImages(characterId) {
         console.error('加载角色图片时发生错误:', error);
         currentCharacterImages = [];
     }
+}
+
+// assistant内容更新时预请求音频
+function prefetchAudio(text, roleName, callback) {
+    if (!text || audioCache[text]) {
+        if (callback) callback();
+        return;
+    }
+    fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            text: text,
+            role: roleName || (currentCharacter ? currentCharacter.name : 'AI助手')
+        })
+    })
+    .then(response => {
+        if (!response.ok) return Promise.reject();
+        return response.blob();
+    })
+    .then(blob => {
+        if (blob && blob.size > 0) {
+            audioCache[text] = blob;
+        }
+        if (callback) callback();
+    })
+    .catch(() => {
+        if (callback) callback();
+    });
 }
