@@ -33,8 +33,13 @@ logger = logging.getLogger("CABM")
 sys.path.append(str(Path(__file__).resolve().parent))
 
 #获得终端长与宽
-height = int(os.get_terminal_size().lines)
-width = int(os.get_terminal_size().columns)
+try:
+    height = int(os.get_terminal_size().lines)
+    width = int(os.get_terminal_size().columns)
+except OSError:
+    # Docker容器环境下的默认值
+    height = 24
+    width = 80
 def findLen(str): 
     counter = 0
     while str[counter:]: 
