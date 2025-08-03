@@ -18,7 +18,7 @@ backups/
 log.txt
 
 # Python缓存文件
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
