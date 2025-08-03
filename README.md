@@ -14,6 +14,7 @@
 - 分段流式输出（灵魂所在~）
 - 记忆系统（使用向量数据库长期保存记忆）
 - AI生成选项
+- 角色的表情（后面或许会换成3D模型）
 - ~~语音输入~~（问题太多了，目前几乎用不了）
 - 很多的bug
 
@@ -21,11 +22,11 @@
 - 用户画像（角色对用户的印象）
 - 场景切换（让AI切换场景或生成新场景）
 - 故事模式（根据大纲推动故事发展，区别于“闲聊模式”）
-- 角色的表情/动作（在做了在做了）
 - 角色的自我认知
+- 角色动作
 - 更多的角色
 - ~~记忆权重，记忆遗忘~~（意义不大，暂不考虑）
-- 很多的bug
+- 更多的bug
 
 
 ## 项目简介
@@ -39,10 +40,8 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 - 本项目采用GNU通用公共许可证(GPL)开源协议，禁止闭源商业化改造。详见[GNU General Public License v3.0](LICENSE)
 - 使用者需自行承担因调用第三方AI服务产生的API费用，此类费用与项目作者无关
 - 本项目涉及人工智能生成内容，作者不对AI生成内容的准确性、合法性及可能引发的后果承担任何责任。
-- 欢迎提出建设性意见或提交Pull Requests，但作者保留是否采纳的最终决定权。建议提前和作者联系，避免PR被拒。
+- 欢迎提出建设性意见或提交Pull Requests，但作者保留是否采纳的最终决定权，建议提前和作者联系。
 - 作者保留对本声明条款的最终解释权及修改权。
-
-> ## *以下内容由AI生成，~~纯属瞎扯~~仅供参考*
 
 ## 功能特点
 
@@ -100,28 +99,27 @@ cp .env.docker .env.docker
 
 #### 1. 安装依赖
 
+
+
 使用 pip 安装项目依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
 
-或者手动安装：
 
-```bash
-pip install flask requests python-dotenv
-```
-
-#### 2. 配置环境变量
+### 2. 配置环境变量
 
 复制`.env.example`文件为`.env`，并填写API密钥和URL：
 
 ```bash
 cp .env.example .env
 ```
+编辑`.env`文件，填写API_KEY。
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
-如果使用其他平台，需要替换对应的API_BASE_URL
+如果使用其他平台或模型，需要替换对应的API_BASE_URL和MODEL
 
+<<<<<<< HEAD
 编辑`.env`文件，填写以下信息：
 
 ```
@@ -146,6 +144,15 @@ OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 OPTION_MODEL=Qwen/Qwen3-32B
 ```
 [使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
+=======
+注意：如果使用`GPT-SoVITS`作为语音合成，请下载`GPT-SoVITS`整合包并把`api_v2.py`换成`\replace\api_v2.py`然后启动
+在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
+[示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
+需要在环境中把`siliconflow`换成`GPT-SoVITS`
+> **如果你有独立显卡，建议使用GPT-SoVITS，因为远程API很贵**
+---
+>## *以下内容尚未进行人工校对，如有疑问请咨询作者*
+>>>>>>> 0d1d7cb9825d826df06b98c0de5d12bbd3b8a4a0
 
 ### 🚀 Docker 优势
 
@@ -220,11 +227,94 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - **发送消息**：在右上角输入框中输入消息，点击"发送"按钮或按回车键发送
 - **查看历史**：点击"历史"按钮查看完整对话历史
 - **切换角色**：点击"角色"按钮选择不同的AI角色
-- **清空对话**：点击"清空对话"按钮重置对话历史
+- **播放语音**：点击"播放语音"按钮再次播放语音
 - **更换背景**：点击"更换背景"按钮生成新的背景图片
 - **自动/手动模式**：点击"自动"按钮切换打字机效果的自动/手动模式
 - **跳过打字**：在自动模式下，点击"跳过"按钮可以立即显示完整回复
 
+<<<<<<< HEAD
+=======
+## 项目结构
+
+```
+cabm/
+├── .env                     # 环境变量（API密钥等）
+├── .env.example             # 环境变量示例文件
+├── .gitignore               # Git忽略文件
+├── requirements.txt         # Python依赖包列表
+├── environment.yaml         # Conda环境配置文件
+├── config.py                # 配置文件
+├── app.py                   # 主应用入口
+├── run.py                   # 运行脚本
+├── start.py                 # 启动脚本
+├── start.bat                # Windows启动批处理文件
+├── start.sh                 # Linux/macOS启动脚本
+├── build.ps1                # PowerShell构建脚本
+├── 点我开始使用.bat          # 中文启动批处理文件
+├── log.txt                  # 日志文件
+├── README.md                # 项目说明文档
+├── CONTRIBUTING.md          # 贡献指南
+├── LICENSE                  # 开源许可证
+├── characters/              # 角色配置
+│   ├── __init__.py          # 角色管理模块
+│   ├── Silver_Wolf.py       # 银狼角色配置
+│   └── lingyin.py           # 灵音角色配置
+├── services/                # 服务组件
+│   ├── chat_service.py      # 对话服务
+│   ├── image_service.py     # 图像服务
+│   ├── config_service.py    # 配置服务
+│   ├── memory_service.py    # 记忆服务
+│   ├── option_service.py    # 选项服务
+│   ├── scene_service.py     # 场景服务
+│   └── ttsapi_service.py    # TTS语音合成服务
+├── utils/                   # 工具函数
+│   ├── __init__.py          # 工具模块初始化
+│   ├── api_utils.py         # API工具
+│   ├── env_utils.py         # 环境变量工具
+│   ├── history_utils.py     # 历史记录工具
+│   ├── memory_utils.py      # 记忆工具
+│   ├── network_utils.py     # 网络工具
+│   ├── prompt_logger.py     # 提示词日志工具
+│   └── RAG/                 # 检索增强生成模块
+│       ├── __init__.py      # RAG模块初始化
+│       ├── Retriever_all.py # 检索器
+│       ├── Multi_Recall/    # 多重召回模块
+│       └── Reranker/        # 重排序模块
+├── static/                  # 静态资源
+│   ├── css/                 # 样式文件
+│   │   ├── style.css        # 主样式文件
+│   │   ├── stream_styles.css # 流式输出样式
+│   │   └── continue-prompt.css # 继续提示样式
+│   ├── js/                  # JavaScript文件
+│   │   ├── main.js          # 主脚本文件
+│   │   └── stream_processor.js # 流式处理脚本
+│   └── images/              # 图片资源
+│       ├── default/         # 默认图片
+│       ├── lingyin/         # 灵音角色图片
+│       ├── Silver_Wolf/     # 银狼角色图片
+│       └── cache/           # 图片缓存
+├── templates/               # HTML模板
+│   └── index.html           # 主页面模板
+├── data/                    # 数据存储
+│   ├── history/             # 对话历史记录
+│   ├── images/              # 生成的背景图片存储
+│   ├── memory/              # 记忆数据存储
+│   ├── scenes/              # 场景数据
+│   ├── audio/               # 音频文件
+│   ├── ref_audio/           # 参考音频文件
+│   └── logo/                # Logo相关文件
+├── replace/                 # 替换文件
+│   └── api_v2.py            # GPT-SoVITS API替换文件
+├── backups/                 # 备份文件
+├── temp/                    # 临时文件
+├── update_logs/             # 更新日志
+│   ├── RAG.md               # RAG功能更新日志
+│   ├── TTS.md               # TTS功能更新日志
+│   ├── MEMORY_MODULE_IMPLEMENTATION.md # 记忆模块实现日志
+│   └── JSON_FORMAT_MIGRATION.md # JSON格式迁移日志
+└── .kiro/                   # Kiro IDE配置文件
+```
+>>>>>>> 0d1d7cb9825d826df06b98c0de5d12bbd3b8a4a0
 
 ## 注意事项
 
@@ -245,7 +335,7 @@ CHARACTER_NAME = "角色名称"
 CHARACTER_NAME_EN = "Character Name"
 
 # 角色外观
-CHARACTER_IMAGE = "static/images/your_character/1.png"  # 角色立绘路径
+CHARACTER_IMAGE = "static/images/your_character/"  # 角色立绘目录
 CHARACTER_COLOR = "#ffeb3b"  # 角色名称颜色
 
 # 角色设定
