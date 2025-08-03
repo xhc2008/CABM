@@ -55,7 +55,58 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 
 ## 安装说明
 
-### 1. 安装依赖
+### 🐳 Docker 快速部署（推荐）
+
+#### 一键部署
+
+```bash
+# 克隆项目
+git clone https://github.com/xhc2008/CABM.git
+cd CABM
+
+# 一键部署
+./deploy.sh
+```
+
+#### 手动部署
+
+```bash
+# 1. 配置环境变量
+cp .env.docker .env.docker
+# 编辑 .env.docker 文件，填入你的 API 密钥
+
+# 2. 启动服务
+./docker-start.sh start
+
+# 3. 访问应用
+# http://localhost:5000
+```
+
+#### 使用预构建镜像
+
+```bash
+# 拉取镜像
+docker pull ghcr.io/xhc2008/cabm:latest
+
+# 使用 docker-compose 启动
+docker-compose up -d
+```
+
+#### Docker 管理命令
+
+```bash
+./docker-start.sh start      # 启动服务
+./docker-start.sh stop       # 停止服务
+./docker-start.sh restart    # 重启服务
+./docker-start.sh logs       # 查看日志
+./docker-start.sh status     # 查看状态
+./docker-start.sh package    # 打包镜像
+./docker-start.sh cleanup    # 清理资源
+```
+
+### 📦 传统安装方式
+
+#### 1. 安装依赖
 
 使用 pip 安装项目依赖：
 
@@ -69,7 +120,7 @@ pip install -r requirements.txt
 pip install flask requests python-dotenv
 ```
 
-### 2. 配置环境变量
+#### 2. 配置环境变量
 
 复制`.env.example`文件为`.env`，并填写API密钥和URL：
 
@@ -106,6 +157,28 @@ OPTION_MODEL=Qwen/Qwen3-32B
 在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
 [示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
 需要在环境中把`siliconflow`换成`GPT-SoVITS`
+
+### 🚀 Docker 优势
+
+- **一键部署**：无需手动安装依赖，自动配置环境
+- **环境隔离**：避免与其他应用冲突
+- **跨平台**：支持 Linux、Windows、macOS
+- **易于管理**：统一的启动、停止、重启命令
+- **生产就绪**：包含健康检查和自动重启
+- **资源限制**：可控制内存和CPU使用
+
+### 📋 环境要求
+
+#### Docker 环境
+- Docker 20.10+
+- Docker Compose 2.0+
+- 2GB+ 可用内存
+- 1GB+ 可用存储空间
+
+#### 传统环境
+- Python 3.8+
+- 硬盘空间 500MB+
+- 网络连接（用于API调用）
 
 ## 使用说明
 

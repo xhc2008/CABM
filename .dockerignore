@@ -1,0 +1,9 @@
+# Docker相关文件
+Dockerfile
+docker-compose.yml
+.env.docker
+docker-package/
+
+# Docker镜像和容器
+*.tar.gz
+cabm-*.tar.gz
