@@ -65,3 +65,19 @@ static/images/cache/
 .DS_Store
 Thumbs.db
 utils/RAG/Retriever.py
+
+# Docker相关
+.env.docker
+docker-package/
+docker-export/
+*.tar.gz
+cabm-*.tar.gz
+.docker/
+docker-data/
+.env.test
+.env.test.fast
+Dockerfile.fast
+
+# 部署相关
+deployment-package/
+release/
