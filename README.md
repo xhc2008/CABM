@@ -282,7 +282,9 @@ def get_character_config():
     }
 ```
 
-## 贡献，按周结算没有并不代表没有
+## 贡献
+> 注：按周结算没有并不代表没有
+
 [![Contributors](https://img.shields.io/github/contributors/xhc2008/CABM?color=blue)](https://github.com/xhc2008/CABM/graphs/contributors) 
 
 ![Contributors](https://contrib.rocks/image?repo=xhc2008/CABM) 
