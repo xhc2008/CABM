@@ -217,7 +217,9 @@ async function sendMessage() {
     streamProcessor.setCallbacks(
         // 字符回调 - 每个字符输出时调用
         (fullContent) => {
-            // 暂不更新文本
+            // 只显示新增的内容，不显示已添加到历史记录的部分
+            const newContent = fullContent.substring(addedToHistoryLength);
+            updateCurrentMessage('assistant', newContent, true);
         },
         // 暂停回调
         (fullContent) => {
@@ -472,6 +474,7 @@ async function playAudio() {
     // 判断缓存
     let audioBlob = audioCache[text];
     if (audioBlob) {
+        console.log('[playAudio] 命中缓存:', text);
         try {
             const audio = new Audio();
             const url = URL.createObjectURL(audioBlob);
@@ -485,13 +488,16 @@ async function playAudio() {
             showError(`播放失败: ${error.message}`);
         }
         return;
+    } else {
+        console.log('[playAudio] 未命中缓存，重新合成:', text);
+        showLoading(); // 未命中缓存时显示处理弹窗
     }
 
     // 首次播放需要等待和弹窗
     if (firstAudioPlay) {
         firstAudioPlay = false;
         alert('首次合成可能需要较长时间，请耐心等待。');
-        showLoading();
+        // showLoading(); // 已在未命中缓存时显示，无需重复
     }
 
     try {
@@ -527,7 +533,7 @@ async function playAudio() {
         console.error('播放音频失败:', error);
         showError(`播放失败: ${error.message}`);
     } finally {
-        hideLoading();
+        hideLoading(); // 合成完成后隐藏处理弹窗
     }
 }
 
@@ -1707,29 +1713,34 @@ async function loadCharacterImages(characterId) {
 
 // assistant内容更新时预请求音频
 function prefetchAudio(text, roleName, callback) {
-    if (!text || audioCache[text]) {
-        if (callback) callback();
-        return;
+if (!text) {
+    if (callback) callback();
+    return;
+}
+if (audioCache[text]) {
+    // 命中缓存时，直接同步调用回调，避免异步等待
+    if (callback) callback();
+    return;
+}
+fetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        text: text,
+        role: roleName || (currentCharacter ? currentCharacter.name : 'AI助手')
+    })
+})
+.then(response => {
+    if (!response.ok) return Promise.reject();
+    return response.blob();
+})
+.then(blob => {
+    if (blob && blob.size > 0) {
+        audioCache[text] = blob;
     }
-    fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: text,
-            role: roleName || (currentCharacter ? currentCharacter.name : 'AI助手')
-        })
-    })
-    .then(response => {
-        if (!response.ok) return Promise.reject();
-        return response.blob();
-    })
-    .then(blob => {
-        if (blob && blob.size > 0) {
-            audioCache[text] = blob;
-        }
-        if (callback) callback();
-    })
-    .catch(() => {
-        if (callback) callback();
-    });
+    if (callback) callback();
+})
+.catch(() => {
+    if (callback) callback();
+});
 }
