@@ -80,16 +80,8 @@ cp .env.docker .env.docker
 # 3. 访问应用
 # http://localhost:5000
 ```
-
-#### 使用预构建镜像
-
-```bash
-# 拉取镜像
-docker pull ghcr.io/xhc2008/cabm:latest
-
-# 使用 docker-compose 启动
-docker-compose up -d
-```
+[详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
+[问题解决方案](/docs/DOCKER_SOLUTION.md)
 
 #### Docker 管理命令
 
@@ -127,13 +119,31 @@ cp .env.example .env
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 如果使用其他平台或模型，需要替换对应的API_BASE_URL和MODEL
 
-注意：如果使用`GPT-SoVITS`作为语音合成，请下载`GPT-SoVITS`整合包并把`api_v2.py`换成`\replace\api_v2.py`然后启动
-在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
-[示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
-需要在环境中把`siliconflow`换成`GPT-SoVITS`
-> **如果你有独立显卡，建议使用GPT-SoVITS，因为远程API很贵**
----
->## *以下内容尚未进行人工校对，如有疑问请咨询作者*
+编辑`.env`文件，填写以下信息：
+
+```
+# 对话API配置
+CHAT_API_BASE_URL=https://api.siliconflow.cn/v1
+CHAT_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+CHAT_MODEL=deepseek-ai/DeepSeek-V3
+
+# 图像生成API配置
+IMAGE_API_BASE_URL=https://api.siliconflow.cn/v1
+IMAGE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+IMAGE_MODEL=Kwai-Kolors/Kolors
+
+# 嵌入向量API配置
+EMBEDDING_API_BASE_URL=https://api.siliconflow.cn/v1
+EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMBEDDING_MODEL=BAAI/bge-m3
+
+# 选项生成API配置
+OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
+OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OPTION_MODEL=Qwen/Qwen3-32B
+```
+
+#### 如果你的显卡较好推荐[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
 
 ### 🚀 Docker 优势
 
@@ -213,86 +223,6 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - **自动/手动模式**：点击"自动"按钮切换打字机效果的自动/手动模式
 - **跳过打字**：在自动模式下，点击"跳过"按钮可以立即显示完整回复
 
-## 项目结构
-
-```
-cabm/
-├── .env                     # 环境变量（API密钥等）
-├── .env.example             # 环境变量示例文件
-├── .gitignore               # Git忽略文件
-├── requirements.txt         # Python依赖包列表
-├── environment.yaml         # Conda环境配置文件
-├── config.py                # 配置文件
-├── app.py                   # 主应用入口
-├── run.py                   # 运行脚本
-├── start.py                 # 启动脚本
-├── start.bat                # Windows启动批处理文件
-├── start.sh                 # Linux/macOS启动脚本
-├── build.ps1                # PowerShell构建脚本
-├── 点我开始使用.bat          # 中文启动批处理文件
-├── log.txt                  # 日志文件
-├── README.md                # 项目说明文档
-├── CONTRIBUTING.md          # 贡献指南
-├── LICENSE                  # 开源许可证
-├── characters/              # 角色配置
-│   ├── __init__.py          # 角色管理模块
-│   ├── Silver_Wolf.py       # 银狼角色配置
-│   └── lingyin.py           # 灵音角色配置
-├── services/                # 服务组件
-│   ├── chat_service.py      # 对话服务
-│   ├── image_service.py     # 图像服务
-│   ├── config_service.py    # 配置服务
-│   ├── memory_service.py    # 记忆服务
-│   ├── option_service.py    # 选项服务
-│   ├── scene_service.py     # 场景服务
-│   └── ttsapi_service.py    # TTS语音合成服务
-├── utils/                   # 工具函数
-│   ├── __init__.py          # 工具模块初始化
-│   ├── api_utils.py         # API工具
-│   ├── env_utils.py         # 环境变量工具
-│   ├── history_utils.py     # 历史记录工具
-│   ├── memory_utils.py      # 记忆工具
-│   ├── network_utils.py     # 网络工具
-│   ├── prompt_logger.py     # 提示词日志工具
-│   └── RAG/                 # 检索增强生成模块
-│       ├── __init__.py      # RAG模块初始化
-│       ├── Retriever_all.py # 检索器
-│       ├── Multi_Recall/    # 多重召回模块
-│       └── Reranker/        # 重排序模块
-├── static/                  # 静态资源
-│   ├── css/                 # 样式文件
-│   │   ├── style.css        # 主样式文件
-│   │   ├── stream_styles.css # 流式输出样式
-│   │   └── continue-prompt.css # 继续提示样式
-│   ├── js/                  # JavaScript文件
-│   │   ├── main.js          # 主脚本文件
-│   │   └── stream_processor.js # 流式处理脚本
-│   └── images/              # 图片资源
-│       ├── default/         # 默认图片
-│       ├── lingyin/         # 灵音角色图片
-│       ├── Silver_Wolf/     # 银狼角色图片
-│       └── cache/           # 图片缓存
-├── templates/               # HTML模板
-│   └── index.html           # 主页面模板
-├── data/                    # 数据存储
-│   ├── history/             # 对话历史记录
-│   ├── images/              # 生成的背景图片存储
-│   ├── memory/              # 记忆数据存储
-│   ├── scenes/              # 场景数据
-│   ├── audio/               # 音频文件
-│   ├── ref_audio/           # 参考音频文件
-│   └── logo/                # Logo相关文件
-├── replace/                 # 替换文件
-│   └── api_v2.py            # GPT-SoVITS API替换文件
-├── backups/                 # 备份文件
-├── temp/                    # 临时文件
-├── update_logs/             # 更新日志
-│   ├── RAG.md               # RAG功能更新日志
-│   ├── TTS.md               # TTS功能更新日志
-│   ├── MEMORY_MODULE_IMPLEMENTATION.md # 记忆模块实现日志
-│   └── JSON_FORMAT_MIGRATION.md # JSON格式迁移日志
-└── .kiro/                   # Kiro IDE配置文件
-```
 
 ## 注意事项
 
@@ -352,7 +282,7 @@ def get_character_config():
     }
 ```
 
-## 贡献
+## 贡献，安周结算没有并不代表没有
 [![Contributors](https://img.shields.io/github/contributors/xhc2008/CABM?color=blue)](https://github.com/xhc2008/CABM/graphs/contributors) 
 
 ![Contributors](https://contrib.rocks/image?repo=xhc2008/CABM) 
@@ -364,3 +294,109 @@ def get_character_config():
 ## 许可证
 
 [GNU General Public License v3.0](LICENSE)
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+
+# 恭喜你读完了整篇README收下彩蛋吧
+[彩蛋](https://www.yuanshen.com/#/)
