@@ -43,6 +43,7 @@ MEMORY_CONFIG = {
 
 RAG_CONFIG = {
     ## 多路召回选择
+    # 如果你都选择了API，出现“无法使用BM25”的报错可以忽略，不影响使用
     "Multi_Recall":{
         'BM25': {
             'lan': 'zh'  # ['zh', 'en']  语言选择
