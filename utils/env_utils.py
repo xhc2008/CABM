@@ -38,12 +38,12 @@ def load_env_vars(env_file=".env"):
     
     # 检查环境变量文件是否存在
     if not env_path.exists():
-        print(f"错误: 找不到环境变量文件 {env_file}")
-        print(f"请复制 {env_file}.example 到 {env_file} 并填写正确的配置")
-        return False
-    
-    # 加载环境变量
-    load_dotenv(env_path)
+        # 在Docker容器环境中，可能直接通过环境变量设置，不需要.env文件
+        print(f"警告: 找不到环境变量文件 {env_file}")
+        print("尝试使用系统环境变量...")
+    else:
+        # 如果.env文件存在，则加载它
+        load_dotenv(env_path)
     
     # 验证必要的环境变量
     required_vars = [
@@ -53,17 +53,19 @@ def load_env_vars(env_file=".env"):
         "IMAGE_API_BASE_URL",
         "IMAGE_API_KEY",
         "IMAGE_MODEL",
-        "MEMORY_API_BASE_URL",
-        "MEMORY_API_KEY",
-        "EMBEDDING_MODEL",
-        "RERANKER_MODEL"
+        "EMBEDDING_API_BASE_URL",
+        "EMBEDDING_API_KEY",
+        "EMBEDDING_MODEL"
     ]
     
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
     if missing_vars:
         print(f"错误: 缺少必要的环境变量: {', '.join(missing_vars)}")
-        print(f"请在 {env_file} 文件中设置这些变量")
+        if env_path.exists():
+            print(f"请在 {env_file} 文件中设置这些变量")
+        else:
+            print("请通过环境变量或创建.env文件设置这些变量")
         return False
     
     return True
