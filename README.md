@@ -81,16 +81,8 @@ cp .env.docker .env.docker
 # 3. 访问应用
 # http://localhost:5000
 ```
-
-#### 使用预构建镜像
-
-```bash
-# 拉取镜像
-docker pull ghcr.io/xhc2008/cabm:latest
-
-# 使用 docker-compose 启动
-docker-compose up -d
-```
+[详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
+[问题解决方案](/docs/DOCKER_SOLUTION.md)
 
 #### Docker 管理命令
 
@@ -153,10 +145,7 @@ OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
 OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 OPTION_MODEL=Qwen/Qwen3-32B
 ```
-注意如果使用`GPT-SoVITS`作为语音合成，请下载`GPT-SoVITS`整合包并把`api_v2.py`换成`\replace\api_v2.py`然后启动
-在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
-[示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
-需要在环境中把`siliconflow`换成`GPT-SoVITS`
+[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
 
 ### 🚀 Docker 优势
 
@@ -236,43 +225,6 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - **自动/手动模式**：点击"自动"按钮切换打字机效果的自动/手动模式
 - **跳过打字**：在自动模式下，点击"跳过"按钮可以立即显示完整回复
 
-## 项目结构
-
-```
-cabm/
-├── .env                  # 环境变量（API密钥等）
-├── .env.example          # 环境变量示例文件
-├── .gitignore            # Git忽略文件
-├── requirements.txt      # Python依赖包列表
-├── config.py             # 配置文件
-├── app.py                # 主应用入口
-├── start.py              # 启动脚本
-├── start.bat             # Windows启动批处理文件
-├── start.sh              # Linux/macOS启动脚本
-├── stream.py             # 分段流式输出的demo
-├── characters/           # 角色配置
-│   ├── __init__.py       # 角色管理模块
-│   ├── Silver_Wolf.py    # 银狼角色配置
-│   └── lingyin.py        # 灵音角色配置
-├── static/               # 静态资源
-│   ├── css/              # 样式文件
-│   ├── js/               # JavaScript文件
-│   └── images/           # 图片资源和缓存
-├── templates/            # HTML模板
-├── services/             # 服务组件
-│   ├── chat_service.py   # 对话服务
-│   ├── image_service.py  # 图像服务
-│   ├── config_service.py # 配置服务
-│   └── scene_service.py  # 场景服务
-├── utils/                # 工具函数
-│   ├── api_utils.py      # API工具
-│   ├── env_utils.py      # 环境变量工具
-│   └── history_utils.py  # 历史记录工具
-└── data/                 # 数据存储
-    ├── history/          # 对话历史记录
-    ├── images/           # 图片存储
-    └── scenes/           # 场景数据
-```
 
 ## 注意事项
 
