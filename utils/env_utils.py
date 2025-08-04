@@ -53,9 +53,6 @@ def load_env_vars(env_file=".env"):
         "IMAGE_API_BASE_URL",
         "IMAGE_API_KEY",
         "IMAGE_MODEL",
-        "EMBEDDING_API_BASE_URL",
-        "EMBEDDING_API_KEY",
-        "EMBEDDING_MODEL"
     ]
     
     missing_vars = [var for var in required_vars if not os.getenv(var)]
