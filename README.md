@@ -56,11 +56,30 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 
 ### 🐳 Docker 快速部署（推荐）
 
-#### 一键部署
+#### 🚀 直接拉取镜像部署（最简单）
+
+无需克隆代码，直接使用预构建镜像：
+
+```bash
+# Linux/macOS 一键部署
+curl -o deploy.sh https://raw.githubusercontent.com/leletxh/CABM/main/deploy.sh
+chmod +x deploy.sh
+./deploy.sh
+```
+
+```powershell
+# Windows PowerShell 一键部署
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/leletxh/CABM/main/deploy.ps1" -OutFile "deploy.ps1"
+PowerShell -ExecutionPolicy Bypass -File deploy.ps1
+```
+
+**[📖 Docker 镜像直接拉取部署指南](/docs/DOCKER_PULL_GUIDE.md)**
+
+#### 源码构建部署
 
 ```bash
 # 克隆项目
-git clone https://github.com/xhc2008/CABM.git
+git clone https://github.com/leletxh/CABM.git
 cd CABM
 # 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 # 一键部署
@@ -83,8 +102,11 @@ cp .env.docker .env.docker
 # 4. 访问应用
 # http://localhost:5000
 ```
-[详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
-[问题解决方案](/docs/DOCKER_SOLUTION.md)
+
+**更多部署选项：**
+- [📖 Docker 镜像直接拉取部署指南](/docs/DOCKER_PULL_GUIDE.md)
+- [详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
+- [问题解决方案](/docs/DOCKER_SOLUTION.md)
 
 #### Docker 管理命令
 
@@ -295,6 +317,21 @@ def get_character_config():
 欢迎提交 Pull Request 或 Issue！~~(但不一定会做)~~
 
 具体贡献流程请参考[CONTRIBUTING.md](CONTRIBUTING.md)
+
+## 📚 文档索引
+
+### 部署文档
+- [📖 Docker 镜像直接拉取部署指南](docs/DOCKER_PULL_GUIDE.md) - **推荐：无需源码，直接拉取镜像部署**
+- [Docker 部署指南](docs/DOCKER_DEPLOY_GUIDE.md) - 完整的 Docker 部署指南
+- [Docker 部署方案](docs/DOCKER_DEPLOYMENT.md) - Docker 部署详细说明
+- [Windows 部署指南](docs/WINDOWS_DEPLOY_GUIDE.md) - Windows 环境部署
+- [Docker 问题解决方案](docs/DOCKER_SOLUTION.md) - 常见问题及解决方案
+
+### 功能文档
+- [TTS GPT-SoVITS 配置](docs/TTS_GPTSoVITS.md) - 语音合成服务配置
+
+### 开发文档
+- [贡献指南](CONTRIBUTING.md) - 如何参与项目开发
 
 ## 许可证
 
