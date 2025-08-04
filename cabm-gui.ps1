@@ -3,15 +3,150 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# 启用高DPI感知
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+using System.Drawing;
+public class DPIAware {
+    [DllImport("user32.dll")]
+    public static extern bool SetProcessDPIAware();
+    
+    [DllImport("shcore.dll")]
+    public static extern int SetProcessDpiAwareness(int awareness);
+    
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int nIndex);
+    
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr hWnd);
+    
+    [DllImport("gdi32.dll")]
+    public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+    
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+    
+    public static void EnableDPIAwareness() {
+        try {
+            // 尝试使用新的 API (Windows 8.1+)
+            SetProcessDpiAwareness(2); // PROCESS_PER_MONITOR_DPI_AWARE
+        } catch {
+            try {
+                // 回退到旧的 API (Windows Vista+)
+                SetProcessDPIAware();
+            } catch {
+                // 忽略错误，继续运行
+            }
+        }
+    }
+    
+    public static float GetDPIScale() {
+        try {
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            int dpi = GetDeviceCaps(hdc, 88); // LOGPIXELSX
+            ReleaseDC(IntPtr.Zero, hdc);
+            
+            if (dpi == 0) dpi = 96; // 默认 DPI
+            return dpi / 96.0f;
+        } catch {
+            return 1.0f;
+        }
+    }
+}
+"@
+
+# 启用高DPI感知
+try {
+    [DPIAware]::EnableDPIAwareness()
+}
+catch {
+    # 如果设置失败，继续运行
+}
+
 # 全局变量
 $script:form = $null
 $script:statusLabel = $null
 $script:logTextBox = $null
 $script:progressBar = $null
+$script:dpiScale = 1.0
+
+# 获取DPI缩放比例
+function Get-DPIScale {
+    try {
+        # 优先使用C#类的方法
+        $scale = [DPIAware]::GetDPIScale()
+        
+        # 如果C#方法失败，使用备用方法
+        if ($scale -eq 1.0 -or $scale -eq 0) {
+            # 创建临时Graphics对象来获取DPI
+            $form = New-Object System.Windows.Forms.Form
+            $graphics = $form.CreateGraphics()
+            $dpi = $graphics.DpiX
+            $graphics.Dispose()
+            $form.Dispose()
+            
+            if ($dpi -gt 0) {
+                $scale = $dpi / 96.0
+            } else {
+                $scale = 1.0
+            }
+        }
+        
+        # 限制缩放范围
+        if ($scale -lt 1.0) { $scale = 1.0 }
+        if ($scale -gt 3.0) { $scale = 3.0 }
+        
+        return $scale
+    }
+    catch {
+        return 1.0
+    }
+}
+
+# DPI感知的尺寸计算
+function Scale-Size {
+    param(
+        [int]$Width,
+        [int]$Height
+    )
+    
+    $scaledWidth = [Math]::Round($Width * $script:dpiScale)
+    $scaledHeight = [Math]::Round($Height * $script:dpiScale)
+    
+    return New-Object System.Drawing.Size($scaledWidth, $scaledHeight)
+}
+
+# DPI感知的位置计算
+function Scale-Point {
+    param(
+        [int]$X,
+        [int]$Y
+    )
+    
+    $scaledX = [Math]::Round($X * $script:dpiScale)
+    $scaledY = [Math]::Round($Y * $script:dpiScale)
+    
+    return New-Object System.Drawing.Point($scaledX, $scaledY)
+}
+
+# DPI感知的字体大小计算
+function Scale-FontSize {
+    param([int]$Size)
+    
+    $scaledSize = [Math]::Round($Size * $script:dpiScale)
+    if ($scaledSize -lt 8) { $scaledSize = 8 }
+    if ($scaledSize -gt 48) { $scaledSize = 48 }
+    
+    return $scaledSize
+}
 
 # 获取支持Emoji的字体
 function Get-EmojiSupportedFont {
     param([int]$Size = 10, [System.Drawing.FontStyle]$Style = [System.Drawing.FontStyle]::Regular)
+    
+    # DPI感知的字体大小
+    $scaledSize = Scale-FontSize -Size $Size
     
     # 优先使用的字体列表（按优先级排序）
     $emojieFonts = @(
@@ -29,7 +164,7 @@ function Get-EmojiSupportedFont {
     foreach ($fontName in $emojieFonts) {
         if ($installedFonts -contains $fontName) {
             try {
-                $font = New-Object System.Drawing.Font($fontName, $Size, $Style)
+                $font = New-Object System.Drawing.Font($fontName, $scaledSize, $Style)
                 return $font
             }
             catch {
@@ -40,12 +175,15 @@ function Get-EmojiSupportedFont {
     }
     
     # 如果都不可用，返回默认字体
-    return New-Object System.Drawing.Font("Microsoft Sans Serif", $Size, $Style)
+    return New-Object System.Drawing.Font("Microsoft Sans Serif", $scaledSize, $Style)
 }
 
 # 获取现代化字体
 function Get-ModernFont {
     param([int]$Size = 10, [System.Drawing.FontStyle]$Style = [System.Drawing.FontStyle]::Regular)
+    
+    # DPI感知的字体大小
+    $scaledSize = Scale-FontSize -Size $Size
     
     $modernFonts = @(
         "Segoe UI",
@@ -59,7 +197,7 @@ function Get-ModernFont {
     foreach ($fontName in $modernFonts) {
         if ($installedFonts -contains $fontName) {
             try {
-                return New-Object System.Drawing.Font($fontName, $Size, $Style)
+                return New-Object System.Drawing.Font($fontName, $scaledSize, $Style)
             }
             catch {
                 continue
@@ -67,7 +205,7 @@ function Get-ModernFont {
         }
     }
     
-    return New-Object System.Drawing.Font("Microsoft Sans Serif", $Size, $Style)
+    return New-Object System.Drawing.Font("Microsoft Sans Serif", $scaledSize, $Style)
 }
 
 # 创建现代化按钮
@@ -84,8 +222,8 @@ function New-ModernButton {
     
     $button = New-Object System.Windows.Forms.Button
     $button.Text = $Text
-    $button.Location = $Location
-    $button.Size = $Size
+    $button.Location = Scale-Point -X $Location.X -Y $Location.Y
+    $button.Size = Scale-Size -Width $Size.Width -Height $Size.Height
     $button.BackColor = $BackColor
     $button.ForeColor = $ForeColor
     $button.Font = Get-EmojiSupportedFont -Size $FontSize -Style Bold
@@ -115,13 +253,31 @@ function New-ModernButton {
 
 # 创建主窗口
 function New-MainForm {
+    # 初始化DPI缩放
+    $script:dpiScale = Get-DPIScale
+    
+    # 输出调试信息
+    Write-Host "DPI缩放比例: $($script:dpiScale)" -ForegroundColor Green
+    Write-Host "基础窗口尺寸: 900x700" -ForegroundColor Yellow
+    $scaledSize = Scale-Size -Width 900 -Height 700
+    Write-Host "缩放后窗口尺寸: $($scaledSize.Width)x$($scaledSize.Height)" -ForegroundColor Cyan
+    
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "沙雕GUI——由一位抽象且沙雕的人创作"
-    $form.Size = New-Object System.Drawing.Size(750, 580)
+    $form.Size = $scaledSize
     $form.StartPosition = "CenterScreen"
     $form.FormBorderStyle = "FixedSingle"
     $form.MaximizeBox = $false
     $form.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
+    
+    # 设置DPI感知
+    try {
+        $form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+    }
+    catch {
+        # 如果设置失败，使用默认模式
+        $form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Font
+    }
     
     # 尝试加载图标
     try {
@@ -139,34 +295,34 @@ function New-MainForm {
     
     # 顶部装饰条
     $topPanel = New-Object System.Windows.Forms.Panel
-    $topPanel.Location = New-Object System.Drawing.Point(0, 0)
-    $topPanel.Size = New-Object System.Drawing.Size(750, 4)
+    $topPanel.Location = Scale-Point -X 0 -Y 0
+    $topPanel.Size = Scale-Size -Width 900 -Height 4
     $topPanel.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
     $form.Controls.Add($topPanel)
     
     # 主标题面板
     $titlePanel = New-Object System.Windows.Forms.Panel
-    $titlePanel.Location = New-Object System.Drawing.Point(0, 4)
-    $titlePanel.Size = New-Object System.Drawing.Size(750, 70)
+    $titlePanel.Location = Scale-Point -X 0 -Y 4
+    $titlePanel.Size = Scale-Size -Width 900 -Height 85
     $titlePanel.BackColor = [System.Drawing.Color]::White
     $form.Controls.Add($titlePanel)
     
     # 应用图标标签
     $iconLabel = New-Object System.Windows.Forms.Label
     $iconLabel.Text = "🚀"
-    $iconLabel.Font = New-Object System.Drawing.Font("Segoe UI Emoji", 24, [System.Drawing.FontStyle]::Regular)
-    $iconLabel.Location = New-Object System.Drawing.Point(30, 15)
-    $iconLabel.Size = New-Object System.Drawing.Size(50, 40)
+    $iconLabel.Font = New-Object System.Drawing.Font("Segoe UI Emoji", (Scale-FontSize -Size 24), [System.Drawing.FontStyle]::Regular)
+    $iconLabel.Location = Scale-Point -X 30 -Y 25
+    $iconLabel.Size = Scale-Size -Width 50 -Height 40
     $iconLabel.TextAlign = "MiddleCenter"
     $titlePanel.Controls.Add($iconLabel)
     
     # 主标题
     $titleLabel = New-Object System.Windows.Forms.Label
     $titleLabel.Text = "CABM"
-    $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 20, [System.Drawing.FontStyle]::Bold)
+    $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", (Scale-FontSize -Size 20), [System.Drawing.FontStyle]::Bold)
     $titleLabel.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-    $titleLabel.Location = New-Object System.Drawing.Point(90, 10)
-    $titleLabel.Size = New-Object System.Drawing.Size(200, 30)
+    $titleLabel.Location = Scale-Point -X 90 -Y 15
+    $titleLabel.Size = Scale-Size -Width 200 -Height 40
     $titlePanel.Controls.Add($titleLabel)
     
     # 副标题
@@ -174,14 +330,14 @@ function New-MainForm {
     $subtitleLabel.Text = "Code Afflatus & Beyond Matter"
     $subtitleLabel.Font = Get-ModernFont -Size 10
     $subtitleLabel.ForeColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
-    $subtitleLabel.Location = New-Object System.Drawing.Point(90, 40)
-    $subtitleLabel.Size = New-Object System.Drawing.Size(300, 20)
+    $subtitleLabel.Location = Scale-Point -X 90 -Y 50
+    $subtitleLabel.Size = Scale-Size -Width 300 -Height 25
     $titlePanel.Controls.Add($subtitleLabel)
     
     # 状态指示器
     $statusIndicator = New-Object System.Windows.Forms.Panel
-    $statusIndicator.Location = New-Object System.Drawing.Point(650, 25)
-    $statusIndicator.Size = New-Object System.Drawing.Size(12, 12)
+    $statusIndicator.Location = Scale-Point -X 800 -Y 40
+    $statusIndicator.Size = Scale-Size -Width 12 -Height 12
     $statusIndicator.BackColor = [System.Drawing.Color]::FromArgb(40, 167, 69)
     $titlePanel.Controls.Add($statusIndicator)
     
@@ -189,8 +345,8 @@ function New-MainForm {
     $script:statusLabel = New-Object System.Windows.Forms.Label
     $script:statusLabel.Text = "就绪"
     $script:statusLabel.Font = Get-ModernFont -Size 9
-    $script:statusLabel.Location = New-Object System.Drawing.Point(670, 20)
-    $script:statusLabel.Size = New-Object System.Drawing.Size(60, 20)
+    $script:statusLabel.Location = Scale-Point -X 820 -Y 36
+    $script:statusLabel.Size = Scale-Size -Width 60 -Height 20
     $script:statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(40, 167, 69)
     $titlePanel.Controls.Add($script:statusLabel)
     
@@ -198,8 +354,8 @@ function New-MainForm {
     $mainButtonPanel = New-Object System.Windows.Forms.GroupBox
     $mainButtonPanel.Text = "主要操作"
     $mainButtonPanel.Font = Get-ModernFont -Size 10 -Style Bold
-    $mainButtonPanel.Location = New-Object System.Drawing.Point(30, 90)
-    $mainButtonPanel.Size = New-Object System.Drawing.Size(690, 80)
+    $mainButtonPanel.Location = Scale-Point -X 30 -Y 100
+    $mainButtonPanel.Size = Scale-Size -Width 840 -Height 80
     $mainButtonPanel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $form.Controls.Add($mainButtonPanel)
     
@@ -208,47 +364,47 @@ function New-MainForm {
     $mainButtonPanel.Controls.Add($startButton)
     
     # 停止按钮
-    $stopButton = New-ModernButton -Text "🛑 停止" -Location (New-Object System.Drawing.Point(180, 25)) -Size (New-Object System.Drawing.Size(100, 45)) -BackColor ([System.Drawing.Color]::FromArgb(220, 53, 69)) -FontSize 11 -ClickAction { Stop-Application }
+    $stopButton = New-ModernButton -Text "🛑 停止" -Location (New-Object System.Drawing.Point(180, 25)) -Size (New-Object System.Drawing.Size(110, 45)) -BackColor ([System.Drawing.Color]::FromArgb(220, 53, 69)) -FontSize 11 -ClickAction { Stop-Application }
     $mainButtonPanel.Controls.Add($stopButton)
     
     # 重启按钮
-    $restartButton = New-ModernButton -Text "🔄 重启" -Location (New-Object System.Drawing.Point(300, 25)) -Size (New-Object System.Drawing.Size(100, 45)) -BackColor ([System.Drawing.Color]::FromArgb(255, 193, 7)) -ForeColor ([System.Drawing.Color]::FromArgb(32, 32, 32)) -FontSize 11 -ClickAction { Restart-Application }
+    $restartButton = New-ModernButton -Text "🔄 重启" -Location (New-Object System.Drawing.Point(310, 25)) -Size (New-Object System.Drawing.Size(110, 45)) -BackColor ([System.Drawing.Color]::FromArgb(255, 193, 7)) -ForeColor ([System.Drawing.Color]::FromArgb(32, 32, 32)) -FontSize 11 -ClickAction { Restart-Application }
     $mainButtonPanel.Controls.Add($restartButton)
     
     # 状态查询按钮
-    $statusButton = New-ModernButton -Text "📊 状态" -Location (New-Object System.Drawing.Point(420, 25)) -Size (New-Object System.Drawing.Size(100, 45)) -BackColor ([System.Drawing.Color]::FromArgb(0, 123, 255)) -FontSize 11 -ClickAction { Get-ApplicationStatus }
+    $statusButton = New-ModernButton -Text "📊 状态" -Location (New-Object System.Drawing.Point(440, 25)) -Size (New-Object System.Drawing.Size(110, 45)) -BackColor ([System.Drawing.Color]::FromArgb(0, 123, 255)) -FontSize 11 -ClickAction { Get-ApplicationStatus }
     $mainButtonPanel.Controls.Add($statusButton)
     
     # 打开应用按钮
-    $openButton = New-ModernButton -Text "🌐 打开" -Location (New-Object System.Drawing.Point(540, 25)) -Size (New-Object System.Drawing.Size(120, 45)) -BackColor ([System.Drawing.Color]::FromArgb(23, 162, 184)) -FontSize 11 -ClickAction { Open-Application }
+    $openButton = New-ModernButton -Text "🌐 打开" -Location (New-Object System.Drawing.Point(570, 25)) -Size (New-Object System.Drawing.Size(120, 45)) -BackColor ([System.Drawing.Color]::FromArgb(23, 162, 184)) -FontSize 11 -ClickAction { Open-Application }
     $mainButtonPanel.Controls.Add($openButton)
     
     # 管理工具面板
     $toolsPanel = New-Object System.Windows.Forms.GroupBox
     $toolsPanel.Text = "管理工具"
     $toolsPanel.Font = Get-ModernFont -Size 10 -Style Bold
-    $toolsPanel.Location = New-Object System.Drawing.Point(30, 185)
-    $toolsPanel.Size = New-Object System.Drawing.Size(690, 60)
+    $toolsPanel.Location = Scale-Point -X 30 -Y 195
+    $toolsPanel.Size = Scale-Size -Width 840 -Height 60
     $toolsPanel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $form.Controls.Add($toolsPanel)
     
     # 工具按钮 - 更小更紧凑
-    $configButton = New-ModernButton -Text "⚙️ 配置" -Location (New-Object System.Drawing.Point(20, 20)) -Size (New-Object System.Drawing.Size(90, 30)) -BackColor ([System.Drawing.Color]::FromArgb(108, 117, 125)) -FontSize 9 -ClickAction { Edit-Configuration }
+    $configButton = New-ModernButton -Text "⚙️ 配置" -Location (New-Object System.Drawing.Point(20, 20)) -Size (New-Object System.Drawing.Size(100, 30)) -BackColor ([System.Drawing.Color]::FromArgb(108, 117, 125)) -FontSize 9 -ClickAction { Edit-Configuration }
     $toolsPanel.Controls.Add($configButton)
     
-    $logsButton = New-ModernButton -Text "📋 日志" -Location (New-Object System.Drawing.Point(130, 20)) -Size (New-Object System.Drawing.Size(90, 30)) -BackColor ([System.Drawing.Color]::FromArgb(108, 117, 125)) -FontSize 9 -ClickAction { Show-ApplicationLogs }
+    $logsButton = New-ModernButton -Text "📋 日志" -Location (New-Object System.Drawing.Point(140, 20)) -Size (New-Object System.Drawing.Size(100, 30)) -BackColor ([System.Drawing.Color]::FromArgb(108, 117, 125)) -FontSize 9 -ClickAction { Show-ApplicationLogs }
     $toolsPanel.Controls.Add($logsButton)
     
-    $updateButton = New-ModernButton -Text "🔄 更新" -Location (New-Object System.Drawing.Point(240, 20)) -Size (New-Object System.Drawing.Size(90, 30)) -BackColor ([System.Drawing.Color]::FromArgb(108, 117, 125)) -FontSize 9 -ClickAction { Update-Application }
+    $updateButton = New-ModernButton -Text "🔄 更新" -Location (New-Object System.Drawing.Point(260, 20)) -Size (New-Object System.Drawing.Size(100, 30)) -BackColor ([System.Drawing.Color]::FromArgb(108, 117, 125)) -FontSize 9 -ClickAction { Update-Application }
     $toolsPanel.Controls.Add($updateButton)
     
-    $uninstallButton = New-ModernButton -Text "🗑️ 卸载" -Location (New-Object System.Drawing.Point(570, 20)) -Size (New-Object System.Drawing.Size(90, 30)) -BackColor ([System.Drawing.Color]::FromArgb(220, 53, 69)) -FontSize 9 -ClickAction { Uninstall-Application }
+    $uninstallButton = New-ModernButton -Text "🗑️ 卸载" -Location (New-Object System.Drawing.Point(720, 20)) -Size (New-Object System.Drawing.Size(100, 30)) -BackColor ([System.Drawing.Color]::FromArgb(220, 53, 69)) -FontSize 9 -ClickAction { Uninstall-Application }
     $toolsPanel.Controls.Add($uninstallButton)
     
     # 进度条面板
     $progressPanel = New-Object System.Windows.Forms.Panel
-    $progressPanel.Location = New-Object System.Drawing.Point(30, 260)
-    $progressPanel.Size = New-Object System.Drawing.Size(690, 30)
+    $progressPanel.Location = Scale-Point -X 30 -Y 270
+    $progressPanel.Size = Scale-Size -Width 840 -Height 40
     $progressPanel.BackColor = [System.Drawing.Color]::White
     $form.Controls.Add($progressPanel)
     
@@ -256,15 +412,15 @@ function New-MainForm {
     $progressLabel = New-Object System.Windows.Forms.Label
     $progressLabel.Text = "操作进度"
     $progressLabel.Font = Get-ModernFont -Size 9
-    $progressLabel.Location = New-Object System.Drawing.Point(10, 5)
-    $progressLabel.Size = New-Object System.Drawing.Size(100, 20)
+    $progressLabel.Location = Scale-Point -X 10 -Y 6
+    $progressLabel.Size = Scale-Size -Width 100 -Height 18
     $progressLabel.ForeColor = [System.Drawing.Color]::FromArgb(108, 117, 125)
     $progressPanel.Controls.Add($progressLabel)
     
     # 进度条
     $script:progressBar = New-Object System.Windows.Forms.ProgressBar
-    $script:progressBar.Location = New-Object System.Drawing.Point(120, 7)
-    $script:progressBar.Size = New-Object System.Drawing.Size(550, 16)
+    $script:progressBar.Location = Scale-Point -X 120 -Y 6
+    $script:progressBar.Size = Scale-Size -Width 700 -Height 18
     $script:progressBar.Style = "Continuous"
     $script:progressBar.Visible = $false
     $script:progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0, 123, 255)
@@ -274,17 +430,17 @@ function New-MainForm {
     $logPanel = New-Object System.Windows.Forms.GroupBox
     $logPanel.Text = "系统日志"
     $logPanel.Font = Get-ModernFont -Size 10 -Style Bold
-    $logPanel.Location = New-Object System.Drawing.Point(30, 300)
-    $logPanel.Size = New-Object System.Drawing.Size(690, 210)
+    $logPanel.Location = Scale-Point -X 30 -Y 310
+    $logPanel.Size = Scale-Size -Width 840 -Height 250
     $logPanel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $form.Controls.Add($logPanel)
     
     # 日志文本框
     $script:logTextBox = New-Object System.Windows.Forms.RichTextBox
-    $script:logTextBox.Location = New-Object System.Drawing.Point(15, 25)
-    $script:logTextBox.Size = New-Object System.Drawing.Size(660, 170)
+    $script:logTextBox.Location = Scale-Point -X 15 -Y 25
+    $script:logTextBox.Size = Scale-Size -Width 810 -Height 210
     $script:logTextBox.ReadOnly = $true
-    $script:logTextBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+    $script:logTextBox.Font = New-Object System.Drawing.Font("Consolas", (Scale-FontSize -Size 9))
     $script:logTextBox.BackColor = [System.Drawing.Color]::FromArgb(28, 28, 28)
     $script:logTextBox.ForeColor = [System.Drawing.Color]::FromArgb(204, 204, 204)
     $script:logTextBox.BorderStyle = "None"
@@ -297,13 +453,13 @@ function New-MainForm {
     $statusStrip.ForeColor = [System.Drawing.Color]::FromArgb(108, 117, 125)
     
     $statusLabel = New-Object System.Windows.Forms.ToolStripStatusLabel
-    $statusLabel.Text = "CABM管理器 v2.0 - 就绪"
+    $statusLabel.Text = "沙雕GUI v2.0 - 就绪 (DPI: $([Math]::Round($script:dpiScale * 100, 0))%)"
     $statusLabel.Font = Get-ModernFont -Size 9
     $statusStrip.Items.Add($statusLabel) | Out-Null
     
     # 版本信息
     $versionLabel = New-Object System.Windows.Forms.ToolStripStatusLabel
-    $versionLabel.Text = "PowerShell GUI"
+    $versionLabel.Text = "PowerShell GUI - 高DPI优化"
     $versionLabel.Spring = $true
     $versionLabel.TextAlign = "MiddleRight"
     $statusStrip.Items.Add($versionLabel) | Out-Null
@@ -1098,7 +1254,8 @@ function Start-GUI {
         Add-Log "🚀 CABM AI对话应用管理器 v2.0 已启动" "SUCCESS"
         Add-Log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "INFO"
         Add-Log "✨ 欢迎使用现代化的CABM管理界面！" "INFO"
-        Add-Log "📋 正在检查系统状态..." "INFO"
+        Add-Log "�️ 高DPI优化已启用 - 缩放比例: $([Math]::Round($script:dpiScale * 100, 0))%" "INFO"
+        Add-Log "�📋 正在检查系统状态..." "INFO"
         
         Get-ApplicationStatus
         
