@@ -1,11 +1,39 @@
 # GitHub Container Registry 权限问题故障排除
 
-## 问题描述
-当使用 GitHub Actions 推送 Docker 镜像到 GitHub Container Registry (GHCR) 时，可能会遇到以下错误：
+## 常见错误类型
 
+### 1. "Resource not accessible by integration" 错误
+
+这个错误表明 GitHub Actions 的权限配置不足。解决方案：
+
+#### 立即修复步骤：
+
+1. **检查仓库的 Actions 权限设置**：
+   - 进入仓库页面
+   - 点击 **Settings** -> **Actions** -> **General**
+   - 在 **Workflow permissions** 部分选择：
+     - ✅ **Read and write permissions**
+     - ✅ **Allow GitHub Actions to create and approve pull requests**
+
+2. **更新工作流权限配置**（已在当前文件中更新）：
+```yaml
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  actions: read
+  security-events: write
+  attestations: write
 ```
-ERROR: failed to build: failed to solve: failed to push ghcr.io/用户名/镜像名:标签: denied: installation not allowed to Write organization package
-```
+
+3. **使用个人访问令牌（如果上述方法不工作）**：
+   - 创建 PAT：GitHub **Settings** -> **Developer settings** -> **Personal access tokens** -> **Tokens (classic)**
+   - 权限选择：`write:packages`, `read:packages`, `delete:packages`
+   - 添加到仓库 Secrets：**Settings** -> **Secrets and variables** -> **Actions** -> **New repository secret**
+   - Secret 名称：`GHCR_TOKEN`
+   - 使用备用工作流文件：`.github/workflows/docker-deploy-pat.yml`
+
+### 2. "denied: installation not allowed to Write organization package" 错误
 
 ## 解决方案
 
