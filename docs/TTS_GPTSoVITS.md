@@ -10,6 +10,8 @@
 - GPU GeForceMX330以上或CPU i5 10代以上
 - conda 环境管理GPT-SoVITS的python版本不同
 
+如果你的电脑不行，也可以考虑租卡
+这家组卡支持租Windows系统[看看~~腿~~](https://gpu.spacehpc.com/user/register?inviteCode=83929273)
 ### 安装 GPT-SoVITS
 
 接着看什么，去官方仓库！
