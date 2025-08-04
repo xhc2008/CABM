@@ -489,55 +489,61 @@ function Start-Application {
 
 # Conda方式启动应用
 function Start-CondaApplication {
-    Add-Log "使用Conda方式启动应用..."
+    Add-Log "🐍 使用Conda方式启动应用..."
     
     # 检查.conda目录
     $condaEnvPath = ".\.conda"
     if (Test-Path $condaEnvPath) {
-        Add-Log "发现现有Conda环境: $condaEnvPath"
+        Add-Log "✅ 发现现有Conda环境: $condaEnvPath"
     } else {
-        Add-Log "创建新的Conda环境到: $condaEnvPath"
+        Add-Log "📦 创建新的Conda环境到: $condaEnvPath"
         
         # 创建conda环境
-        Add-Log "正在创建Conda环境..."
+        Add-Log "⏳ 正在创建Conda环境（可能需要几分钟）..."
+        Update-Status "创建环境中..." "Blue"
         $createCmd = "conda create -p `"$condaEnvPath`" python=3.11 -y"
         Invoke-Expression $createCmd 2>&1 | ForEach-Object { Add-Log $_ }
         
         if ($LASTEXITCODE -ne 0) {
             throw "Conda环境创建失败"
         }
+        Add-Log "✅ Conda环境创建完成"
         
         # 安装依赖
-        Add-Log "正在安装Python依赖..."
+        Add-Log "📥 正在安装Python依赖（可能需要几分钟）..."
+        Update-Status "安装依赖中..." "Blue"
         $installCmd = "conda run -p `"$condaEnvPath`" pip install -r requirements.txt"
         Invoke-Expression $installCmd 2>&1 | ForEach-Object { Add-Log $_ }
         
         if ($LASTEXITCODE -ne 0) {
             throw "依赖安装失败"
         }
+        Add-Log "✅ 依赖安装完成"
     }
     
     # 检查是否已经在运行
     if (Test-ApplicationProcess) {
-        Add-Log "检测到应用已在运行中"
+        Add-Log "⚠️ 检测到应用已在运行中"
         Update-Status "运行中" "Green"
         return
     }
     
     # 创建必要的目录
+    Add-Log "📁 检查并创建必要目录..."
     $dirs = @("data\history", "data\memory", "data\scenes", "static\images\cache")
     foreach ($dir in $dirs) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
-            Add-Log "创建目录: $dir"
+            Add-Log "   ✅ 创建目录: $dir"
         }
     }
     
     # 检查配置文件
+    Add-Log "⚙️ 检查配置文件..."
     if (-not (Test-Path ".env")) {
         if (Test-Path ".env.example") {
             Copy-Item ".env.example" ".env"
-            Add-Log "已从模板创建配置文件 .env"
+            Add-Log "   ✅ 已从模板创建配置文件 .env"
         } else {
             $defaultEnv = @"
 # CABM配置文件
@@ -548,13 +554,16 @@ APP_PORT=5000
 DEBUG=false
 "@
             Set-Content -Path ".env" -Value $defaultEnv -Encoding UTF8
-            Add-Log "已创建默认配置文件 .env"
+            Add-Log "   ✅ 已创建默认配置文件 .env"
         }
-        Add-Log "⚠️ 请编辑 .env 文件配置您的API密钥"
+        Add-Log "   ⚠️ 请编辑 .env 文件配置您的API密钥" "WARNING"
+    } else {
+        Add-Log "   ✅ 配置文件已存在"
     }
     
     # 启动应用
-    Add-Log "正在启动CABM应用..."
+    Add-Log "🚀 正在启动CABM应用..."
+    Update-Status "启动应用中..." "Blue"
     $startFile = if (Test-Path "start.py") { "start.py" } else { "app.py" }
     $startCmd = "conda run -p `"$condaEnvPath`" python $startFile"
     
@@ -562,15 +571,18 @@ DEBUG=false
     Start-Process powershell -ArgumentList "-WindowStyle", "Minimized", "-Command", $startCmd -PassThru
     
     # 等待应用启动
+    Add-Log "⏳ 等待应用初始化..."
     Start-Sleep -Seconds 3
     
     # 验证启动
+    Add-Log "🔍 验证应用启动状态..."
+    Update-Status "验证启动中..." "Blue"
     $maxRetries = 15
     for ($i = 0; $i -lt $maxRetries; $i++) {
         try {
             $response = Invoke-WebRequest -Uri "http://localhost:5000" -TimeoutSec 2 -UseBasicParsing -ErrorAction SilentlyContinue
             if ($response.StatusCode -eq 200) {
-                Add-Log "应用启动成功！" "SUCCESS"
+                Add-Log "🎉 应用启动成功！服务已可用" "SUCCESS"
                 Update-Status "运行中" "Green"
                 return
             }
@@ -580,12 +592,13 @@ DEBUG=false
         }
         
         Start-Sleep -Seconds 2
-        Add-Log "等待应用启动... ($($i+1)/$maxRetries)"
+        Add-Log "   ⏳ 等待应用响应... ($($i+1)/$maxRetries)"
     }
     
     # 如果直接访问失败，检查进程
     if (Test-ApplicationProcess) {
-        Add-Log "应用进程已启动，可能需要更长时间初始化" "WARNING"
+        Add-Log "⚠️ 应用进程已启动，但服务可能需要更长时间初始化" "WARNING"
+        Add-Log "💡 建议等待1-2分钟后再尝试访问" "INFO"
         Update-Status "启动中" "Yellow"
     } else {
         throw "应用启动失败，请检查日志"
@@ -594,11 +607,12 @@ DEBUG=false
 
 # Docker方式启动应用（极端情况使用）
 function Start-DockerApplication {
-    Add-Log "使用Docker方式启动应用..."
+    Add-Log "🐳 使用Docker方式启动应用..."
     
     # 检查Docker
     if (-not (Test-DockerStatus)) {
-        Add-Log "Docker未运行，正在尝试启动..."
+        Add-Log "❌ Docker未运行，正在尝试启动..."
+        Update-Status "启动Docker中..." "Blue"
         $dockerPaths = @(
             "C:\Program Files\Docker\Docker\Docker Desktop.exe",
             "$env:USERPROFILE\AppData\Local\Docker\Docker Desktop.exe"
@@ -606,48 +620,61 @@ function Start-DockerApplication {
         
         $dockerPath = $dockerPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
         if ($dockerPath) {
+            Add-Log "🚀 启动Docker Desktop..."
             Start-Process -FilePath $dockerPath
-            Add-Log "等待Docker启动..."
+            Add-Log "⏳ 等待Docker启动（可能需要1-2分钟）..."
             
             # 等待Docker启动
             for ($i = 0; $i -lt 30; $i++) {
                 Start-Sleep -Seconds 2
                 if (Test-DockerStatus) {
-                    Add-Log "Docker已启动"
+                    Add-Log "✅ Docker已启动"
                     break
                 }
+                if ($i % 5 -eq 0) {
+                    Add-Log "   ⏳ Docker启动中... ($($i*2)秒)"
+                }
                 if ($i -eq 29) {
-                    throw "Docker启动超时"
+                    throw "Docker启动超时，请手动启动Docker Desktop"
                 }
             }
         } else {
-            throw "找不到Docker Desktop"
+            throw "找不到Docker Desktop，请先安装Docker"
         }
+    } else {
+        Add-Log "✅ Docker已运行"
     }
     
     # 检查容器是否存在
+    Add-Log "🔍 检查容器状态..."
     $containerExists = docker ps -a -f name=cabm-app --format "{{.Names}}" 2>$null
     if ($containerExists -eq "cabm-app") {
-        Add-Log "发现现有容器，正在启动..."
+        Add-Log "📦 发现现有容器，正在启动..."
+        Update-Status "启动容器中..." "Blue"
         docker start cabm-app 2>&1 | ForEach-Object { Add-Log $_ }
     } else {
-        Add-Log "未发现容器，开始部署..."
+        Add-Log "🏗️ 未发现容器，开始构建和部署..."
+        Update-Status "构建应用中..." "Blue"
         if (Test-Path "deploy-docker.ps1") {
+            Add-Log "📋 使用PowerShell部署脚本..."
             & ".\deploy-docker.ps1" "deploy" 2>&1 | ForEach-Object { Add-Log $_ }
         } elseif (Test-Path "deploy-docker.bat") {
+            Add-Log "📋 使用批处理部署脚本..."
             cmd /c "deploy-docker.bat deploy" 2>&1 | ForEach-Object { Add-Log $_ }
         } else {
-            throw "找不到部署脚本"
+            throw "找不到部署脚本（deploy-docker.ps1 或 deploy-docker.bat）"
         }
     }
     
     # 验证启动
+    Add-Log "🔍 验证容器状态..."
+    Update-Status "验证启动中..." "Blue"
     Start-Sleep -Seconds 5
     if (Test-ContainerStatus) {
-        Add-Log "应用启动成功！" "SUCCESS"
+        Add-Log "🎉 Docker应用启动成功！" "SUCCESS"
         Update-Status "运行中" "Green"
     } else {
-        throw "应用启动失败"
+        throw "Docker容器启动失败，请检查Docker日志"
     }
 }
 
@@ -968,53 +995,95 @@ function Update-Application {
 
 # 卸载应用
 function Uninstall-Application {
-    $result = [System.Windows.Forms.MessageBox]::Show("确定要卸载应用吗？这将删除Conda环境、容器和镜像。", "确认卸载", "YesNo", "Warning")
+    $result = [System.Windows.Forms.MessageBox]::Show("⚠️ 警告：这将删除当前目录下的所有文件和文件夹！`n`n确定要继续吗？", "确认完全卸载", "YesNo", "Warning")
     if ($result -eq "Yes") {
-        Add-Log "开始卸载应用..."
-        Update-Status "正在卸载..." "Red"
-        Show-Progress $true
-        
-        try {
-            # 停止应用
-            Stop-Application
+        # 二次确认
+        $confirmResult = [System.Windows.Forms.MessageBox]::Show("❗ 最后确认：这是不可逆操作！`n`n将删除：$PWD 目录下的所有内容`n`n确定继续？", "最终确认", "YesNo", "Error")
+        if ($confirmResult -eq "Yes") {
+            Add-Log "开始完全卸载应用..."
+            Update-Status "正在卸载..." "Red"
+            Show-Progress $true
             
-            # 删除Conda环境
-            if (Test-Path ".\.conda") {
-                Add-Log "删除Conda环境..."
+            try {
+                # 停止应用
+                Add-Log "正在停止所有相关进程..."
+                Stop-Application
+                
+                # 删除Docker容器和镜像（如果存在）
                 try {
-                    Remove-Item ".\.conda" -Recurse -Force
-                    Add-Log "Conda环境已删除"
+                    Add-Log "清理Docker资源..."
+                    docker stop cabm-app 2>$null
+                    docker rm cabm-app 2>$null
+                    docker rmi cabm:latest 2>$null
+                    docker image prune -f 2>$null
+                    Add-Log "Docker资源清理完成"
                 }
                 catch {
-                    Add-Log "删除Conda环境失败: $($_.Exception.Message)"
+                    Add-Log "Docker清理跳过（可能未安装）"
                 }
-            }
-            
-            # 删除Docker容器和镜像
-            try {
-                # 停止并删除容器
-                docker stop cabm-app 2>&1 | ForEach-Object { Add-Log $_ }
-                docker rm cabm-app 2>&1 | ForEach-Object { Add-Log $_ }
                 
-                # 删除镜像
-                docker rmi cabm:latest 2>&1 | ForEach-Object { Add-Log $_ }
+                # 等待一下确保进程完全停止
+                Start-Sleep -Seconds 2
                 
-                # 清理悬空镜像
-                docker image prune -f 2>&1 | ForEach-Object { Add-Log $_ }
+                # 获取当前目录
+                $currentDir = Get-Location
+                Add-Log "当前目录: $currentDir"
+                
+                # 删除当前目录下的所有文件和文件夹
+                Add-Log "开始删除所有文件和文件夹..."
+                
+                # 先删除所有文件
+                Get-ChildItem -Path $currentDir -File -Force | ForEach-Object {
+                    try {
+                        Remove-Item $_.FullName -Force
+                        Add-Log "已删除文件: $($_.Name)"
+                    }
+                    catch {
+                        Add-Log "删除文件失败: $($_.Name) - $($_.Exception.Message)" "WARNING"
+                    }
+                }
+                
+                # 再删除所有文件夹
+                Get-ChildItem -Path $currentDir -Directory -Force | ForEach-Object {
+                    try {
+                        Remove-Item $_.FullName -Recurse -Force
+                        Add-Log "已删除文件夹: $($_.Name)"
+                    }
+                    catch {
+                        Add-Log "删除文件夹失败: $($_.Name) - $($_.Exception.Message)" "WARNING"
+                    }
+                }
+                
+                Add-Log "卸载完成！所有文件已删除" "SUCCESS"
+                Update-Status "已完全卸载" "Gray"
+                
+                # 显示完成消息
+                [System.Windows.Forms.MessageBox]::Show("✅ 卸载完成！`n`n所有文件和文件夹已删除。`n程序将在3秒后自动关闭。", "卸载完成", "OK", "Information")
+                
+                # 延迟关闭窗口
+                $timer = New-Object System.Windows.Forms.Timer
+                $timer.Interval = 3000
+                $timer.Add_Tick({
+                    $script:form.Close()
+                })
+                $timer.Start()
+                
             }
             catch {
-                Add-Log "Docker清理过程中的警告: $($_.Exception.Message)"
+                Add-Log "卸载失败: $($_.Exception.Message)" "ERROR"
+                Update-Status "卸载失败" "Red"
+                [System.Windows.Forms.MessageBox]::Show("卸载过程中出现错误：`n$($_.Exception.Message)", "错误", "OK", "Error")
             }
-            
-            Add-Log "卸载完成"
-            Update-Status "已卸载" "Gray"
+            finally {
+                Show-Progress $false
+            }
         }
-        catch {
-            Add-Log "卸载失败: $($_.Exception.Message)"
+        else {
+            Add-Log "用户取消了卸载操作"
         }
-        finally {
-            Show-Progress $false
-        }
+    }
+    else {
+        Add-Log "用户取消了卸载操作"
     }
 }
 
