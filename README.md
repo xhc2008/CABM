@@ -62,9 +62,9 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 # 克隆项目
 git clone https://github.com/xhc2008/CABM.git
 cd CABM
-
+# 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 # 一键部署
-./deploy.sh
+./deploy-docker.sh deploy
 ```
 
 #### 手动部署
@@ -72,12 +72,15 @@ cd CABM
 ```bash
 # 1. 配置环境变量
 cp .env.docker .env.docker
-# 编辑 .env.docker 文件，填入你的 API 密钥
+# 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 
-# 2. 启动服务
-./docker-start.sh start
+# 2. 构建镜像
+./deploy-docker.sh build
 
-# 3. 访问应用
+# 3. 运行容器
+./deploy-docker.sh run
+
+# 4. 访问应用
 # http://localhost:5000
 ```
 [详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
