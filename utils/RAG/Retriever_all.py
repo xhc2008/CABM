@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 import logging
 from importlib import import_module
 from traceback import print_exc
@@ -54,10 +54,10 @@ class Retriever:
                 continue
         return self
     
-    def process_corpus(self, corpus: List[str] | str) -> List[str]:  # 进行如分段, 去除标点等前处理操作
+    def process_corpus(self, corpus: Union[List[str], str]) -> List[str]:  # 进行如分段, 去除标点等前处理操作
         return corpus
     
-    def add(self, corpus: List[str] | str) -> None:
+    def add(self, corpus: Union[List[str], str]) -> None:
         if isinstance(corpus, str):
             corpus = [corpus]
         corpus = self.process_corpus(corpus)  # 前处理
