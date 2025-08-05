@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import logging
+import re
 import requests
 from pathlib import Path
 from utils.env_utils import get_env_var
@@ -25,6 +26,35 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             self._fetch_custom_voices()
 
             self._upload_local_voices()
+
+        def _filter_symbols(self, text):
+            """
+            过滤文本中的连续符号和表情符号
+            """
+            if not text:
+                return text
+            
+            # 移除连续的特殊符号 (3个或以上连续的非字母数字字符)
+            text = re.sub(r'[^\w\s\u4e00-\u9fff]{3,}', '', text)
+            
+            # 移除常见的表情符号模式
+            patterns = [
+                r'o\([^)]*\)[^\w\s]*',  # o(xxx)xxx 类型
+                r'\([^)]*\)[^\w\s]*',   # (xxx)xxx 类型  
+                r'[^\w\s]*\([^)]*\)',   # xxx(xxx) 类型
+                r'[★☆♪♫♬♭♮♯]+',        # 音符和星号
+                r'[（）()【】\[\]{}｛｝]+', # 各种括号连续出现
+                r'[！!？?。.，,；;：:]+', # 标点符号连续出现
+                r'[~～＠@#＃$＄%％^＾&＆*＊]+', # 特殊符号连续出现
+            ]
+            
+            for pattern in patterns:
+                text = re.sub(pattern, '', text)
+            
+            # 清理多余的空格
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            return text
 
         def _fetch_custom_voices(self):
             try:
@@ -107,6 +137,13 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                     logger.error(f"上传音色异常 [{name}]: {e}")
 
         def get_tts(self, text, role='default', speed=1.0, gain=0.0, response_format='wav', sample_rate=44100):
+            # 过滤符号
+            filtered_text = self._filter_symbols(text)
+            
+            # 如果过滤后文本为空，使用原文本
+            if not filtered_text:
+                filtered_text = text
+                
             if role in self.role_name:
                 voice = self.role_name[role]
             elif ':' not in role:
@@ -118,7 +155,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             params = {
                 "model": "FunAudioLLM/CosyVoice2-0.5B",
                 "voice": voice,
-                "input": text,
+                "input": filtered_text,
                 "response_format": response_format,
                 "speed": speed,
                 "gain": gain,
@@ -149,10 +186,46 @@ else:
         def __init__(self):
             self.base_url = get_env_var("TTS_SERVICE_URL_GPTSoVITS", "http://localhost:9880")
 
+        def _filter_symbols(self, text):
+            """
+            过滤文本中的连续符号和表情符号
+            """
+            if not text:
+                return text
+            
+            # 移除连续的特殊符号 (3个或以上连续的非字母数字字符)
+            text = re.sub(r'[^\w\s\u4e00-\u9fff]{3,}', '', text)
+            
+            # 移除常见的表情符号模式
+            patterns = [
+                r'o\([^)]*\)[^\w\s]*',  # o(xxx)xxx 类型
+                r'\([^)]*\)[^\w\s]*',   # (xxx)xxx 类型  
+                r'[^\w\s]*\([^)]*\)',   # xxx(xxx) 类型
+                r'[★☆♪♫♬♭♮♯]+',        # 音符和星号
+                r'[（）()【】\[\]{}｛｝]+', # 各种括号连续出现
+                r'[！!？?。.，,；;：:]+', # 标点符号连续出现
+                r'[~～＠@#＃$＄%％^＾&＆*＊]+', # 特殊符号连续出现
+            ]
+            
+            for pattern in patterns:
+                text = re.sub(pattern, '', text)
+            
+            # 清理多余的空格
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            return text
+
         def get_tts(self, text, role='default', speed=1.0):
+            # 过滤符号
+            filtered_text = self._filter_symbols(text)
+            
+            # 如果过滤后文本为空，使用原文本
+            if not filtered_text:
+                filtered_text = text
+                
             url = f"{self.base_url}/tts"
             params = {
-                "text": text,                   # str.(required) text to be synthesized
+                "text": filtered_text,          # str.(required) text to be synthesized
                 "role": role,                   # str.(required) role
                 "temperature": 1,             # float. temperature for sampling
             }
