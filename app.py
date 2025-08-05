@@ -42,6 +42,11 @@ app = Flask(
 # 设置调试模式
 app.debug = app_config["debug"]
 
+# 设置JavaScript模块的MIME类型
+import mimetypes
+mimetypes.add_type('text/javascript', '.js')
+mimetypes.add_type('application/javascript', '.mjs')
+
 def convert_to_16k_wav(input_path, output_path):
     """转换音频为 16kHz 单声道 WAV"""
     audio = AudioSegment.from_file(input_path)
