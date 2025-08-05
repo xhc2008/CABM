@@ -1,6 +1,8 @@
 
 """
 这里只针对硅基流动进行定制
+在替换前请务必从https://huggingface.co/FrozenFish/retrained_SilverWolf_Bert/tree/main下载银狼的BERT模型
+并放入replace/role/银狼/BERT目录下
 """
 
 import base64
