@@ -19,6 +19,13 @@ from pathlib import Path
 from threading import Thread
 from data.logo import *
 
+# 添加项目根目录到系统路径
+current_dir = Path(__file__).resolve().parent
+sys.path.insert(0, str(current_dir))
+
+from data.logo import *
+
+
 # 设置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -29,8 +36,43 @@ logging.basicConfig(
 )
 logger = logging.getLogger("CABM")
 
-# 添加项目根目录到系统路径
-sys.path.append(str(Path(__file__).resolve().parent))
+#获得终端长与宽
+try:
+    height = int(os.get_terminal_size().lines)
+    width = int(os.get_terminal_size().columns)
+except OSError:
+    # Docker容器环境下的默认值
+    height = 24
+    width = 80
+def findLen(str): 
+    counter = 0
+    while str[counter:]: 
+        counter += 1
+    return counter 
+def get_logo(height, width, logo):
+    result = ""
+    if height < len(logo)+1:
+        if logo == LITTLE_LOGO:
+            return  get_logo(height, width, MINI_LOGO)
+        if logo == MINI_LOGO:
+            return "CABM"
+        return get_logo(height, width, LITTLE_LOGO)
+    for line in logo:
+        if int(findLen(line)) > int(width):
+            if logo == LITTLE_LOGO:
+                return  get_logo(height, width, MINI_LOGO)
+            if logo == MINI_LOGO:
+                return "CABM"
+            return get_logo(height, width, LITTLE_LOGO)
+        if int(len(line) - width) % 2 != 0:
+            air = int(((width - len(line)) - 1) / 2) * " "
+            air2 = int(((width - len(line)) + 1) / 2) * " "
+            result += air + line + air2 + "\n"
+        else:
+            air = int((width - len(line)) / 2) * " "
+            result += air + line + air + "\n"
+    return result
+print(get_logo(int(height),int(width), random_logo()))
 
 #获得终端长与宽
 try:

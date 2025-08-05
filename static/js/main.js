@@ -66,6 +66,7 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // 初始化
+
 document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log('开始初始化CABM应用...');
