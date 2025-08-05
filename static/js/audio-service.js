@@ -39,6 +39,9 @@ export async function playAudio(currentCharacter, autoPlay = false) {
         return;
     }
 
+    // 停止当前正在播放的音频，防止多个音频同时播放
+    stopCurrentAudio();
+
     // 判断缓存
     let audioBlob = audioCache[text];
     if (audioBlob) {
