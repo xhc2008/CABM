@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Union
 from .Retriever_all import Retriever
 from importlib import import_module
 class RAG:
@@ -22,7 +22,7 @@ class RAG:
         return self
     
     
-    def add(self, corpus: List[str] | str):
+    def add(self, corpus: Union[List[str], str]):
         # 私有添加函数
         self.retriever.add(corpus)
         return self
