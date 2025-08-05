@@ -17,7 +17,13 @@ import argparse
 import webbrowser
 from pathlib import Path
 from threading import Thread
+
+# 添加项目根目录到系统路径
+current_dir = Path(__file__).resolve().parent
+sys.path.insert(0, str(current_dir))
+
 from data.logo import *
+
 
 # 设置日志
 logging.basicConfig(
@@ -28,9 +34,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("CABM")
-
-# 添加项目根目录到系统路径
-sys.path.append(str(Path(__file__).resolve().parent))
 
 #获得终端长与宽
 try:

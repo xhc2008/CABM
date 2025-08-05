@@ -1,0 +1,7 @@
+{
+    "ref_audio": "银狼.wav",
+    "ref_text": "骇入空间站的时候，我随手改了下螺丝咕姆的画像，不过…最后还是改回去了。",
+    "ref_lang": "zh",
+    "BERTmodel": "BERT/",
+    "multiREF": "refAudio/"
+} 
