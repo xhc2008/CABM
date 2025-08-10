@@ -487,8 +487,7 @@ def set_character(character_id):
 def exit_app():
     """退出应用API"""
     try:
-        # 在实际应用中，这里可能需要清理资源或保存状态
-        # 这里简化处理，直接返回成功
+        os._exit(0)
         return jsonify({
             'success': True,
             'message': '应用已退出'

@@ -1,0 +1,34 @@
+{
+  "name": "cabm",
+  "version": "0.1.2",
+  "description": "\"当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。\"",
+  "main": "index.js",
+  "directories": {
+    "doc": "https://leletxh.github.io/"
+  },
+  "scripts": {
+    "start": "python start.py",
+    "test": "python app.py",
+    "serve:flask": "python app.py",
+    "serve:electron": "wait-on http://localhost:5000 && electron electron/main.js",
+    "electron:start": "concurrently \"npm run serve:flask\" \"npm run serve:electron\"",
+    "install:python:node": "pip install -r requirements.txt && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xhc2008/CABM.git"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/xhc2008/CABM/issues"
+  },
+  "homepage": "https://github.com/xhc2008/CABM#readme",
+  "devDependencies": {
+    "electron": "^37.2.6"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.0",
+    "wait-on": "^8.0.4"
+  }
+}

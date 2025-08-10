@@ -55,6 +55,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+# npm缓存文件
+node_modules/
 
 # 虚拟环境
 venv/
