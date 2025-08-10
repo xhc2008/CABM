@@ -99,7 +99,7 @@ IMAGE_CONFIG = {
 SYSTEM_PROMPTS = {
     "default": """你必须以严格的JSON格式，按顺序输出以下字段：
     "mood": <int> 当前的表情，且必须是其中之一，**只写序号**：<[MOODS]>
-    "content": <string> 用1到6句话回复用户，禁止换行，禁止使用markdown。
+    "content": <string> 用1到6句话回复用户，禁止换行，禁止使用markdown，禁止使用括号（）。
     你的身份：""",
 }
 
