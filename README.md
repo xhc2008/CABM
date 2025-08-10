@@ -5,6 +5,8 @@
 ~~（不就是个Gal吗）~~
 > ## **⚠️ 注意：本项目目前处于开发阶段，核心功能尚未实现，其他的功能和优化也正在进行中。欢迎贡献代码或提出建议。**
 
+## [正式的文档，第一更新](https://leletxh.github.io)
+
 ## 开发状态
 
 **已完成功能：**
@@ -52,8 +54,77 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 - 响应式设计，适配不同设备
 
 ## 安装说明
->注：`点我开始使用.bat`尚未测试，可能无法使用，请按照下面的步骤操作
-### 1. 安装依赖
+
+### 🐳 Docker 快速部署（推荐）
+
+#### 🚀 直接拉取镜像部署（最简单）
+
+无需克隆代码，直接使用预构建镜像：
+
+```bash
+# Linux/macOS 一键部署
+curl -o deploy.sh https://raw.githubusercontent.com/leletxh/CABM/main/deploy.sh
+chmod +x deploy.sh
+./deploy.sh
+```
+
+```powershell
+# Windows PowerShell 一键部署
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/leletxh/CABM/main/deploy.ps1" -OutFile "deploy.ps1"
+PowerShell -ExecutionPolicy Bypass -File deploy.ps1
+```
+
+**[📖 Docker 镜像直接拉取部署指南](/docs/DOCKER_PULL_GUIDE.md)**
+
+#### 源码构建部署
+
+```bash
+# 克隆项目
+git clone https://github.com/leletxh/CABM.git
+cd CABM
+# 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
+# 一键部署
+./deploy-docker.sh deploy
+```
+
+#### 手动部署
+
+```bash
+# 1. 配置环境变量
+cp .env.docker .env.docker
+# 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
+
+# 2. 构建镜像
+./deploy-docker.sh build
+
+# 3. 运行容器
+./deploy-docker.sh run
+
+# 4. 访问应用
+# http://localhost:5000
+```
+
+**更多部署选项：**
+- [📖 Docker 镜像直接拉取部署指南](/docs/DOCKER_PULL_GUIDE.md)
+- [详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
+- [问题解决方案](/docs/DOCKER_SOLUTION.md)
+
+#### Docker 管理命令
+
+```bash
+./docker-start.sh start      # 启动服务
+./docker-start.sh stop       # 停止服务
+./docker-start.sh restart    # 重启服务
+./docker-start.sh logs       # 查看日志
+./docker-start.sh status     # 查看状态
+./docker-start.sh package    # 打包镜像
+./docker-start.sh cleanup    # 清理资源
+```
+
+### 📦 传统安装方式
+
+#### 1. 安装依赖
+
 
 
 使用 pip 安装项目依赖：
@@ -61,6 +132,7 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 ```bash
 pip install -r requirements.txt
 ```
+
 
 ### 2. 配置环境变量
 
@@ -73,13 +145,53 @@ cp .env.example .env
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 如果使用其他平台或模型，需要替换对应的API_BASE_URL和MODEL
 
-注意：如果使用`GPT-SoVITS`作为语音合成，请下载`GPT-SoVITS`整合包并把`api_v2.py`换成`\replace\api_v2.py`然后启动
-在整合包根目录创建`role`文件夹，创建对应角色的文件夹，添加`config.json`
-[示例（银狼的模型V4）](https://www.modelscope.cn/models/leletxh/Silver_Wolf_GPT-SoVITS_Model/files)
-需要在环境中把`siliconflow`换成`GPT-SoVITS`
-> **如果你有独立显卡，建议使用GPT-SoVITS，因为远程API很贵**
----
->## *以下内容尚未进行人工校对，如有疑问请咨询作者*
+编辑`.env`文件，填写以下信息：
+
+```
+# 对话API配置
+CHAT_API_BASE_URL=https://api.siliconflow.cn/v1
+CHAT_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+CHAT_MODEL=deepseek-ai/DeepSeek-V3
+
+# 图像生成API配置
+IMAGE_API_BASE_URL=https://api.siliconflow.cn/v1
+IMAGE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+IMAGE_MODEL=Kwai-Kolors/Kolors
+
+# 嵌入向量API配置
+EMBEDDING_API_BASE_URL=https://api.siliconflow.cn/v1
+EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMBEDDING_MODEL=BAAI/bge-m3
+
+# 选项生成API配置
+OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
+OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OPTION_MODEL=Qwen/Qwen3-32B
+```
+
+#### 如果你的显卡较好推荐[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
+
+### 🚀 Docker 优势
+
+- **一键部署**：无需手动安装依赖，自动配置环境
+- **环境隔离**：避免与其他应用冲突
+- **跨平台**：支持 Linux、Windows、macOS
+- **易于管理**：统一的启动、停止、重启命令
+- **生产就绪**：包含健康检查和自动重启
+- **资源限制**：可控制内存和CPU使用
+
+### 📋 环境要求
+
+#### Docker 环境
+- Docker 20.10+
+- Docker Compose 2.0+
+- 2GB+ 可用内存
+- 1GB+ 可用存储空间
+
+#### 传统环境
+- Python 3.8+
+- 硬盘空间 500MB+
+- 网络连接（用于API调用）
 
 ## 使用说明
 
@@ -137,86 +249,6 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - **自动/手动模式**：点击"自动"按钮切换打字机效果的自动/手动模式
 - **跳过打字**：在自动模式下，点击"跳过"按钮可以立即显示完整回复
 
-## 项目结构
-
-```
-cabm/
-├── .env                     # 环境变量（API密钥等）
-├── .env.example             # 环境变量示例文件
-├── .gitignore               # Git忽略文件
-├── requirements.txt         # Python依赖包列表
-├── environment.yaml         # Conda环境配置文件
-├── config.py                # 配置文件
-├── app.py                   # 主应用入口
-├── run.py                   # 运行脚本
-├── start.py                 # 启动脚本
-├── start.bat                # Windows启动批处理文件
-├── start.sh                 # Linux/macOS启动脚本
-├── build.ps1                # PowerShell构建脚本
-├── 点我开始使用.bat          # 中文启动批处理文件
-├── log.txt                  # 日志文件
-├── README.md                # 项目说明文档
-├── CONTRIBUTING.md          # 贡献指南
-├── LICENSE                  # 开源许可证
-├── characters/              # 角色配置
-│   ├── __init__.py          # 角色管理模块
-│   ├── Silver_Wolf.py       # 银狼角色配置
-│   └── lingyin.py           # 灵音角色配置
-├── services/                # 服务组件
-│   ├── chat_service.py      # 对话服务
-│   ├── image_service.py     # 图像服务
-│   ├── config_service.py    # 配置服务
-│   ├── memory_service.py    # 记忆服务
-│   ├── option_service.py    # 选项服务
-│   ├── scene_service.py     # 场景服务
-│   └── ttsapi_service.py    # TTS语音合成服务
-├── utils/                   # 工具函数
-│   ├── __init__.py          # 工具模块初始化
-│   ├── api_utils.py         # API工具
-│   ├── env_utils.py         # 环境变量工具
-│   ├── history_utils.py     # 历史记录工具
-│   ├── memory_utils.py      # 记忆工具
-│   ├── network_utils.py     # 网络工具
-│   ├── prompt_logger.py     # 提示词日志工具
-│   └── RAG/                 # 检索增强生成模块
-│       ├── __init__.py      # RAG模块初始化
-│       ├── Retriever_all.py # 检索器
-│       ├── Multi_Recall/    # 多重召回模块
-│       └── Reranker/        # 重排序模块
-├── static/                  # 静态资源
-│   ├── css/                 # 样式文件
-│   │   ├── style.css        # 主样式文件
-│   │   ├── stream_styles.css # 流式输出样式
-│   │   └── continue-prompt.css # 继续提示样式
-│   ├── js/                  # JavaScript文件
-│   │   ├── main.js          # 主脚本文件
-│   │   └── stream_processor.js # 流式处理脚本
-│   └── images/              # 图片资源
-│       ├── default/         # 默认图片
-│       ├── lingyin/         # 灵音角色图片
-│       ├── Silver_Wolf/     # 银狼角色图片
-│       └── cache/           # 图片缓存
-├── templates/               # HTML模板
-│   └── index.html           # 主页面模板
-├── data/                    # 数据存储
-│   ├── history/             # 对话历史记录
-│   ├── images/              # 生成的背景图片存储
-│   ├── memory/              # 记忆数据存储
-│   ├── scenes/              # 场景数据
-│   ├── audio/               # 音频文件
-│   ├── ref_audio/           # 参考音频文件
-│   └── logo/                # Logo相关文件
-├── replace/                 # 替换文件
-│   └── api_v2.py            # GPT-SoVITS API替换文件
-├── backups/                 # 备份文件
-├── temp/                    # 临时文件
-├── update_logs/             # 更新日志
-│   ├── RAG.md               # RAG功能更新日志
-│   ├── TTS.md               # TTS功能更新日志
-│   ├── MEMORY_MODULE_IMPLEMENTATION.md # 记忆模块实现日志
-│   └── JSON_FORMAT_MIGRATION.md # JSON格式迁移日志
-└── .kiro/                   # Kiro IDE配置文件
-```
 
 ## 注意事项
 
@@ -277,6 +309,8 @@ def get_character_config():
 ```
 
 ## 贡献
+> 注：按周结算没有并不代表没有
+
 [![Contributors](https://img.shields.io/github/contributors/xhc2008/CABM?color=blue)](https://github.com/xhc2008/CABM/graphs/contributors) 
 
 ![Contributors](https://contrib.rocks/image?repo=xhc2008/CABM) 
@@ -285,6 +319,333 @@ def get_character_config():
 
 具体贡献流程请参考[CONTRIBUTING.md](CONTRIBUTING.md)
 
+## 📚 文档索引
+
+### 部署文档
+- [📖 Docker 镜像直接拉取部署指南](docs/DOCKER_PULL_GUIDE.md) - **推荐：无需源码，直接拉取镜像部署**
+- [Docker 部署指南](docs/DOCKER_DEPLOY_GUIDE.md) - 完整的 Docker 部署指南
+- [Docker 部署方案](docs/DOCKER_DEPLOYMENT.md) - Docker 部署详细说明
+- [Windows 部署指南](docs/WINDOWS_DEPLOY_GUIDE.md) - Windows 环境部署
+- [Docker 问题解决方案](docs/DOCKER_SOLUTION.md) - 常见问题及解决方案
+
+### 功能文档
+- [TTS GPT-SoVITS 配置](docs/TTS_GPTSoVITS.md) - 语音合成服务配置
+
+### 开发文档
+- [贡献指南](CONTRIBUTING.md) - 如何参与项目开发
+
 ## 许可证
 
 [GNU General Public License v3.0](LICENSE)
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+
+# 恭喜你读完了整篇README收下彩蛋吧
+[彩蛋](https://www.yuanshen.com/#/)

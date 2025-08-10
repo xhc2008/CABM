@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  cabm:
+    # 使用GitHub Actions构建的镜像
+    # 选择一个镜像源：
+    # Docker Hub: ${DOCKER_USERNAME:-leletxh}/cabm:${IMAGE_TAG:-latest}
+    # GitHub Container Registry: ghcr.io/${GITHUB_REPOSITORY_OWNER:-leletxh}/cabm:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-leletxh}/cabm:${IMAGE_TAG:-latest}
+    container_name: cabm-app
+    restart: unless-stopped
+    
+    ports:
+      - "${PORT:-5000}:5000"
+    
+    # 使用.env文件加载所有环境变量
+    env_file:
+      - .env
+    
+    volumes:
+      # 数据持久化
+      - ./data:/app/data
+      - ./static/images/cache:/app/static/images/cache
+      
+      # 如果使用GPT-SoVITS TTS，需要挂载参考音频目录
+      - ./static/audio:/app/static/audio:ro
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # 网络配置
+    networks:
+      - cabm-network
+
+networks:
+  cabm-network:
+    driver: bridge

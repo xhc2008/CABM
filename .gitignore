@@ -17,7 +17,24 @@ plan.txt
 backups/
 log.txt
 
+.history/
+static/images/default/
+#测试文件
+test.py
+temp/
+
+test/
+.kiro/
+.vscode/
+data/history/
+data/memory/
+data/images/
+plan.txt
+backups/
+log.txt
+
 # Python缓存文件
+**/__pycache__/
 **/__pycache__/
 *.py[cod]
 *$py.class
@@ -44,6 +61,7 @@ venv/
 ENV/
 env/
 .conda/
+.conda/
 
 # IDE文件
 .idea/
@@ -65,3 +83,25 @@ static/images/cache/
 .DS_Store
 Thumbs.db
 utils/RAG/Retriever.py
+
+# Docker相关
+.env.docker
+docker-package/
+docker-export/
+*.tar.gz
+cabm-*.tar.gz
+.docker/
+docker-data/
+.env.test
+.env.test.fast
+Dockerfile.fast
+
+# 部署相关
+deployment-package/
+release/
+一键包点我.bat
+CABM.zip
+
+# 模型文件
+*.safetensors
+model.safetensors

@@ -4,4 +4,7 @@ python-dotenv==1.0.0
 numpy==1.24.3
 requests
 httpx==0.27.2
-pydub   
+pydub
+# BERT情感分析相关依赖
+# transformers>=4.30.0
+# torch>=2.0.0

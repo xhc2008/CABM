@@ -1,0 +1,138 @@
+name: Docker Build and Push
+
+# 完全手动触发的工作流
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
+      push_to_registry:
+        description: 'Push to Docker registry'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  # Docker镜像名称，基于仓库名称
+  IMAGE_NAME: cabm
+  GHCR_REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      actions: read
+      security-events: write
+      attestations: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    
+    - name: Log in to GitHub Container Registry
+      if: ${{ inputs.push_to_registry }}
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.GHCR_REGISTRY }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set image name with lowercase
+      id: image-name
+      run: |
+        echo "image_name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}
+        tags: |
+          type=raw,value=${{ inputs.tag }}
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=sha,prefix={{branch}}-
+          type=ref,event=branch
+          
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: ${{ inputs.push_to_registry }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Generate deployment info
+      if: ${{ inputs.push_to_registry }}
+      run: |
+        echo "## 🚀 Docker 镜像部署信息" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 镜像信息" >> $GITHUB_STEP_SUMMARY
+        echo "- **GitHub Container Registry**: \`${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **构建时间**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "- **Git SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **分支**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 部署命令" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "#### 基本运行" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+        echo "docker run -d --name cabm-app \\" >> $GITHUB_STEP_SUMMARY
+        echo "  -p 5000:5000 \\" >> $GITHUB_STEP_SUMMARY
+        echo "  --env-file .env \\" >> $GITHUB_STEP_SUMMARY
+        echo "  -v \$(pwd)/data:/app/data \\" >> $GITHUB_STEP_SUMMARY
+        echo "  -v \$(pwd)/static/images/cache:/app/static/images/cache \\" >> $GITHUB_STEP_SUMMARY
+        echo "  --restart unless-stopped \\" >> $GITHUB_STEP_SUMMARY
+        echo "  ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "#### Docker Compose" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`yaml" >> $GITHUB_STEP_SUMMARY
+        echo "version: '3.8'" >> $GITHUB_STEP_SUMMARY
+        echo "services:" >> $GITHUB_STEP_SUMMARY
+        echo "  cabm:" >> $GITHUB_STEP_SUMMARY
+        echo "    image: ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "    container_name: cabm-app" >> $GITHUB_STEP_SUMMARY
+        echo "    ports:" >> $GITHUB_STEP_SUMMARY
+        echo "      - \"5000:5000\"" >> $GITHUB_STEP_SUMMARY
+        echo "    env_file:" >> $GITHUB_STEP_SUMMARY
+        echo "      - .env" >> $GITHUB_STEP_SUMMARY
+        echo "    volumes:" >> $GITHUB_STEP_SUMMARY
+        echo "      - ./data:/app/data" >> $GITHUB_STEP_SUMMARY
+        echo "      - ./static/images/cache:/app/static/images/cache" >> $GITHUB_STEP_SUMMARY
+        echo "    restart: unless-stopped" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 访问地址" >> $GITHUB_STEP_SUMMARY
+        echo "- **本地访问**: http://localhost:5000" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 配置说明" >> $GITHUB_STEP_SUMMARY
+        echo "使用前请先配置 \`.env\` 文件，参考 \`.env.example\` 模板" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Image vulnerability scan
+      if: ${{ inputs.push_to_registry }}
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      if: ${{ inputs.push_to_registry }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
