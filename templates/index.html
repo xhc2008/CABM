@@ -24,6 +24,7 @@
             <!-- 主页按钮 -->
             <div class="home-buttons">
                 <button id="startButton" class="btn primary-btn">开始</button>
+                <button id="customCharacterButton" class="btn secondary-btn">自定义角色</button>
                 <button id="exitButton" class="btn secondary-btn">退出</button>
             </div>
         </div>
@@ -121,6 +122,106 @@
             </div>
         </div>
         
+        <!-- 自定义角色页面 -->
+        <div id="customCharacterPage" class="page">
+            <div class="custom-character-background"></div>
+            
+            <!-- 标题栏 -->
+            <div class="custom-character-header">
+                <button id="backToHomeButton" class="btn back-btn">返回</button>
+                <h2>自定义角色</h2>
+            </div>
+            
+            <!-- 表单容器 -->
+            <div class="custom-character-container">
+                <form id="customCharacterForm" class="custom-character-form">
+                    <!-- 角色ID -->
+                    <div class="form-group required">
+                        <label for="characterId">角色ID <span class="required-mark">*</span></label>
+                        <div class="form-description" id="characterIdDesc">必须是英文字母、数字或下划线</div>
+                        <input type="text" id="characterId" name="characterId" class="form-input" required>
+                    </div>
+                    
+                    <!-- 角色名 -->
+                    <div class="form-group required">
+                        <label for="characterName">角色名 <span class="required-mark">*</span></label>
+                        <div class="form-description">角色的名字</div>
+                        <input type="text" id="characterName" name="characterName" class="form-input" required>
+                    </div>
+                    
+                    <!-- 角色英文名 -->
+                    <div class="form-group">
+                        <label for="characterEnglishName">角色英文名</label>
+                        <input type="text" id="characterEnglishName" name="characterEnglishName" class="form-input">
+                    </div>
+                    
+                    <!-- 主题颜色 -->
+                    <div class="form-group required">
+                        <label for="themeColor">主题颜色 <span class="required-mark">*</span></label>
+                        <div class="form-description">角色名字的颜色</div>
+                        <div class="color-input-group">
+                            <input type="text" id="themeColorText" name="themeColorText" class="form-input color-text" placeholder="#000000">
+                            <input type="color" id="themeColor" name="themeColor" class="color-picker" value="#000000">
+                        </div>
+                    </div>
+                    
+                    <!-- 角色立绘校准 -->
+                    <div class="form-group required">
+                        <label for="imageOffset">角色立绘校准 <span class="required-mark">*</span></label>
+                        <div class="form-description">调整立绘位置，负值为上，正值为下</div>
+                        <input type="number" id="imageOffset" name="imageOffset" class="form-input" min="-100" max="100" value="0" required>
+                    </div>
+                    
+                    <!-- 角色简介 -->
+                    <div class="form-group required">
+                        <label for="characterIntro">角色简介 <span class="required-mark">*</span></label>
+                        <div class="form-description">此内容不会发送给AI</div>
+                        <textarea id="characterIntro" name="characterIntro" class="form-textarea" rows="4" required></textarea>
+                    </div>
+                    
+                    <!-- 角色描述 -->
+                    <div class="form-group required">
+                        <label for="characterDescription">角色描述 <span class="required-mark">*</span></label>
+                        <div class="form-description">尽量简短，只包含基本设定、说话风格</div>
+                        <textarea id="characterDescription" name="characterDescription" class="form-textarea" rows="4" required></textarea>
+                    </div>
+                    
+                    <!-- 角色心情设置 -->
+                    <div class="form-group required">
+                        <label>角色心情设置 <span class="required-mark">*</span></label>
+                        <div class="form-description">即使没有足够的素材，也建议至少四个</div>
+                        <div class="mood-table">
+                            <div class="mood-table-header">
+                                <div class="mood-header-cell">心情 <span class="required-mark">*</span></div>
+                                <div class="mood-header-cell">角色立绘 <span class="required-mark">*</span></div>
+                                <div class="mood-header-cell">参考音频</div>
+                                <div class="mood-header-cell">操作</div>
+                            </div>
+                            <div id="moodTableBody" class="mood-table-body">
+                                <!-- 心情行将通过JavaScript动态添加 -->
+                            </div>
+                            <button type="button" id="addMoodButton" class="btn secondary-btn add-mood-btn">+ 添加心情</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 角色详细信息 -->
+                    <div class="form-group required">
+                        <label for="characterDetails">角色详细信息 <span class="required-mark">*</span></label>
+                        <div class="form-description">角色的背景故事、人物细节等，目前只支持纯文本</div>
+                        <input type="file" id="characterDetails" name="characterDetails" class="form-file" multiple accept=".txt">
+                        <div id="selectedFiles" class="selected-files"></div>
+                    </div>
+                    
+                    <!-- 按钮组 -->
+                    <div class="form-buttons">
+                        <button type="submit" class="btn primary-btn">完成</button>
+                        <button type="button" id="cancelButton" class="btn secondary-btn">取消</button>
+                        <button type="button" id="saveDraftButton" class="btn secondary-btn">存草稿</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
         <!-- 确认对话框 -->
         <div class="modal" id="confirmModal">
             <div class="modal-content">
@@ -153,6 +254,7 @@
     
     <!-- JavaScript -->
     <script src="/static/js/stream_processor.js"></script>
+    <script src="/static/js/custom_character.js"></script>
     <script src="/static/js/main.js"></script>
 </body>
 </html>

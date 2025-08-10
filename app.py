@@ -515,6 +515,155 @@ def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
 
+@app.route('/api/custom-character', methods=['POST'])
+def create_custom_character():
+    """创建自定义角色API"""
+    try:
+        # 获取表单数据
+        character_id = request.form.get('characterId')
+        character_name = request.form.get('characterName')
+        character_english_name = request.form.get('characterEnglishName', '')
+        theme_color = request.form.get('themeColorText')
+        image_offset = request.form.get('imageOffset', '0')
+        character_intro = request.form.get('characterIntro')
+        character_description = request.form.get('characterDescription')
+        
+        # 验证必填字段
+        if not all([character_id, character_name, theme_color, character_intro, character_description]):
+            return jsonify({
+                'success': False,
+                'error': '缺少必填字段'
+            }), 400
+        
+        # 验证角色ID格式
+        if not re.match(r'^[a-zA-Z0-9_]+$', character_id):
+            return jsonify({
+                'success': False,
+                'error': '角色ID格式不正确'
+            }), 400
+        
+        # 验证颜色格式
+        if not re.match(r'^#[0-9A-F]{6}$', theme_color, re.IGNORECASE):
+            return jsonify({
+                'success': False,
+                'error': '主题颜色格式不正确'
+            }), 400
+        
+        # 验证立绘校准范围
+        try:
+            offset = int(image_offset)
+            if offset < -100 or offset > 100:
+                raise ValueError()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': '角色立绘校准必须是-100到100之间的整数'
+            }), 400
+        
+        # 处理心情数据
+        mood_names = request.form.getlist('mood_name[]')
+        mood_images = request.files.getlist('mood_image[]')
+        mood_audios = request.files.getlist('mood_audio[]')
+        
+        if not mood_names or len(mood_names) == 0:
+            return jsonify({
+                'success': False,
+                'error': '至少需要一个心情设置'
+            }), 400
+        
+        # 处理详细信息文件
+        detail_files = request.files.getlist('characterDetails')
+        if not detail_files or len(detail_files) == 0:
+            return jsonify({
+                'success': False,
+                'error': '必须上传角色详细信息文件'
+            }), 400
+        
+        # 创建角色目录
+        character_dir = Path('characters') / character_id
+        character_dir.mkdir(exist_ok=True)
+        
+        # 创建角色数据目录
+        data_dir = Path('data') / 'images' / character_id
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 保存心情图片和音频
+        moods_data = []
+        for i, (name, image_file) in enumerate(zip(mood_names, mood_images)):
+            if name.strip():
+                mood_data = {
+                    'name': name.strip(),
+                    'image': None,
+                    'audio': None
+                }
+                
+                # 保存心情图片
+                if image_file and image_file.filename:
+                    image_ext = Path(image_file.filename).suffix
+                    image_filename = f"{name}_{i}{image_ext}"
+                    image_path = data_dir / image_filename
+                    image_file.save(str(image_path))
+                    mood_data['image'] = f"data/images/{character_id}/{image_filename}"
+                
+                # 保存心情音频（如果有）
+                if i < len(mood_audios) and mood_audios[i] and mood_audios[i].filename:
+                    audio_file = mood_audios[i]
+                    audio_ext = Path(audio_file.filename).suffix
+                    audio_filename = f"{name}_{i}{audio_ext}"
+                    audio_path = data_dir / audio_filename
+                    audio_file.save(str(audio_path))
+                    mood_data['audio'] = f"data/images/{character_id}/{audio_filename}"
+                
+                moods_data.append(mood_data)
+        
+        # 保存详细信息文件
+        details_content = ""
+        for detail_file in detail_files:
+            if detail_file and detail_file.filename.endswith('.txt'):
+                content = detail_file.read().decode('utf-8')
+                details_content += f"\n\n=== {detail_file.filename} ===\n{content}"
+        
+        # 创建角色Python文件
+        character_file_content = f'''"""
+{character_name} 角色配置
+"""
+
+CHARACTER_CONFIG = {{
+    "id": "{character_id}",
+    "name": "{character_name}",
+    "english_name": "{character_english_name}",
+    "theme_color": "{theme_color}",
+    "image_offset": {image_offset},
+    "intro": """{character_intro}""",
+    "description": """{character_description}""",
+    "details": """{details_content}""",
+    "moods": {moods_data}
+}}
+
+def get_character_config():
+    """获取角色配置"""
+    return CHARACTER_CONFIG
+'''
+        
+        # 保存角色文件
+        character_file_path = character_dir / f"{character_id}.py"
+        with open(character_file_path, 'w', encoding='utf-8') as f:
+            f.write(character_file_content)
+        
+        return jsonify({
+            'success': True,
+            'message': f'自定义角色 {character_name} 创建成功',
+            'character_id': character_id
+        })
+        
+    except Exception as e:
+        print(f"创建自定义角色失败: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'创建失败: {str(e)}'
+        }), 500
+
 @app.route('/api/tts', methods=['POST'])
 def serve_tts():
     global tts

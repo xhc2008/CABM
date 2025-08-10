@@ -4,4 +4,4 @@ python-dotenv==1.0.0
 numpy==1.24.3
 requests
 httpx==0.27.2
-pydub
+pydub   
