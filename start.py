@@ -262,22 +262,25 @@ def main():
     logger.info("正在启动CABM应用...")
     
     # 设置环境
-    if not setup_environment():
-        logger.error("环境设置失败，应用无法启动")
-        sys.exit(1)
+    env_ok = setup_environment()
+    if not env_ok:
+        logger.warning("环境设置失败，将进入配置模式。请在网页填写环境变量。")
     
-    # 导入配置服务
-    from services.config_service import config_service
-    
-    # 获取应用配置
-    app_config = config_service.get_app_config()
-    
-    # 设置主机和端口
-    host = args.host or app_config["host"]
-    port = args.port or app_config["port"]
-    debug = args.debug or app_config["debug"]
-    open_browser_flag = not args.no_browser and app_config.get("auto_open_browser", True)
-    
+    # 如果环境已配置，正常获取参数
+    if env_ok:
+        from services.config_service import config_service
+        app_config = config_service.get_app_config()
+        host = args.host or app_config["host"]
+        port = args.port or app_config["port"]
+        debug = args.debug or app_config["debug"]
+        open_browser_flag = not args.no_browser and app_config.get("auto_open_browser", True)
+    else:
+        # 环境未配置时，使用默认参数
+        host = args.host or "127.0.0.1"
+        port = args.port or 5000
+        debug = args.debug or False
+        open_browser_flag = not args.no_browser
+
     # 启动服务器
     if not start_server(host, port, debug, open_browser_flag):
         logger.error("服务器启动失败")

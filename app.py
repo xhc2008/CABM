@@ -1,3 +1,4 @@
+
 """
 CABM应用主文件
 """
@@ -14,33 +15,78 @@ import traceback
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent))
 
+
 from services.config_service import config_service
-from services.chat_service import chat_service
-from services.image_service import image_service
-from services.scene_service import scene_service
-from services.option_service import option_service
-from services.ttsapi_service import ttsService
-from utils.api_utils import APIError
+
+need_config = not config_service.initialize()
+if not need_config:
+    from services.chat_service import chat_service
+    from services.image_service import image_service
+    from services.scene_service import scene_service
+    from services.option_service import option_service
+    from services.ttsapi_service import ttsService
+    from utils.api_utils import APIError
 
 # 初始化配置
-if not config_service.initialize():
-    print("配置初始化失败")
-    sys.exit(1)
+need_config = not config_service.initialize()
+if need_config:
+    print("配置初始化失败，进入配置模式。请在网页填写环境变量。")
 
-# 获取应用配置
-app_config = config_service.get_app_config()
+if not need_config:
+    app_config = config_service.get_app_config()
+    static_folder = app_config["static_folder"]
+    template_folder = app_config["template_folder"]
+else:
+    static_folder = str(Path(__file__).resolve().parent / "static")
+    template_folder = str(Path(__file__).resolve().parent / "templates")
 
 # 设置语音服务
-tts = ttsService()
+if not need_config:
+    tts = ttsService()
 # 创建Flask应用
 app = Flask(
     __name__,
-    static_folder=app_config["static_folder"],
-    template_folder=app_config["template_folder"]
+    static_folder=static_folder,
+    template_folder=template_folder
 )
 
-# 设置调试模式
-app.debug = app_config["debug"]
+# 配置页面提交路由
+@app.route('/config', methods=['POST'])
+def save_config():
+    # 获取表单数据
+    env_vars = {
+        'CHAT_API_BASE_URL': request.form.get('chat_api_base_url', ''),
+        'CHAT_API_KEY': request.form.get('chat_api_key', ''),
+        'CHAT_MODEL': request.form.get('chat_model', ''),
+        'IMAGE_API_BASE_URL': request.form.get('image_api_base_url', ''),
+        'IMAGE_API_KEY': request.form.get('image_api_key', ''),
+        'IMAGE_MODEL': request.form.get('image_model', ''),
+        'OPTION_API_BASE_URL': request.form.get('option_api_base_url', ''),
+        'OPTION_API_KEY': request.form.get('option_api_key', ''),
+        'OPTION_MODEL': request.form.get('option_model', ''),
+        'MEMORY_API_BASE_URL': request.form.get('memory_api_base_url', ''),
+        'MEMORY_API_KEY': request.form.get('memory_api_key', ''),
+        'EMBEDDING_MODEL': request.form.get('embedding_model', ''),
+        'RERANKER_MODEL': request.form.get('reranker_model', ''),
+        'TTS_SERVICE_URL_GPTSoVITS': request.form.get('tts_service_url_gptsovits', ''),
+        'TTS_SERVICE_URL_SiliconFlow': request.form.get('tts_service_url_siliconflow', ''),
+        'TTS_SERVICE_API_KEY': request.form.get('tts_service_api_key', ''),
+        'TTS_SERVICE_METHOD': request.form.get('tts_service_method', ''),
+        'DEBUG': request.form.get('debug', 'False'),
+        'PORT': request.form.get('port', '5000'),
+        'HOST': request.form.get('host', 'localhost'),
+    }
+    # 保存到 .env 文件
+    env_lines = [f'{k}={v}' for k, v in env_vars.items()]
+    env_content = '\n'.join(env_lines)
+    env_path = Path(__file__).resolve().parent / '.env'
+    with open(env_path, 'w', encoding='utf-8') as f:
+        f.write(env_content)
+    
+    return '''<div style="padding:2em;text-align:center;font-size:1.2em;">配置已保存！<br>请重新打开本程序谢谢!</div>'''
+
+if not need_config:
+    app.debug = app_config["debug"]
 
 # 设置JavaScript模块的MIME类型
 import mimetypes
@@ -57,6 +103,9 @@ def convert_to_16k_wav(input_path, output_path):
 @app.route('/')
 def index():
     """首页"""
+    global need_config
+    if need_config:
+        return render_template('config.html')
     # 获取当前背景图片
     background = image_service.get_current_background()
     
