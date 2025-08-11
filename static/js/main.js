@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exitButton.addEventListener('click', confirmExit);
 
         // 绑定对话事件
-        sendButton.addEventListener('click', sendMessage);
+        // sendButton 的点击事件已经在 input-enhancements.js 中处理
         playaudioButton.addEventListener('click', () => playAudio(getCurrentCharacter(), false)); // 用户主动播放
         backgroundButton.addEventListener('click', changeBackground);
         historyButton.addEventListener('click', toggleHistory);
@@ -97,13 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmNoButton.addEventListener('click', handleConfirmNo);
         closeConfirmButton.addEventListener('click', hideConfirmModal);
 
-        // 绑定回车键发送消息
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+        // 键盘快捷键已经在 input-enhancements.js 中处理
 
         // 绑定点击事件继续输出
         currentMessage.addEventListener('click', continueOutput);

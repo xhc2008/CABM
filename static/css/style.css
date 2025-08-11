@@ -335,46 +335,100 @@ body {
     object-fit: contain;
 }
 
-/* 用户输入区域样式 - 右上角 - 传统样式 */
+/* 用户输入区域样式 - 右上角 - 优化布局 */
 .user-input-container {
     position: absolute;
-    top: 120px;
+    top: 80px;
     right: 20px;
-    width: 300px;
+    width: 380px;
     display: flex;
-    gap: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 0.8rem;
-    border-radius: 8px;
+    flex-direction: column;
+    gap: 0.8rem;
+    background-color: rgba(0, 0, 0, 0.75);
+    padding: 1rem;
+    border-radius: 12px;
     z-index: 10;
-    backdrop-filter: none; /* 移除模糊效果 */
-    border: none; /* 移除边框 */
-    box-shadow: none; /* 移除阴影 */
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 输入框和按钮的容器 */
+.input-row {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-end;
 }
 
 .chat-input {
     flex: 1;
-    padding: 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(0, 0, 0, 0.3);
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
-    font-size: 0.9rem;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; /* 传统字体 */
-    resize: none;
-    height: 40px;
-    transition: border-color 0.2s ease; /* 简化过渡 */
+    font-size: 0.95rem;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    resize: vertical;
+    min-height: 80px;
+    max-height: 200px;
+    line-height: 1.4;
+    transition: all 0.2s ease;
 }
 
 .chat-input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: none; /* 移除发光效果 */
-    background-color: rgba(0, 0, 0, 0.3); /* 保持原背景 */
+    border-color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 .chat-input::placeholder {
-    color: rgba(255, 255, 255, 0.6); /* 调整占位符颜色 */
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* 按钮组容器 */
+.input-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* 麦克风和发送按钮样式 */
+.mic-btn, 
+.send-btn {
+    padding: 0.8rem;
+    min-width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.mic-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.mic-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.send-btn {
+    background-color: #2979ff;
+    border: 1px solid #2979ff;
+    color: #fff;
+    min-width: 60px;
+}
+
+.send-btn:hover {
+    background-color: #1565c0;
+    border-color: #1565c0;
 }
 
 /* 对话区域样式 - 底部窄条 - 传统样式 */
@@ -810,8 +864,33 @@ body {
     .user-input-container {
         width: 95%;
         right: 2.5%;
-        top: 80px;
+        top: 70px;
         padding: 0.8rem;
+        max-width: none;
+    }
+
+    .input-row {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .chat-input {
+        min-height: 60px;
+        max-height: 120px;
+        font-size: 0.9rem;
+    }
+
+    .input-buttons {
+        justify-content: flex-end;
+        gap: 0.6rem;
+    }
+
+    .mic-btn, 
+    .send-btn {
+        padding: 0.6rem;
+        min-width: 40px;
+        height: 40px;
+        font-size: 0.85rem;
     }
 
     .dialog-box {
@@ -869,11 +948,26 @@ body {
         width: 98%;
         right: 1%;
         top: 70px;
+        padding: 0.6rem;
     }
 
     .chat-input {
         font-size: 0.9rem;
-        height: 40px;
+        min-height: 50px;
+        max-height: 100px;
+        padding: 0.6rem;
+    }
+
+    .input-buttons {
+        gap: 0.4rem;
+    }
+
+    .mic-btn, 
+    .send-btn {
+        padding: 0.5rem;
+        min-width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
     }
 }
 
@@ -894,7 +988,22 @@ body {
     }
 
     .user-input-container {
-        width: 400px;
+        width: 450px;
+        top: 90px;
+        right: 30px;
+    }
+
+    .chat-input {
+        min-height: 100px;
+        max-height: 250px;
+        font-size: 1rem;
+    }
+
+    .mic-btn, 
+    .send-btn {
+        padding: 1rem;
+        min-width: 50px;
+        height: 50px;
     }
 }/* 
 选项按钮容器样式 */
@@ -1571,4 +1680,230 @@ body {
     border-color: rgba(255, 255, 255, 0.5);
     transform: translateX(5px);
     box-shadow: none;
+}/* 用户输入框
+增强样式 */
+.user-input-container {
+    transition: all 0.3s ease;
+}
+
+.user-input-container:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* 输入框字符计数和提示 */
+.input-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.3rem;
+}
+
+.char-count {
+    font-family: monospace;
+}
+
+.keyboard-hint {
+    font-style: italic;
+}
+
+/* 发送按钮状态 */
+.send-btn:disabled {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+}
+
+.send-btn.ready {
+    background-color: #4caf50;
+    border-color: #4caf50;
+    animation: pulse-ready 2s ease-in-out infinite;
+}
+
+@keyframes pulse-ready {
+    0%, 100% { 
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+    }
+    50% { 
+        box-shadow: 0 0 0 8px rgba(76, 175, 80, 0);
+    }
+}
+
+/* 输入框焦点状态增强 */
+.chat-input:focus {
+    transform: scale(1.02);
+}
+
+/* 录音状态样式 */
+.mic-btn.recording {
+    background-color: #f44336;
+    border-color: #f44336;
+    animation: pulse-recording 1s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 0 0 6px rgba(244, 67, 54, 0);
+    }
+}
+
+/* 输入框拖拽调整大小的样式 */
+.chat-input {
+    resize: vertical;
+}
+
+.chat-input::-webkit-resizer {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 0 0 8px 0;
+}
+
+/* 平板设备优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .user-input-container {
+        width: 350px;
+        top: 75px;
+        right: 25px;
+    }
+
+    .chat-input {
+        min-height: 70px;
+        max-height: 150px;
+    }
+}
+
+/* 横屏手机优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .user-input-container {
+        top: 60px;
+        width: 50%;
+        right: 2%;
+    }
+
+    .chat-input {
+        min-height: 50px;
+        max-height: 80px;
+    }
+
+    .input-row {
+        flex-direction: row;
+        align-items: flex-end;
+    }
+
+    .input-buttons {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    .mic-btn, 
+    .send-btn {
+        min-width: 44px;
+        height: 44px;
+        padding: 0.8rem;
+    }
+
+    .user-input-container:hover {
+        background-color: rgba(0, 0, 0, 0.75); /* 移除悬停效果 */
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .mic-btn img {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* 无障碍增强 */
+.user-input-container:focus-within {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+    .chat-input {
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .chat-input:focus {
+        background-color: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+}/* 输入框聚焦状态 
+*/
+.user-input-container.focused {
+    background-color: rgba(0, 0, 0, 0.85);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+}
+
+.user-input-container.focused .chat-input {
+    border-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 输入提示动画 */
+.input-info {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.user-input-container.focused .input-info {
+    opacity: 1;
+}
+
+/* 按钮悬停效果增强 */
+.mic-btn:hover:not(.recording) {
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.send-btn:hover:not(:disabled) {
+    background-color: #1565c0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+}
+
+.send-btn.ready:hover {
+    background-color: #388e3c;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* 输入框滚动条样式 */
+.chat-input::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-input::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.chat-input::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.chat-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Firefox滚动条样式 */
+.chat-input {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }

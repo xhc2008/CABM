@@ -120,8 +120,15 @@ export async function sendMessage() {
         window.hideOptionButtons();
     }
 
-    // 清空输入框
+    // 清空输入框并更新状态
     messageInput.value = '';
+    
+    // 如果有输入框增强功能，更新其状态
+    if (window.inputEnhancements) {
+        window.inputEnhancements.updateCharCount();
+        window.inputEnhancements.updateSendButtonState();
+        window.inputEnhancements.autoResize();
+    }
 
     // 禁用用户输入
     disableUserInput();
