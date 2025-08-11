@@ -1284,13 +1284,13 @@ body {
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     overflow: hidden;
-    background: #fff;
+    background: #162A47;
 }
 
 .mood-table-header {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 80px;
-    background: #f7fafc;
+    background: #a1c0ec;
     border-bottom: 1px solid #e2e8f0;
 }
 
