@@ -52,24 +52,44 @@ class SciFiEffects {
     }
 
     createParticleContainer() {
-        // 只在主页创建粒子容器
+        // 在主页和自定义角色页面创建粒子容器
         const homePage = document.getElementById('homePage');
-        if (!homePage) return;
-
-        this.particleContainer = document.createElement('div');
-        this.particleContainer.className = 'sci-fi-particles';
-        this.particleContainer.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 1;
-        `;
+        const customCharacterPage = document.getElementById('customCharacterPage');
         
-        homePage.appendChild(this.particleContainer);
+        if (homePage) {
+            this.homeParticleContainer = document.createElement('div');
+            this.homeParticleContainer.className = 'sci-fi-particles';
+            this.homeParticleContainer.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                overflow: hidden;
+                z-index: 1;
+            `;
+            homePage.appendChild(this.homeParticleContainer);
+        }
+        
+        if (customCharacterPage) {
+            this.customParticleContainer = document.createElement('div');
+            this.customParticleContainer.className = 'sci-fi-particles';
+            this.customParticleContainer.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                overflow: hidden;
+                z-index: 1;
+            `;
+            customCharacterPage.appendChild(this.customParticleContainer);
+        }
+        
+        // 设置当前活动容器
+        this.particleContainer = this.homeParticleContainer;
     }
 
     createParticle() {
@@ -124,7 +144,14 @@ class SciFiEffects {
         
         // 创建粒子的间隔（降低频率以提升性能）
         this.particleInterval = setInterval(() => {
-            if (document.getElementById('homePage')?.classList.contains('active')) {
+            const homePage = document.getElementById('homePage');
+            const customCharacterPage = document.getElementById('customCharacterPage');
+            
+            if (homePage?.classList.contains('active')) {
+                this.particleContainer = this.homeParticleContainer;
+                this.createParticle();
+            } else if (customCharacterPage?.classList.contains('active')) {
+                this.particleContainer = this.customParticleContainer;
                 this.createParticle();
             }
         }, 2000); // 每2秒创建一个粒子
@@ -196,7 +223,10 @@ class SciFiEffects {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     const homePage = document.getElementById('homePage');
-                    if (homePage?.classList.contains('active')) {
+                    const customCharacterPage = document.getElementById('customCharacterPage');
+                    
+                    // 只在主页或自定义角色页面显示粒子效果
+                    if (homePage?.classList.contains('active') || customCharacterPage?.classList.contains('active')) {
                         this.startParticleSystem();
                     } else {
                         this.stopParticleSystem();
@@ -206,8 +236,13 @@ class SciFiEffects {
         });
         
         const homePage = document.getElementById('homePage');
+        const customCharacterPage = document.getElementById('customCharacterPage');
+        
         if (homePage) {
             observer.observe(homePage, { attributes: true });
+        }
+        if (customCharacterPage) {
+            observer.observe(customCharacterPage, { attributes: true });
         }
     }
 
