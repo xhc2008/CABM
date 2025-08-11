@@ -95,10 +95,10 @@ class CustomCharacterManager {
         
         if (value && !isValid) {
             description.classList.add('error');
-            description.textContent = '只能包含英文字母、数字或下划线';
+            description.textContent = '⚠只能包含英文字母、数字或下划线';
         } else {
             description.classList.remove('error');
-            description.textContent = '必须是英文字母、数字或下划线';
+            description.textContent = '只能包含英文字母、数字或下划线';
         }
     }
 
@@ -249,10 +249,10 @@ class CustomCharacterManager {
         });
 
         // 验证文件上传
-        const detailFiles = document.getElementById('characterDetails').files;
-        if (detailFiles.length === 0) {
-            errors.push('必须上传至少一个角色详细信息文件');
-        }
+        // const detailFiles = document.getElementById('characterDetails').files;
+        // if (detailFiles.length === 0) {
+        //     errors.push('必须上传至少一个角色详细信息文件');
+        // }
 
         return errors;
     }

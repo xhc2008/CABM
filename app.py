@@ -616,7 +616,6 @@ def create_custom_character():
         # 处理心情数据
         mood_names = request.form.getlist('mood_name[]')
         mood_images = request.files.getlist('mood_image[]')
-        mood_audios = request.files.getlist('mood_audio[]')
         
         if not mood_names or len(mood_names) == 0:
             return jsonify({
@@ -624,82 +623,92 @@ def create_custom_character():
                 'error': '至少需要一个心情设置'
             }), 400
         
-        # 处理详细信息文件
-        detail_files = request.files.getlist('characterDetails')
-        if not detail_files or len(detail_files) == 0:
+        # 检查角色是否已存在
+        character_file_path = Path('characters') / f"{character_id}.py"
+        if character_file_path.exists():
             return jsonify({
                 'success': False,
-                'error': '必须上传角色详细信息文件'
+                'error': f'角色ID "{character_id}" 已存在'
             }), 400
         
-        # 创建角色目录
-        character_dir = Path('characters') / character_id
-        character_dir.mkdir(exist_ok=True)
+        # 创建角色图片目录
+        image_dir = Path('static') / 'images' / character_id
+        image_dir.mkdir(parents=True, exist_ok=True)
         
-        # 创建角色数据目录
-        data_dir = Path('data') / 'images' / character_id
-        data_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 保存心情图片和音频
-        moods_data = []
+        # 保存心情图片，按顺序命名为1.png, 2.png...
+        valid_moods = []
+        image_counter = 1
         for i, (name, image_file) in enumerate(zip(mood_names, mood_images)):
             if name.strip():
-                mood_data = {
-                    'name': name.strip(),
-                    'image': None,
-                    'audio': None
-                }
-                
                 # 保存心情图片
                 if image_file and image_file.filename:
-                    image_ext = Path(image_file.filename).suffix
-                    image_filename = f"{name}_{i}{image_ext}"
-                    image_path = data_dir / image_filename
+                    # 获取文件扩展名，默认为.png
+                    image_ext = Path(image_file.filename).suffix or '.png'
+                    image_filename = f"{image_counter}{image_ext}"
+                    image_path = image_dir / image_filename
                     image_file.save(str(image_path))
-                    mood_data['image'] = f"data/images/{character_id}/{image_filename}"
+                    image_counter += 1
                 
-                # 保存心情音频（如果有）
-                if i < len(mood_audios) and mood_audios[i] and mood_audios[i].filename:
-                    audio_file = mood_audios[i]
-                    audio_ext = Path(audio_file.filename).suffix
-                    audio_filename = f"{name}_{i}{audio_ext}"
-                    audio_path = data_dir / audio_filename
-                    audio_file.save(str(audio_path))
-                    mood_data['audio'] = f"data/images/{character_id}/{audio_filename}"
-                
-                moods_data.append(mood_data)
+                valid_moods.append(name.strip())
         
-        # 保存详细信息文件
-        details_content = ""
-        for detail_file in detail_files:
-            if detail_file and detail_file.filename.endswith('.txt'):
-                content = detail_file.read().decode('utf-8')
-                details_content += f"\n\n=== {detail_file.filename} ===\n{content}"
-        
-        # 创建角色Python文件
+        # 创建角色配置文件，完全按照lingyin.py的格式
         character_file_content = f'''"""
-{character_name} 角色配置
+角色配置文件: {character_name}
 """
 
-CHARACTER_CONFIG = {{
-    "id": "{character_id}",
-    "name": "{character_name}",
-    "english_name": "{character_english_name}",
-    "theme_color": "{theme_color}",
-    "image_offset": {image_offset},
-    "intro": """{character_intro}""",
-    "description": """{character_description}""",
-    "details": """{details_content}""",
-    "moods": {moods_data}
-}}
+# 角色基本信息
+CHARACTER_ID = "{character_id}"
+CHARACTER_NAME = "{character_name}"
+CHARACTER_NAME_EN = "{character_english_name}"
 
+# 角色外观
+CHARACTER_IMAGE = "static/images/{character_id}"  # 角色立绘目录路径
+CALIB = {offset}   # 显示位置的校准值（负值向上移动，正值向下移动）
+CHARACTER_COLOR = "{theme_color}"  # 角色名称颜色
+
+# 角色心情
+MOODS = {valid_moods}
+
+#是否启用语音（未实现）
+ENABLE_VOICE = False
+
+# 角色设定
+CHARACTER_DESCRIPTION = """
+{character_description}
+"""
+
+# AI系统提示词
+CHARACTER_PROMPT = """
+{character_intro}
+"""
+
+# 角色欢迎语
+CHARACTER_WELCOME = "你好！我是{character_name}，很高兴认识你！"
+
+# 角色对话示例
+CHARACTER_EXAMPLES = [
+    {{"role": "user", "content": "你好，请介绍一下自己"}},
+    {{"role": "assistant", "content": "你好！我是{character_name}，很高兴认识你！"}},
+]
+
+# 获取角色配置
 def get_character_config():
     """获取角色配置"""
-    return CHARACTER_CONFIG
+    return {{
+        "id": CHARACTER_ID,
+        "name": CHARACTER_NAME,
+        "name_en": CHARACTER_NAME_EN,
+        "image": CHARACTER_IMAGE,
+        "calib": CALIB,
+        "color": CHARACTER_COLOR,
+        "description": CHARACTER_DESCRIPTION,
+        "prompt": CHARACTER_PROMPT,
+        "welcome": CHARACTER_WELCOME,
+        "examples": CHARACTER_EXAMPLES
+    }}
 '''
         
-        # 保存角色文件
-        character_file_path = character_dir / f"{character_id}.py"
+        # 保存角色配置文件到characters目录
         with open(character_file_path, 'w', encoding='utf-8') as f:
             f.write(character_file_content)
         
