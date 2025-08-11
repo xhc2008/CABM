@@ -642,9 +642,8 @@ def create_custom_character():
             if name.strip():
                 # 保存心情图片
                 if image_file and image_file.filename:
-                    # 获取文件扩展名，默认为.png
-                    image_ext = Path(image_file.filename).suffix or '.png'
-                    image_filename = f"{image_counter}{image_ext}"
+                    # 强制使用.png格式
+                    image_filename = f"{image_counter}.png"
                     image_path = image_dir / image_filename
                     image_file.save(str(image_path))
                     image_counter += 1
@@ -724,6 +723,30 @@ def get_character_config():
         return jsonify({
             'success': False,
             'error': f'创建失败: {str(e)}'
+        }), 500
+
+@app.route('/api/reload-characters', methods=['GET'])
+def reload_characters():
+    """重新加载角色列表API"""
+    try:
+        # 清除角色配置缓存
+        import characters
+        characters._character_configs.clear()
+        
+        # 重新获取所有可用角色
+        available_characters = config_service.list_available_characters()
+        
+        return jsonify({
+            'success': True,
+            'characters': available_characters
+        })
+        
+    except Exception as e:
+        print(f"重新加载角色列表失败: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'重新加载失败: {str(e)}'
         }), 500
 
 @app.route('/api/tts', methods=['POST'])

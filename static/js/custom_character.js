@@ -283,6 +283,10 @@ class CustomCharacterManager {
                 alert(`自定义角色创建成功！\n角色ID: ${result.character_id}`);
                 // 清除草稿
                 localStorage.removeItem('customCharacterDraft');
+                // 清空表单
+                this.clearForm();
+                // 重新加载角色列表
+                await this.reloadCharacterList();
                 this.showHomePage();
             } else {
                 alert('创建失败：' + result.error);
@@ -337,6 +341,71 @@ class CustomCharacterManager {
         const loadingIndicator = document.getElementById('loadingIndicator');
         if (loadingIndicator) {
             loadingIndicator.style.display = show ? 'flex' : 'none';
+        }
+    }
+
+    clearForm() {
+        const form = document.getElementById('customCharacterForm');
+        if (form) {
+            // 重置表单
+            form.reset();
+            
+            // 清空心情表格，重新添加默认心情
+            const tableBody = document.getElementById('moodTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                this.moodRowCount = 0;
+                this.addInitialMoodRow();
+            }
+            
+            // 清空文件选择显示
+            const selectedFiles = document.getElementById('selectedFiles');
+            if (selectedFiles) {
+                selectedFiles.innerHTML = '';
+            }
+            
+            // 重置颜色选择器
+            const themeColor = document.getElementById('themeColor');
+            const themeColorText = document.getElementById('themeColorText');
+            if (themeColor && themeColorText) {
+                themeColor.value = '#ffffff';
+                themeColorText.value = '#ffffff';
+            }
+        }
+    }
+
+    async reloadCharacterList() {
+        try {
+            const response = await fetch('/api/reload-characters');
+            const result = await response.json();
+            
+            if (result.success) {
+                // 如果页面有角色选择器，更新它
+                const characterSelect = document.getElementById('characterSelect');
+                if (characterSelect) {
+                    // 清空现有选项
+                    characterSelect.innerHTML = '';
+                    
+                    // 添加新的角色选项
+                    result.characters.forEach(character => {
+                        const option = document.createElement('option');
+                        option.value = character.id;
+                        option.textContent = character.name;
+                        characterSelect.appendChild(option);
+                    });
+                }
+                
+                // 触发自定义事件，通知其他组件角色列表已更新
+                window.dispatchEvent(new CustomEvent('charactersReloaded', {
+                    detail: { characters: result.characters }
+                }));
+                
+                console.log('角色列表已重新加载');
+            } else {
+                console.error('重新加载角色列表失败:', result.error);
+            }
+        } catch (error) {
+            console.error('重新加载角色列表时发生错误:', error);
         }
     }
 }
