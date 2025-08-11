@@ -11,7 +11,7 @@ import {
     characterButton, 
     closeCharacterButton, 
     continueButton, 
-    skipButton, 
+   // skipButton, 
     micButton, 
     errorCloseButton, 
     confirmYesButton, 
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         characterButton.addEventListener('click', toggleCharacterModal);
         closeCharacterButton.addEventListener('click', toggleCharacterModal);
         continueButton.addEventListener('click', continueOutput);
-        skipButton.addEventListener('click', skipTyping);
+        //skipButton.addEventListener('click', skipTyping);
         micButton.addEventListener('click', () => toggleRecording(messageInput, micButton, showError));
         errorCloseButton.addEventListener('click', hideError);
 
