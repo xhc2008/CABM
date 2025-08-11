@@ -6,12 +6,34 @@
 }
 
 body {
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', 'PingFang SC', monospace, sans-serif;
     line-height: 1.6;
     overflow-x: hidden;
     position: relative;
     min-height: 100vh;
-    background-color: #fff;
+    background: linear-gradient(135deg, #0a0a0f 0%, #050508 100%);
+    color: #ffffff;
+}
+
+/* 科幻背景层 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(128, 0, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(0, 128, 255, 0.05) 0%, transparent 50%);
+    animation: backgroundPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundPulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
 }
 
 /* 容器样式 */
@@ -41,12 +63,13 @@ body {
 
 /* 主页面样式 */
 #homePage {
-    color: #333;
-    background-color: #fff;
+    color: #ffffff;
+    background: transparent;
     justify-content: center;
     align-items: center;
     text-align: center;
     z-index: 10;
+    position: relative;
 }
 
 .home-background {
@@ -55,37 +78,139 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #fff;
+    background: 
+        linear-gradient(rgba(0, 255, 255, 0.03), rgba(128, 0, 255, 0.03)),
+        radial-gradient(circle at center, rgba(0, 128, 255, 0.1) 0%, transparent 70%);
     z-index: -1;
+}
+
+/* 科幻网格背景 */
+#homePage::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 25s linear infinite;
+    opacity: 0.2;
+    z-index: -1;
+}
+
+@keyframes gridMove {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(60px, 60px); }
 }
 
 .home-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
 }
 
 .home-header h1 {
-    font-size: 3.5rem;
-    margin-bottom: 0.5rem;
-    letter-spacing: 2px;
-    color: #333;
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    background: linear-gradient(45deg, #00ffff, #0080ff, #8000ff);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease-in-out infinite;
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    position: relative;
+}
+
+.home-header h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ffff, transparent);
+    animation: underlineGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes underlineGlow {
+    0% { opacity: 0.5; width: 50px; }
+    100% { opacity: 1; width: 150px; }
 }
 
 .home-header p {
-    font-size: 1.2rem;
-    color: #666;
+    font-size: 1.3rem;
+    color: #b0b0b0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.9;
+    margin-top: 1.5rem;
 }
 
 .home-buttons {
-    margin-top: 3rem;
+    margin-top: 4rem;
     display: flex;
-    gap: 1.5rem;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .home-buttons .btn {
-    padding: 0.8rem 2rem;
-    font-size: 1.2rem;
-    min-width: 120px;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    min-width: 140px;
+    position: relative;
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.home-buttons .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.home-buttons .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 0 25px rgba(0, 255, 255, 0.4),
+        0 10px 25px rgba(0, 0, 0, 0.3);
+    border-color: #00ffff;
+}
+
+.home-buttons .btn:hover::before {
+    left: 100%;
+}
+
+.home-buttons .btn:active {
+    transform: translateY(-1px);
 }
 
 /* 对话页面样式 */
@@ -196,30 +321,41 @@ body {
     position: absolute;
     top: 120px;
     right: 20px;
-    width: 300px;
+    width: 320px;
     display: flex;
-    gap: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 0.8rem;
-    border-radius: 8px;
+    gap: 0.8rem;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(0, 128, 255, 0.08));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 1rem;
+    border-radius: 12px;
     z-index: 10;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
 .chat-input {
     flex: 1;
-    padding: 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(0, 0, 0, 0.3);
-    color: #fff;
-    font-size: 0.9rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-family: 'Consolas', 'Monaco', monospace;
     resize: none;
-    height: 40px;
+    height: 45px;
+    transition: all 0.3s ease;
 }
 
 .chat-input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 /* 对话区域样式 - 底部窄条 */
@@ -235,42 +371,64 @@ body {
 }
 
 .dialog-box {
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 1rem;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(0, 128, 255, 0.08));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-bottom: none;
+    padding: 1.2rem;
     margin: 0 auto;
-    width: 80%;
-    max-width: 800px;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    animation: fadeIn 0.3s ease;
-    max-height: 120px;
-    /* 限制最大高度 */
+    width: 85%;
+    max-width: 900px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    animation: fadeIn 0.4s ease;
+    max-height: 140px;
     overflow: hidden;
-    /* 防止内容溢出 */
     position: relative;
-    /* 为继续提示提供定位上下文 */
+    box-shadow: 
+        0 0 30px rgba(0, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dialog-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00ffff, #0080ff, #8000ff);
+    background-size: 200% 100%;
+    animation: borderGlow 3s linear infinite;
+}
+
+@keyframes borderGlow {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }
 
 .character-name {
-    color: #ffeb3b;
+    color: #00ffff;
     font-weight: bold;
-    margin-bottom: 0.3rem;
-    font-size: 1rem;
+    margin-bottom: 0.4rem;
+    font-size: 1.1rem;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 .dialog-content {
     font-size: 1rem;
-    line-height: 1.4;
+    line-height: 1.5;
     white-space: pre-wrap;
-    max-height: 4.2em;
-    /* 约3行文字高度 */
+    max-height: 4.5em;
     overflow-y: auto;
     overflow-x: hidden;
     direction: ltr;
-    /* 确保文本从左到右显示 */
     display: flex;
     flex-direction: column-reverse;
-    /* 内容溢出时向上移动 */
+    color: #ffffff;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
 }
 
 /* 控制按钮样式 */
@@ -278,52 +436,71 @@ body {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.5);
+    gap: 0.8rem;
+    margin-top: 0.8rem;
+    padding: 0.8rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 255, 255, 0.05));
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 255, 255, 0.1);
     position: relative;
-    /* 确保按钮区域不会被对话框内容顶掉 */
     z-index: 21;
-    /* 比对话框高一级 */
 }
 
 /* 按钮样式 */
 .btn {
-    padding: 0.5rem 1rem;
-    border: none;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
     border-radius: 6px;
     font-size: 0.9rem;
+    font-family: 'Consolas', 'Monaco', monospace;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    backdrop-filter: blur(5px);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
 }
 
 .primary-btn {
-    background-color: #2979ff;
-    color: #fff;
+    background: linear-gradient(45deg, #0080ff, #00ffff);
+    border-color: #00ffff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
 }
 
 .primary-btn:hover {
-    background-color: #1565c0;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+    transform: translateY(-2px);
 }
 
 .secondary-btn {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    background: rgba(128, 0, 255, 0.1);
+    border-color: rgba(128, 0, 255, 0.4);
+    color: #b0b0b0;
 }
 
 .secondary-btn:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* 主页面按钮特殊样式 */
-#homePage .secondary-btn {
-    background-color: rgba(0, 0, 0, 0.1);
-    color: #333;
-}
-
-#homePage .secondary-btn:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+    background: rgba(128, 0, 255, 0.2);
+    border-color: #8000ff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(128, 0, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 /* 弹窗通用样式 */
@@ -557,30 +734,108 @@ body {
 /* 响应式设计 */
 @media (max-width: 768px) {
     .home-header h1 {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
+        letter-spacing: 2px;
     }
 
     .home-buttons {
         flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .home-buttons .btn {
+        min-width: 200px;
+        padding: 1.2rem 2rem;
     }
 
     .user-input-container {
-        width: 90%;
-        right: 5%;
-        top: 70px;
+        width: 95%;
+        right: 2.5%;
+        top: 80px;
+        padding: 0.8rem;
     }
 
     .dialog-box {
-        width: 95%;
+        width: 98%;
+        padding: 1rem;
     }
 
     .control-buttons {
-        padding: 0.3rem;
+        padding: 0.6rem;
+        gap: 0.6rem;
     }
 
     .btn {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        padding: 0.5rem 1rem;
+    }
+
+    /* 移动端性能优化 - 减少动画 */
+    #homePage::after,
+    #customCharacterPage::after {
+        animation: none;
+    }
+
+    .home-header h1 {
+        animation-duration: 6s; /* 减慢动画速度 */
+    }
+
+    /* 简化移动端的玻璃效果 */
+    .glass-panel,
+    .dialog-box,
+    .custom-character-form {
+        backdrop-filter: blur(5px); /* 减少模糊强度 */
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+    .home-header h1 {
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+    }
+
+    .home-header p {
+        font-size: 1rem;
+        letter-spacing: 1px;
+    }
+
+    .home-buttons .btn {
+        min-width: 180px;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .user-input-container {
+        width: 98%;
+        right: 1%;
+        top: 70px;
+    }
+
+    .chat-input {
+        font-size: 0.9rem;
+        height: 40px;
+    }
+}
+
+/* 高分辨率屏幕优化 */
+@media (min-width: 1920px) {
+    .home-header h1 {
+        font-size: 5rem;
+        letter-spacing: 6px;
+    }
+
+    .home-header p {
+        font-size: 1.5rem;
+        letter-spacing: 3px;
+    }
+
+    .dialog-box {
+        max-width: 1200px;
+    }
+
+    .user-input-container {
+        width: 400px;
     }
 }/* 
 选项按钮容器样式 */
@@ -647,10 +902,11 @@ body {
 
 /* 自定义角色页面样式 */
 #customCharacterPage {
-    color: #333;
-    background-color: #f5f5f5;
+    color: #ffffff;
+    background: transparent;
     overflow-y: auto;
     padding-top: 60px;
+    position: relative;
 }
 
 .custom-character-background {
@@ -659,7 +915,27 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: 
+        radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(128, 0, 255, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #0a0a0f 0%, #050508 100%);
+    z-index: -1;
+}
+
+/* 为自定义角色页面添加网格背景 */
+#customCharacterPage::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 30s linear infinite;
+    opacity: 0.3;
     z-index: -1;
 }
 
@@ -671,30 +947,41 @@ body {
     left: 0;
     right: 0;
     height: 60px;
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
     z-index: 50;
     padding: 0 1rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
 .custom-character-header h2 {
     margin: 0 auto;
-    font-size: 1.5rem;
-    color: #333;
+    font-size: 1.6rem;
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 .custom-character-header .back-btn {
-    background: none;
-    border: none;
-    color: #333;
-    font-size: 1.2rem;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 1.1rem;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.6rem 1rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 .custom-character-header .back-btn:hover {
-    color: #667eea;
+    background: rgba(0, 255, 255, 0.2);
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 .custom-character-container {
@@ -704,11 +991,28 @@ body {
 }
 
 .custom-character-form {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(0, 128, 255, 0.08));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 
+        0 0 40px rgba(0, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.custom-character-form::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00ffff, #0080ff, #8000ff);
+    background-size: 200% 100%;
+    animation: borderGlow 3s linear infinite;
+    border-radius: 16px 16px 0 0;
 }
 
 /* 表单组样式 */
@@ -719,32 +1023,45 @@ body {
 .form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #333;
-    font-size: 1rem;
+    margin-bottom: 0.6rem;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .required-mark {
-    color: #e53e3e;
+    color: #ff6b6b;
     font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
 }
 
 .form-input,
 .form-textarea {
     width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #e2e8f0;
+    padding: 0.9rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
     border-radius: 8px;
     font-size: 1rem;
-    transition: all 0.2s ease;
-    background-color: #fff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    transition: all 0.3s ease;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    backdrop-filter: blur(5px);
 }
 
 .form-input:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .form-textarea {
@@ -754,12 +1071,14 @@ body {
 
 .form-description {
     font-size: 0.875rem;
-    color: #666;
-    margin-top: 0.25rem;
+    color: #b0b0b0;
+    margin-top: 0.4rem;
+    font-family: 'Consolas', 'Monaco', monospace;
 }
 
 .form-description.error {
-    color: #e53e3e;
+    color: #ff6b6b;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
 }
 
 /* 颜色输入组样式 */
@@ -982,4 +1301,142 @@ body {
         width: 100%;
         height: 50px;
     }
+}
+
+/* 性能优化 */
+/* 启用硬件加速 */
+.home-header h1,
+.btn,
+.dialog-box,
+.character-image img,
+.sci-fi-particles {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* 优化重绘性能 */
+.btn::before,
+.dialog-box::before,
+.custom-character-form::before {
+    will-change: background-position;
+}
+
+/* 减少重排 */
+.particle {
+    contain: layout style paint;
+}
+
+/* 预加载关键资源 */
+.home-header h1::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    background: linear-gradient(90deg, #00ffff, #0080ff, #8000ff);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 暗色主题适配 */
+@media (prefers-color-scheme: dark) {
+    /* 已经是暗色主题，无需额外调整 */
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    :root {
+        --primary-cyan: #ffffff;
+        --primary-blue: #ffffff;
+        --primary-purple: #ffffff;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --glass-border: #ffffff;
+    }
+    
+    .btn {
+        border-width: 2px;
+    }
+    
+    .form-input,
+    .form-textarea,
+    .chat-input {
+        border-width: 2px;
+    }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .home-header h1 {
+        background: #00ffff;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+}
+
+/* 打印样式 */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .sci-fi-particles,
+    .home-background,
+    .custom-character-background,
+    .background-container {
+        display: none !important;
+    }
+    
+    .btn {
+        border: 1px solid black !important;
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* 无障碍优化 */
+@media (prefers-reduced-transparency: reduce) {
+    .glass-panel,
+    .dialog-box,
+    .custom-character-form,
+    .user-input-container {
+        backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
+
+/* 焦点可见性增强 */
+.btn:focus-visible,
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.chat-input:focus-visible {
+    outline: 2px solid #00ffff;
+    outline-offset: 2px;
+}
+
+/* 跳过链接（无障碍） */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #00ffff;
+    color: #000;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.skip-link:focus {
+    top: 6px;
 }
