@@ -1,4 +1,8 @@
 // 主入口文件 - 事件绑定和初始化
+
+// TTS开关变量 - 控制是否启用TTS功能
+window.ttsEnabled = true; // 默认开启TTS，设为false可关闭TTS功能
+
 import { 
     startButton, 
     backButton, 
@@ -131,6 +135,19 @@ registrationShortcuts({
     h: toggleHistory,
     b: changeBackground
 });
+
+// TTS开关控制函数
+window.toggleTTS = function() {
+    window.ttsEnabled = !window.ttsEnabled;
+    console.log(`TTS已${window.ttsEnabled ? '开启' : '关闭'}`);
+    return window.ttsEnabled;
+};
+
+window.setTTS = function(enabled) {
+    window.ttsEnabled = !!enabled;
+    console.log(`TTS已${window.ttsEnabled ? '开启' : '关闭'}`);
+    return window.ttsEnabled;
+};
 
 // 暴露必要的函数给全局使用
 window.getCurrentCharacter = getCurrentCharacter;

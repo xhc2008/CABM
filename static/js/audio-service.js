@@ -4,7 +4,7 @@ import { loadingIndicator, currentMessage, errorMessage, errorContainer } from '
 // 音频缓存对象和首次播放标记
 const audioCache = {};
 let firstAudioPlay = true;
-let audioEnabled = false; // 音频是否已被用户启用
+let audioEnabled = true; // 音频是否已被用户启用
 
 // 当前播放的音频对象
 window.currentAudio = null;
@@ -26,7 +26,16 @@ function showError(message) {
 }
 
 // 播放音频
-export async function playAudio(currentCharacter, autoPlay = false) {
+export async function playAudio(currentCharacter, autoPlay = true) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频播放');
+        if (!autoPlay) {
+            showError('TTS功能已关闭');
+        }
+        return;
+    }
+
     const text = currentMessage.textContent.trim();
     if (!text) {
         if (!autoPlay) showError('无法朗读空内容');
@@ -149,6 +158,13 @@ export async function playAudio(currentCharacter, autoPlay = false) {
 
 // 预加载音频
 export function prefetchAudio(text, roleName, callback) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频预加载');
+        if (callback) callback();
+        return;
+    }
+
     if (!text) {
         if (callback) callback();
         return;

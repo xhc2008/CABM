@@ -79,27 +79,47 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             if not ref_audio_dir.exists():
                 logger.warning(f"参考音频目录不存在: {ref_audio_dir}")
                 return
-            for file_path in ref_audio_dir.iterdir():
-                if file_path.suffix.lower() != ".wav":
+            
+            # 导入角色模块来获取角色名称映射
+            try:
+                import characters
+            except ImportError:
+                logger.warning("无法导入characters模块，将只使用角色ID")
+                characters = None
+            
+            # 遍历角色ID目录
+            for character_dir in ref_audio_dir.iterdir():
+                if not character_dir.is_dir():
                     continue
-                name = file_path.stem
-
-                if hashlib.md5(name.encode('utf-8')).hexdigest() in self.role_list:
-                    logger.debug(f"音色已存在，跳过: {name}")
+                
+                character_id = character_dir.name
+                wav_path = character_dir / "1.wav"
+                txt_path = character_dir / "1.txt"
+                logger.warning(f"导入角色ID{character_id}.............")
+                # 检查必要文件是否存在
+                if not wav_path.exists():
+                    logger.warning(f"角色 {character_id} 的音频文件不存在: {wav_path}")
                     continue
 
-                wav_path = file_path
-                txt_path = ref_audio_dir / f"{name}.txt"
+                if hashlib.md5(character_id.encode('utf-8')).hexdigest() in self.role_list:
+                    logger.debug(f"音色已存在，跳过: {character_id}")
+                    continue
 
                 # 读取参考文本
                 try:
-                    with open(txt_path, 'r', encoding='utf-8') as f:
-                        ref_text = f.read().strip()
+                    if txt_path.exists():
+                        with open(txt_path, 'r', encoding='utf-8') as f:
+                            ref_text = f.read().strip()
+                    else:
+                        ref_text = ""
+                    
                     if not ref_text:
                         ref_text = "在一无所知中, 梦里的一天结束了，一个新的轮回便会开始"
                 except Exception as e:
                     logger.warning(f"读取参考文本失败 {txt_path}: {e}，使用默认文本。")
                     ref_text = "在一无所知中, 梦里的一天结束了，一个新的轮回便会开始"
+                
+                # 读取音频文件
                 try:
                     with open(wav_path, 'rb') as f:
                         audio_data = f.read()
@@ -111,7 +131,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
 
                 files = {
                     "model": (None, "FunAudioLLM/CosyVoice2-0.5B"),
-                    "customName": (None, hashlib.md5(name.encode('utf-8')).hexdigest()),
+                    "customName": (None, hashlib.md5(character_id.encode('utf-8')).hexdigest()),
                     "text": (None, ref_text),
                     "audio": (None, audio_base64)
                 }
@@ -126,15 +146,30 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                         result = response.json()
                         uri = result.get("uri")
                         if uri:
-                            self.role_list.append(name)
-                            self.role_name[name] = uri
-                            logger.info(f"✅ 成功上传音色: {name} -> {uri}")
+                            self.role_list.append(character_id)
+                            self.role_name[character_id] = uri
+                            
+                            # 同时添加角色名称映射（如果能获取到的话）
+                            if characters:
+                                try:
+                                    character_config = characters.get_character_config(character_id)
+                                    if character_config and 'name' in character_config:
+                                        character_name = character_config['name']
+                                        self.role_name[character_name] = uri
+                                        logger.info(f"✅ 成功上传音色: {character_id} ({character_name}) -> {uri}")
+                                    else:
+                                        logger.info(f"✅ 成功上传音色: {character_id} -> {uri}")
+                                except Exception as e:
+                                    logger.warning(f"获取角色名称失败 {character_id}: {e}")
+                                    logger.info(f"✅ 成功上传音色: {character_id} -> {uri}")
+                            else:
+                                logger.info(f"✅ 成功上传音色: {character_id} -> {uri}")
                         else:
                             logger.warning(f"上传成功但未返回 URI: {result}")
                     else:
-                        logger.warning(f"❌ 上传音色失败 [{name}]: {response.status_code}, {response.text}")
+                        logger.warning(f"❌ 上传音色失败 [{character_id}]: {response.status_code}, {response.text}")
                 except Exception as e:
-                    logger.error(f"上传音色异常 [{name}]: {e}")
+                    logger.error(f"上传音色异常 [{character_id}]: {e}")
 
         def get_tts(self, text, role='default', speed=1.0, gain=0.0, response_format='wav', sample_rate=44100):
             # 过滤符号
