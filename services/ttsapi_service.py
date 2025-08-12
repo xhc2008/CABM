@@ -95,7 +95,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                 character_id = character_dir.name
                 wav_path = character_dir / "1.wav"
                 txt_path = character_dir / "1.txt"
-                logger.warning(f"导入角色ID{character_id}.............")
+                logger.warning(f"导入角色{character_id}的参考音频")
                 # 检查必要文件是否存在
                 if not wav_path.exists():
                     logger.warning(f"角色 {character_id} 的音频文件不存在: {wav_path}")

@@ -32,7 +32,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: -2;
-    background: 
+    background:
         radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.08) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(128, 0, 255, 0.08) 0%, transparent 50%),
         radial-gradient(circle at 40% 40%, rgba(0, 128, 255, 0.05) 0%, transparent 50%);
@@ -40,8 +40,13 @@ body {
 }
 
 @keyframes backgroundPulse {
-    0% { opacity: 0.6; }
-    100% { opacity: 1; }
+    0% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* 容器样式 */
@@ -86,7 +91,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: 
+    background:
         linear-gradient(rgba(0, 255, 255, 0.03), rgba(128, 0, 255, 0.03)),
         radial-gradient(circle at center, rgba(0, 128, 255, 0.1) 0%, transparent 70%);
     z-index: -1;
@@ -100,7 +105,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
+    background-image:
         linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
     background-size: 60px 60px;
@@ -110,8 +115,13 @@ body {
 }
 
 @keyframes gridMove {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(60px, 60px); }
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(60px, 60px);
+    }
 }
 
 .home-header {
@@ -149,13 +159,27 @@ body {
 }
 
 @keyframes gradientShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 @keyframes underlineGlow {
-    0% { opacity: 0.5; width: 50px; }
-    100% { opacity: 1; width: 150px; }
+    0% {
+        opacity: 0.5;
+        width: 50px;
+    }
+
+    100% {
+        opacity: 1;
+        width: 150px;
+    }
 }
 
 .home-header p {
@@ -207,7 +231,7 @@ body {
 
 .home-buttons .btn:hover {
     transform: translateY(-3px);
-    box-shadow: 
+    box-shadow:
         0 0 25px rgba(0, 255, 255, 0.4),
         0 10px 25px rgba(0, 0, 0, 0.3);
     border-color: #00ffff;
@@ -227,7 +251,8 @@ body {
     position: relative;
     z-index: 5;
     padding-top: 60px;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; /* 恢复传统字体 */
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 恢复传统字体 */
 }
 
 /* 背景样式 (仅用于对话页面) */
@@ -282,10 +307,14 @@ body {
     margin: 0 auto;
     font-size: 1.5rem;
     color: #fff;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; /* 传统字体 */
-    text-transform: none; /* 移除大写转换 */
-    letter-spacing: normal; /* 恢复正常字间距 */
-    text-shadow: none; /* 移除发光效果 */
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    text-transform: none;
+    /* 移除大写转换 */
+    letter-spacing: normal;
+    /* 恢复正常字间距 */
+    text-shadow: none;
+    /* 移除发光效果 */
 }
 
 .chat-header .back-btn {
@@ -295,16 +324,22 @@ body {
     font-size: 1.2rem;
     cursor: pointer;
     padding: 0.5rem;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; /* 传统字体 */
-    backdrop-filter: none; /* 移除模糊效果 */
-    border-radius: 0; /* 移除圆角 */
-    transition: color 0.2s ease; /* 简化过渡效果 */
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    backdrop-filter: none;
+    /* 移除模糊效果 */
+    border-radius: 0;
+    /* 移除圆角 */
+    transition: color 0.2s ease;
+    /* 简化过渡效果 */
 }
 
 .chat-header .back-btn:hover {
     color: #90caf9;
-    transform: none; /* 移除变换效果 */
-    box-shadow: none; /* 移除阴影 */
+    transform: none;
+    /* 移除变换效果 */
+    box-shadow: none;
+    /* 移除阴影 */
 }
 
 /* 角色区域样式 - 居中显示 */
@@ -395,7 +430,7 @@ body {
 }
 
 /* 麦克风和发送按钮样式 */
-.mic-btn, 
+.mic-btn,
 .send-btn {
     padding: 0.8rem;
     min-width: 44px;
@@ -455,9 +490,12 @@ body {
     max-height: 120px;
     overflow: hidden;
     position: relative;
-    backdrop-filter: none; /* 移除模糊效果 */
-    border: none; /* 移除边框 */
-    box-shadow: none; /* 移除阴影 */
+    backdrop-filter: none;
+    /* 移除模糊效果 */
+    border: none;
+    /* 移除边框 */
+    box-shadow: none;
+    /* 移除阴影 */
 }
 
 /* 移除科幻边框动画 */
@@ -470,10 +508,14 @@ body {
     font-weight: bold;
     margin-bottom: 0.3rem;
     font-size: 1rem;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; /* 传统字体 */
-    text-shadow: none; /* 移除发光效果 */
-    letter-spacing: normal; /* 恢复正常字间距 */
-    text-transform: none; /* 移除大写转换 */
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    text-shadow: none;
+    /* 移除发光效果 */
+    letter-spacing: normal;
+    /* 恢复正常字间距 */
+    text-transform: none;
+    /* 移除大写转换 */
 }
 
 .dialog-content {
@@ -487,8 +529,10 @@ body {
     display: flex;
     flex-direction: column-reverse;
     color: #ffffff;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; /* 传统字体 */
-    text-shadow: none; /* 移除发光效果 */
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    text-shadow: none;
+    /* 移除发光效果 */
 }
 
 /* 控制按钮样式 - 传统样式 */
@@ -502,8 +546,10 @@ body {
     background-color: rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 21;
-    backdrop-filter: none; /* 移除模糊效果 */
-    border-top: none; /* 移除边框 */
+    backdrop-filter: none;
+    /* 移除模糊效果 */
+    border-top: none;
+    /* 移除边框 */
 }
 
 /* 按钮样式 */
@@ -555,13 +601,16 @@ body {
 }
 
 #chatPage .btn::before {
-    display: none; /* 移除扫描效果 */
+    display: none;
+    /* 移除扫描效果 */
 }
 
 #chatPage .btn:hover {
     background-color: rgba(255, 255, 255, 0.3);
-    transform: none; /* 移除变换效果 */
-    box-shadow: none; /* 移除阴影 */
+    transform: none;
+    /* 移除变换效果 */
+    box-shadow: none;
+    /* 移除阴影 */
 }
 
 /* 主按钮样式 */
@@ -649,7 +698,7 @@ body {
     align-items: center;
     padding: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff; 
+    color: #fff;
 }
 
 .modal-body,
@@ -885,7 +934,7 @@ body {
         gap: 0.6rem;
     }
 
-    .mic-btn, 
+    .mic-btn,
     .send-btn {
         padding: 0.6rem;
         min-width: 40px;
@@ -915,14 +964,16 @@ body {
     }
 
     .home-header h1 {
-        animation-duration: 6s; /* 减慢动画速度 */
+        animation-duration: 6s;
+        /* 减慢动画速度 */
     }
 
     /* 简化移动端的玻璃效果 */
     .glass-panel,
     .dialog-box,
     .custom-character-form {
-        backdrop-filter: blur(5px); /* 减少模糊强度 */
+        backdrop-filter: blur(5px);
+        /* 减少模糊强度 */
     }
 }
 
@@ -962,7 +1013,7 @@ body {
         gap: 0.4rem;
     }
 
-    .mic-btn, 
+    .mic-btn,
     .send-btn {
         padding: 0.5rem;
         min-width: 36px;
@@ -999,13 +1050,15 @@ body {
         font-size: 1rem;
     }
 
-    .mic-btn, 
+    .mic-btn,
     .send-btn {
         padding: 1rem;
         min-width: 50px;
         height: 50px;
     }
-}/* 
+}
+
+/* 
 选项按钮容器样式 */
 .option-buttons-container {
     position: absolute;
@@ -1013,7 +1066,8 @@ body {
     top: 50%;
     transform: translateY(-50%);
     z-index: 15;
-    display: none; /* 默认隐藏 */
+    display: none;
+    /* 默认隐藏 */
     flex-direction: column;
     gap: 10px;
     max-width: 300px;
@@ -1060,7 +1114,7 @@ body {
         left: 10px;
         max-width: 250px;
     }
-    
+
     .option-button {
         max-width: 230px;
         font-size: 13px;
@@ -1078,12 +1132,12 @@ body {
 }
 
 .custom-character-background {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: 
+    background:
         radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 75% 75%, rgba(128, 0, 255, 0.1) 0%, transparent 50%),
         linear-gradient(135deg, #0a0a0f 0%, #050508 100%);
@@ -1093,12 +1147,12 @@ body {
 /* 为自定义角色页面添加网格背景 */
 #customCharacterPage::after {
     content: '';
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
+    background-image:
         linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 40px 40px;
@@ -1153,7 +1207,7 @@ body {
 }
 
 .custom-character-container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1rem 2rem;
 }
@@ -1164,7 +1218,7 @@ body {
     border: 1px solid rgba(0, 255, 255, 0.2);
     border-radius: 16px;
     padding: 2.5rem;
-    box-shadow: 
+    box-shadow:
         0 0 40px rgba(0, 255, 255, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
     position: relative;
@@ -1280,7 +1334,7 @@ body {
 }
 
 /* 心情表格样式 */
-.mood-table {
+/* .mood-table {
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     overflow: hidden;
@@ -1363,7 +1417,7 @@ body {
     width: 100%;
     display: block !important;
     visibility: visible !important;
-}
+} */
 
 /* 文件选择样式 */
 .form-file {
@@ -1439,32 +1493,32 @@ body {
         margin: 1rem;
         padding: 0;
     }
-    
+
     .custom-character-form {
         padding: 1.5rem;
         margin: 0;
     }
-    
+
     .mood-table-header,
     .mood-row {
         grid-template-columns: 1fr 1fr 1fr 60px;
         font-size: 0.875rem;
     }
-    
+
     .mood-header-cell,
     .mood-cell {
         padding: 0.5rem;
     }
-    
+
     .form-buttons {
         flex-direction: column;
     }
-    
+
     .color-input-group {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .color-picker {
         width: 100%;
         height: 50px;
@@ -1520,11 +1574,11 @@ body {
         --text-secondary: #cccccc;
         --glass-border: #ffffff;
     }
-    
+
     .btn {
         border-width: 2px;
     }
-    
+
     .form-input,
     .form-textarea,
     .chat-input {
@@ -1534,6 +1588,7 @@ body {
 
 /* 减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -1542,7 +1597,7 @@ body {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
-    
+
     .home-header h1 {
         background: #00ffff;
         -webkit-background-clip: text;
@@ -1557,14 +1612,14 @@ body {
         background: white !important;
         color: black !important;
     }
-    
+
     .sci-fi-particles,
     .home-background,
     .custom-character-background,
     .background-container {
         display: none !important;
     }
-    
+
     .btn {
         border: 1px solid black !important;
         background: white !important;
@@ -1574,6 +1629,7 @@ body {
 
 /* 无障碍优化 */
 @media (prefers-reduced-transparency: reduce) {
+
     .glass-panel,
     .dialog-box,
     .custom-character-form,
@@ -1607,7 +1663,9 @@ body {
 
 .skip-link:focus {
     top: 6px;
-}/* 
+}
+
+/* 
 聊天页面传统样式覆盖 */
 #chatPage * {
     font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif !important;
@@ -1680,7 +1738,9 @@ body {
     border-color: rgba(255, 255, 255, 0.5);
     transform: translateX(5px);
     box-shadow: none;
-}/* 用户输入框
+}
+
+/* 用户输入框
 增强样式 */
 .user-input-container {
     transition: all 0.3s ease;
@@ -1724,10 +1784,13 @@ body {
 }
 
 @keyframes pulse-ready {
-    0%, 100% { 
+
+    0%,
+    100% {
         box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
     }
-    50% { 
+
+    50% {
         box-shadow: 0 0 0 8px rgba(76, 175, 80, 0);
     }
 }
@@ -1745,11 +1808,14 @@ body {
 }
 
 @keyframes pulse-recording {
-    0%, 100% { 
+
+    0%,
+    100% {
         transform: scale(1);
         box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
     }
-    50% { 
+
+    50% {
         transform: scale(1.05);
         box-shadow: 0 0 0 6px rgba(244, 67, 54, 0);
     }
@@ -1805,7 +1871,8 @@ body {
 
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
-    .mic-btn, 
+
+    .mic-btn,
     .send-btn {
         min-width: 44px;
         height: 44px;
@@ -1813,13 +1880,15 @@ body {
     }
 
     .user-input-container:hover {
-        background-color: rgba(0, 0, 0, 0.75); /* 移除悬停效果 */
+        background-color: rgba(0, 0, 0, 0.75);
+        /* 移除悬停效果 */
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 }
 
 /* 高DPI屏幕优化 */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
     .mic-btn img {
         width: 18px;
         height: 18px;
@@ -1838,12 +1907,14 @@ body {
         background-color: rgba(255, 255, 255, 0.08);
         border-color: rgba(255, 255, 255, 0.2);
     }
-    
+
     .chat-input:focus {
         background-color: rgba(255, 255, 255, 0.12);
         border-color: rgba(255, 255, 255, 0.4);
     }
-}/* 输入框聚焦状态 
+}
+
+/* 输入框聚焦状态 
 */
 .user-input-container.focused {
     background-color: rgba(0, 0, 0, 0.85);
@@ -1906,4 +1977,126 @@ body {
 .chat-input {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
+
+/*
+ 心情表格样式 */
+.mood-table {
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+}
+
+.mood-table-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr 80px;
+    background: rgba(0, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.mood-header-cell {
+    padding: 0.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    border-right: 1px solid rgba(0, 255, 255, 0.3);
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.mood-header-cell:last-child {
+    border-right: none;
+}
+
+.mood-table-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.mood-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr 80px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    align-items: center;
+}
+
+.mood-row:last-child {
+    border-bottom: none;
+}
+
+.mood-cell {
+    padding: 0.75rem;
+    border-right: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.mood-cell:last-child {
+    border-right: none;
+    text-align: center;
+}
+
+.mood-cell input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.mood-cell input[type="text"]:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.mood-cell input[type="file"] {
+    width: 100%;
+    font-size: 0.875rem;
+    color: #ffffff;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 0.25rem;
+}
+
+.remove-mood-btn {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.remove-mood-btn:hover {
+    background: #c53030;
+    transform: scale(1.05);
+}
+
+.add-mood-btn {
+    margin-top: 0.5rem;
+    width: 100%;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* 响应式设计 - 心情表格 */
+@media (max-width: 768px) {
+
+    .mood-table-header,
+    .mood-row {
+        grid-template-columns: 80px 1fr 1fr 1fr 60px;
+    }
+
+    .mood-header-cell,
+    .mood-cell {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
 }

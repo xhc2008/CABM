@@ -120,13 +120,16 @@ class CustomCharacterManager {
         
         row.innerHTML = `
             <div class="mood-cell">
-                <input type="text" name="mood_name[]" placeholder="心情名称" value="${defaultMood}" required>
+                <input type="text" name="mood_name[]" placeholder="心情名称" value="${defaultMood}" required style="width: 80px;">
             </div>
             <div class="mood-cell">
                 <input type="file" name="mood_image[]" accept="image/*" required>
             </div>
             <div class="mood-cell">
                 <input type="file" name="mood_audio[]" accept="audio/*">
+            </div>
+            <div class="mood-cell">
+                <input type="text" name="mood_ref_text[]" placeholder="音频的内容">
             </div>
             <div class="mood-cell">
                 <button type="button" class="remove-mood-btn" onclick="customCharacterManager.removeMoodRow('${rowId}')">×</button>
@@ -237,6 +240,7 @@ class CustomCharacterManager {
         // 验证心情设置
         const moodNames = formData.getAll('mood_name[]');
         const moodImages = formData.getAll('mood_image[]');
+        const moodRefTexts = formData.getAll('mood_ref_text[]');
         
         if (moodNames.length === 0) {
             errors.push('至少需要添加一个心情设置');
@@ -280,7 +284,7 @@ class CustomCharacterManager {
             const result = await response.json();
 
             if (result.success) {
-                alert(`自定义角色创建成功！\n角色ID: ${result.character_id}`);
+                alert(`自定义角色创建成功！\n角色ID: ${result.character_id}\n需重启程序生效`);
                 // 清除草稿
                 localStorage.removeItem('customCharacterDraft');
                 // 清空表单

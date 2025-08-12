@@ -616,6 +616,8 @@ def create_custom_character():
         # 处理心情数据
         mood_names = request.form.getlist('mood_name[]')
         mood_images = request.files.getlist('mood_image[]')
+        mood_audios = request.files.getlist('mood_audio[]')
+        mood_ref_texts = request.form.getlist('mood_ref_text[]')
         
         if not mood_names or len(mood_names) == 0:
             return jsonify({
@@ -635,20 +637,73 @@ def create_custom_character():
         image_dir = Path('static') / 'images' / character_id
         image_dir.mkdir(parents=True, exist_ok=True)
         
-        # 保存心情图片，按顺序命名为1.png, 2.png...
+        # 创建参考音频目录
+        ref_audio_dir = Path('data') / 'ref_audio' / character_id
+        ref_audio_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 保存心情图片和参考音频/文本，按顺序命名为1.png, 2.png...和1.wav, 2.wav...
         valid_moods = []
-        image_counter = 1
-        for i, (name, image_file) in enumerate(zip(mood_names, mood_images)):
+        counter = 1
+        for i, name in enumerate(mood_names):
             if name.strip():
                 # 保存心情图片
-                if image_file and image_file.filename:
+                if i < len(mood_images) and mood_images[i] and mood_images[i].filename:
                     # 强制使用.png格式
-                    image_filename = f"{image_counter}.png"
+                    image_filename = f"{counter}.png"
                     image_path = image_dir / image_filename
-                    image_file.save(str(image_path))
-                    image_counter += 1
+                    mood_images[i].save(str(image_path))
+                
+                # 保存参考音频（如果有）
+                if i < len(mood_audios) and mood_audios[i] and mood_audios[i].filename:
+                    audio_filename = f"{counter}.wav"
+                    audio_path = ref_audio_dir / audio_filename
+                    
+                    # 如果不是wav格式，转换为wav
+                    if mood_audios[i].filename.lower().endswith('.wav'):
+                        mood_audios[i].save(str(audio_path))
+                    else:
+                        # 使用pydub转换音频格式
+                        import tempfile
+                        import uuid
+                        
+                        # 使用唯一的临时文件名避免冲突
+                        temp_filename = f"temp_{uuid.uuid4().hex}_{mood_audios[i].filename}"
+                        temp_path = ref_audio_dir / temp_filename
+                        
+                        try:
+                            # 保存临时文件
+                            mood_audios[i].save(str(temp_path))
+                            
+                            # 转换音频格式
+                            audio = AudioSegment.from_file(str(temp_path))
+                            audio.export(str(audio_path), format="wav")
+                            
+                            # 确保音频对象被正确释放
+                            del audio
+                            
+                        except Exception as e:
+                            print(f"音频转换失败: {e}")
+                        finally:
+                            # 无论成功失败都尝试删除临时文件
+                            try:
+                                if temp_path.exists():
+                                    # 添加延迟确保文件句柄被释放
+                                    import time
+                                    time.sleep(0.1)
+                                    temp_path.unlink()
+                            except Exception as cleanup_error:
+                                print(f"清理临时文件失败: {cleanup_error}")
+                                # 如果删除失败，记录但不阻止程序继续
+                
+                # 保存参考文本（如果有）
+                if i < len(mood_ref_texts) and mood_ref_texts[i].strip():
+                    text_filename = f"{counter}.txt"
+                    text_path = ref_audio_dir / text_filename
+                    with open(text_path, 'w', encoding='utf-8') as f:
+                        f.write(mood_ref_texts[i].strip())
                 
                 valid_moods.append(name.strip())
+                counter += 1
         
         # 创建角色配置文件，完全按照lingyin.py的格式
         character_file_content = f'''"""
