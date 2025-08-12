@@ -47,6 +47,7 @@ import {
 
 import { 
     playAudio, 
+    playTextAudio,
     toggleRecording,
     stopCurrentAudio
 } from './audio-service.js';
@@ -153,5 +154,6 @@ window.setTTS = function(enabled) {
 window.getCurrentCharacter = getCurrentCharacter;
 window.showOptionButtons = showOptionButtons;
 window.playAudio = (autoPlay = false) => playAudio(getCurrentCharacter(), autoPlay);
+window.playTextAudio = (text, autoPlay = false) => playTextAudio(text, getCurrentCharacter(), autoPlay);
 window.stopCurrentAudio = stopCurrentAudio;
 window.showError = showError;

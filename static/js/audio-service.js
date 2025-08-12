@@ -25,8 +25,8 @@ function showError(message) {
     errorContainer.style.display = 'block';
 }
 
-// 播放音频
-export async function playAudio(currentCharacter, autoPlay = true) {
+// 播放指定文本的音频
+export async function playTextAudio(text, currentCharacter, autoPlay = true) {
     // 检查TTS开关
     if (!window.ttsEnabled) {
         console.log('TTS已关闭，跳过音频播放');
@@ -36,25 +36,26 @@ export async function playAudio(currentCharacter, autoPlay = true) {
         return;
     }
 
-    const text = currentMessage.textContent.trim();
-    if (!text) {
+    if (!text || !text.trim()) {
         if (!autoPlay) showError('无法朗读空内容');
         return;
     }
 
-    // 如果是自动播放但用户还没有启用音频，就不播放
+    const textToPlay = text.trim();
+
+    // 如果是自动播放但用户还没有启用音频，尝试播放（浏览器可能会阻止）
     if (autoPlay && !audioEnabled) {
-        console.log('自动播放跳过：用户尚未启用音频');
-        return;
+        console.log('尝试自动播放（可能被浏览器阻止）');
+        // 不直接返回，而是尝试播放，让浏览器决定是否允许
     }
 
     // 停止当前正在播放的音频，防止多个音频同时播放
     stopCurrentAudio();
 
     // 判断缓存
-    let audioBlob = audioCache[text];
+    let audioBlob = audioCache[textToPlay];
     if (audioBlob) {
-        console.log('[playAudio] 命中缓存:', text);
+        console.log('[playTextAudio] 命中缓存:', textToPlay);
         try {
             const audio = new Audio();
             const url = URL.createObjectURL(audioBlob);
@@ -67,7 +68,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             window.currentAudio = audio;
             
             // 尝试播放
-            const playResult = await audio.play();
+            await audio.play();
             
             // 如果是用户首次主动播放，标记音频已启用
             if (!autoPlay) {
@@ -84,7 +85,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
         }
         return;
     } else {
-        console.log('[playAudio] 未命中缓存，重新合成:', text);
+        console.log('[playTextAudio] 未命中缓存，重新合成:', textToPlay);
         if (!autoPlay) {
             showLoading(); // 只有用户主动播放时才显示加载
         }
@@ -101,7 +102,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                text: text,
+                text: textToPlay,
                 role: currentCharacter ? currentCharacter.name : 'AI助手'
             })
         });
@@ -117,7 +118,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
         }
         
         // 缓存音频
-        audioCache[text] = blob;
+        audioCache[textToPlay] = blob;
 
         const audio = new Audio();
         const url = URL.createObjectURL(blob);
@@ -156,7 +157,69 @@ export async function playAudio(currentCharacter, autoPlay = true) {
     }
 }
 
-// 预加载音频
+// 播放音频（使用当前消息内容）
+export async function playAudio(currentCharacter, autoPlay = true) {
+    const text = currentMessage.textContent.trim();
+    if (!text) {
+        if (!autoPlay) showError('无法朗读空内容');
+        return;
+    }
+    
+    // 直接调用 playTextAudio 函数
+    return playTextAudio(text, currentCharacter, autoPlay);
+}
+
+
+
+// 预加载并播放音频
+export function prefetchAndPlayAudio(text, roleName, currentCharacter) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频预加载和播放');
+        return;
+    }
+
+    if (!text || !text.trim()) {
+        return;
+    }
+    
+    const textToProcess = text.trim();
+    
+    if (audioCache[textToProcess]) {
+        // 命中缓存时，直接播放
+        console.log('[prefetchAndPlayAudio] 命中缓存，直接播放:', textToProcess);
+        playTextAudio(textToProcess, currentCharacter, true);
+        return;
+    }
+    
+    // 开始预加载
+    console.log('[prefetchAndPlayAudio] 开始预加载:', textToProcess);
+    fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            text: textToProcess,
+            role: roleName || 'AI助手'
+        })
+    })
+    .then(response => {
+        if (!response.ok) return Promise.reject();
+        return response.blob();
+    })
+    .then(blob => {
+        if (blob && blob.size > 0) {
+            audioCache[textToProcess] = blob;
+            // 预加载完成后立即播放
+            console.log('[prefetchAndPlayAudio] 预加载完成，开始播放:', textToProcess);
+            playTextAudio(textToProcess, currentCharacter, true);
+        }
+    })
+    .catch((error) => {
+        console.error('预加载音频失败:', error);
+    });
+}
+
+// 预加载音频（原有函数，保持兼容性）
 export function prefetchAudio(text, roleName, callback) {
     // 检查TTS开关
     if (!window.ttsEnabled) {
