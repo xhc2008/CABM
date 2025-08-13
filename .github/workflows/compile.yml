@@ -54,76 +54,76 @@ jobs:
             }
           }
 
-      - name: 🔒 Create compile script (fix YAML issues)
+      - name: 🔒 Create secure compile script
         shell: pwsh
         run: |
-          # 创建安全的编译脚本（避免YAML解析问题）
-          $scriptContent = @"
-`# Compile .py files to .pyd (except start.py and __init__.py)
-import os
-import subprocess
-import sys
-from pathlib import Path
-
-def compile_to_pyd(file_path):
-    file_path = Path(file_path)
-    if file_path.name == 'start.py' or file_path.name == '__init__.py':
-        return  # Skip entry point and init files
-        
-    print(f"Compiling {{file_path}} to .pyd...")
-    
-    # Generate C code from Python
-    subprocess.run([
-        'python', '-m', 'cython', 
-        '--embed', 
-        '--cplus',
-        '-3',
-        str(file_path)
-    ], check=True)
-    
-    # Compile C to .pyd
-    c_file = file_path.with_suffix('.c')
-    pyd_file = file_path.with_suffix('.pyd')
-    
-    # Get Python include paths
-    include_path = sys.prefix + '\\\\include'
-    numpy_path = sys.prefix + '\\\\Lib\\\\site-packages\\\\numpy\\\\core\\\\include'
-    lib_path = sys.prefix + '\\\\libs'
-    
-    # Compile with MSVC
-    subprocess.run([
-        'cl', '/LD', 
-        f'/I{{include_path}}',
-        f'/I{{numpy_path}}',
-        '/link', f'/LIBPATH:{{lib_path}}',
-        str(c_file),
-        f'/out:{{pyd_file}}'
-    ], shell=True, check=True)
-    
-    # Clean up intermediate files
-    if c_file.exists():
-        c_file.unlink()
-
-# Process all .py files
-for root, _, files in os.walk('.'):
-    for file in files:
-        if file.endswith('.py') and not file.startswith('.'):
-            compile_to_pyd(os.path.join(root, file))
-"@
+          # 安全创建编译脚本（避免YAML解析问题）
+          $compileScript = @"
+          # Compile .py files to .pyd (except start.py and __init__.py)
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
           
-          # Write script with proper encoding
-          $scriptContent | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
+          def compile_to_pyd(file_path):
+              file_path = Path(file_path)
+              if file_path.name == 'start.py' or file_path.name == '__init__.py':
+                  return  # Skip entry point and init files
+                  
+              print(f""Compiling {file_path} to .pyd..."")
+              
+              # Generate C code from Python
+              subprocess.run([
+                  'python', '-m', 'cython', 
+                  '--embed', 
+                  '--cplus',
+                  '-3',
+                  str(file_path)
+              ], check=True)
+              
+              # Compile C to .pyd
+              c_file = file_path.with_suffix('.c')
+              pyd_file = file_path.with_suffix('.pyd')
+              
+              # Get Python include paths
+              include_path = sys.prefix + '\\\\include'
+              numpy_path = sys.prefix + '\\\\Lib\\\\site-packages\\\\numpy\\\\core\\\\include'
+              lib_path = sys.prefix + '\\\\libs'
+              
+              # Compile with MSVC
+              subprocess.run([
+                  'cl', '/LD', 
+                  f""/I{include_path}"",
+                  f""/I{numpy_path}"",
+                  '/link', f""/LIBPATH:{lib_path}"",
+                  str(c_file),
+                  f""/out:{pyd_file}""
+              ], shell=True, check=True)
+              
+              # Clean up intermediate files
+              if c_file.exists():
+                  c_file.unlink()
+          
+          # Process all .py files
+          for root, _, files in os.walk('.'):
+              for file in files:
+                  if file.endswith('.py') and not file.startswith('.'):
+                      compile_to_pyd(os.path.join(root, file))
+          "@
+          
+          # 写入文件（使用单引号避免YAML解析）
+          $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
 
       - name: 🔒 Compile .py to .pyd
         shell: pwsh
         run: |
-          # Install compilation tools
+          # 安装编译工具
           pip install cython nuitka wheel setuptools
           
-          # Run compilation script
+          # 运行编译脚本
           python compile_to_pyd.py
           
-          # Remove original .py files (keep start.py and __init__.py)
+          # 删除原始 .py 文件（保留 start.py 和 __init__.py）
           Get-ChildItem -Path . -Include *.py -Recurse | 
             Where-Object { $_.Name -notin @('start.py', '__init__.py') } |
             Remove-Item -Force
@@ -138,7 +138,7 @@ for root, _, files in os.walk('.'):
       - name: 🖥️ Build Windows executable
         shell: pwsh
         run: |
-          # Build EXE with PyInstaller
+          # 构建 EXE
           pyinstaller `
             --onefile `
             --windowed `
@@ -148,7 +148,7 @@ for root, _, files in os.walk('.'):
             --paths "." `
             start.py
 
-          # Move EXE to root
+          # 移动 EXE 到根目录
           Move-Item -Path "dist\\app.exe" -Destination "." -Force
 
       - name: 🗑️ Cleanup build artifacts
