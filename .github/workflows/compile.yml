@@ -64,10 +64,24 @@ jobs:
             }
           }
 
+      - name: 🔧 Create distutils.cfg for Cython
+        shell: pwsh
+        run: |
+          # 创建 distutils 配置，让Cython找到MSVC编译器
+          $distutilsCfg = @"
+          [build]
+          compiler = msvc
+          
+          [build_ext]
+          compiler = msvc
+          "@
+          
+          $distutilsCfg | Out-File -FilePath "$env:PYTHONHOME\Lib\distutils\distutils.cfg" -Encoding UTF8
+
       - name: 🔒 Setup MSVC environment for Cython
         shell: pwsh
         run: |
-          # 必须在安装 Cython 前设置环境！
+          # 设置 MSVC 环境变量
           $vsPath = vswhere.exe -latest -property installationPath
           $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
           cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
@@ -92,15 +106,22 @@ jobs:
           import os
           import subprocess
           import sys
+          import re
           from pathlib import Path
+          
+          # 修复Windows路径问题
+          def fix_windows_path(path):
+              return str(path).replace("\\\\", "\\")
           
           def compile_to_pyd(file_path):
               file_path = Path(file_path)
-              # 只编译有效的Python模块（排除__pycache__等）
-              if (file_path.name == 'start.py' or 
-                  file_path.name == '__init__.py' or
+              # 排除特殊文件
+              if (file_path.name in ['start.py', '__init__.py', 'compile_to_pyd.py'] or
                   'site-packages' in str(file_path) or
-                  '__pycache__' in str(file_path)):
+                  '__pycache__' in str(file_path) or
+                  file_path.name.endswith('.spec') or
+                  file_path.name.endswith('.c') or
+                  file_path.name.endswith('.pyd')):
                   print(f"Skipping {file_path} (entry point or special file)")
                   return
                   
@@ -108,14 +129,19 @@ jobs:
               
               # 1. 生成C代码（捕获详细错误）
               try:
+                  # 使用绝对路径避免Windows路径问题
+                  abs_path = os.path.abspath(file_path)
                   result = subprocess.run([
                       'python', '-m', 'cython', 
                       '--embed', 
                       '--cplus',
                       '-3',
-                      str(file_path)
+                      abs_path
                   ], capture_output=True, text=True, check=True)
-                  print(result.stdout)
+                  
+                  # 显示Cython输出
+                  if result.stdout:
+                      print(f"Cython output: {result.stdout}")
                   if result.stderr:
                       print(f"Cython warnings: {result.stderr}")
               except subprocess.CalledProcessError as e:
@@ -124,6 +150,16 @@ jobs:
                   print(f"Return code: {e.returncode}")
                   print(f"Stdout: {e.stdout}")
                   print(f"Stderr: {e.stderr}")
+                  
+                  # 检查是否是语法错误
+                  if "SyntaxError" in e.stderr or "SyntaxError" in e.stdout:
+                      print("This is likely a Python syntax error in your code. Check your code for compatibility with Cython.")
+                  # 检查是否找不到编译器
+                  elif "Unable to find vcvarsall.bat" in e.stderr or "No compiler" in e.stderr:
+                      print("Cython cannot find the C++ compiler. Ensure MSVC environment is properly set up.")
+                  # 检查是否路径问题
+                  elif "No such file or directory" in e.stderr:
+                      print("File path issue. Check if the file exists and path is correct.")
                   raise
               
               # 2. 验证.c文件存在
@@ -135,37 +171,48 @@ jobs:
               pyd_file = file_path.with_suffix('.pyd')
               print(f"Compiling {c_file} to {pyd_file}...")
               try:
+                  # 使用绝对路径
+                  abs_c_file = os.path.abspath(c_file)
+                  abs_pyd_file = os.path.abspath(pyd_file)
+                  
                   subprocess.run([
                       'cl', '/LD', 
                       '/I%PYTHONHOME%\\include',
                       '/I%PYTHONHOME%\\Lib\\site-packages\\numpy\\core\\include',
                       '/link', '/LIBPATH:%PYTHONHOME%\\libs',
-                      str(c_file),
-                      f'/out:{pyd_file}'
+                      abs_c_file,
+                      f'/out:{abs_pyd_file}'
                   ], shell=True, check=True)
               except subprocess.CalledProcessError as e:
                   print(f"ERROR: MSVC failed for {file_path}")
+                  print(f"Command: {e.cmd}")
+                  print(f"Return code: {e.returncode}")
+                  print(f"Stdout: {e.stdout}")
+                  print(f"Stderr: {e.stderr}")
                   raise
               
               # 4. 清理
-              c_file.unlink()
-              print(f"Successfully compiled {file_path} to {pyd_file}")
+              try:
+                  os.remove(c_file)
+                  print(f"Successfully compiled {file_path} to {pyd_file}")
+              except Exception as e:
+                  print(f"Warning: Could not remove {c_file}: {str(e)}")
           
           # 处理所有.py文件
+          pyd_count = 0
           for root, _, files in os.walk('.'):
               for file in files:
                   if file.endswith('.py') and not file.startswith('.'):
                       try:
                           compile_to_pyd(os.path.join(root, file))
+                          pyd_count += 1
                       except Exception as e:
                           print(f"Failed to compile {os.path.join(root, file)}: {str(e)}")
-                          # 不中断整个流程，继续尝试其他文件
           
           # 确认至少有一个.pyd文件被创建
-          pyd_files = list(Path('.').rglob('*.pyd'))
-          if not pyd_files:
+          if pyd_count == 0:
               raise RuntimeError("No .pyd files were created. Compilation failed for all files.")
-          print(f"Successfully created {len(pyd_files)} .pyd files")
+          print(f"Successfully created {pyd_count} .pyd files")
           '@
           
           $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
@@ -175,7 +222,7 @@ jobs:
           
           # 删除原始.py文件（保留 start.py 和 __init__.py）
           Get-ChildItem -Path . -Include *.py -Recurse | 
-            Where-Object { $_.Name -notin @('start.py', '__init__.py') } |
+            Where-Object { $_.Name -notin @('start.py', '__init__.py', 'compile_to_pyd.py') } |
             Remove-Item -Force
 
       - name: 📦 Install dependencies
