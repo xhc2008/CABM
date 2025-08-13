@@ -87,7 +87,7 @@ jobs:
       - name: 🔒 Compile .py to .pyd
         shell: pwsh
         run: |
-          # 创建编译脚本（简化版，避免复杂路径）
+          # 创建更健壮的编译脚本（捕获详细错误）
           $compileScript = @'
           import os
           import subprocess
@@ -96,52 +96,84 @@ jobs:
           
           def compile_to_pyd(file_path):
               file_path = Path(file_path)
-              if file_path.name == 'start.py' or file_path.name == '__init__.py':
+              # 只编译有效的Python模块（排除__pycache__等）
+              if (file_path.name == 'start.py' or 
+                  file_path.name == '__init__.py' or
+                  'site-packages' in str(file_path) or
+                  '__pycache__' in str(file_path)):
+                  print(f"Skipping {file_path} (entry point or special file)")
                   return
                   
-              print(f'Compiling {file_path} to .pyd...')
+              print(f"Compiling {file_path} to .pyd...")
               
-              # 1. 生成C代码（关键：需要MSVC环境）
-              subprocess.run([
-                  'python', '-m', 'cython', 
-                  '--embed', 
-                  '--cplus',
-                  '-3',
-                  str(file_path)
-              ], check=True)
+              # 1. 生成C代码（捕获详细错误）
+              try:
+                  result = subprocess.run([
+                      'python', '-m', 'cython', 
+                      '--embed', 
+                      '--cplus',
+                      '-3',
+                      str(file_path)
+                  ], capture_output=True, text=True, check=True)
+                  print(result.stdout)
+                  if result.stderr:
+                      print(f"Cython warnings: {result.stderr}")
+              except subprocess.CalledProcessError as e:
+                  print(f"ERROR: Cython failed for {file_path}")
+                  print(f"Command: {e.cmd}")
+                  print(f"Return code: {e.returncode}")
+                  print(f"Stdout: {e.stdout}")
+                  print(f"Stderr: {e.stderr}")
+                  raise
               
               # 2. 验证.c文件存在
               c_file = file_path.with_suffix('.c')
               if not c_file.exists():
-                  raise FileNotFoundError(f"Missing {c_file}")
+                  raise FileNotFoundError(f"Missing {c_file} after Cython processing")
               
               # 3. 编译.c到.pyd
               pyd_file = file_path.with_suffix('.pyd')
-              subprocess.run([
-                  'cl', '/LD', 
-                  '/I%PYTHONHOME%\\include',
-                  '/I%PYTHONHOME%\\Lib\\site-packages\\numpy\\core\\include',
-                  '/link', '/LIBPATH:%PYTHONHOME%\\libs',
-                  str(c_file),
-                  f'/out:{pyd_file}'
-              ], check=True, shell=True)
+              print(f"Compiling {c_file} to {pyd_file}...")
+              try:
+                  subprocess.run([
+                      'cl', '/LD', 
+                      '/I%PYTHONHOME%\\include',
+                      '/I%PYTHONHOME%\\Lib\\site-packages\\numpy\\core\\include',
+                      '/link', '/LIBPATH:%PYTHONHOME%\\libs',
+                      str(c_file),
+                      f'/out:{pyd_file}'
+                  ], shell=True, check=True)
+              except subprocess.CalledProcessError as e:
+                  print(f"ERROR: MSVC failed for {file_path}")
+                  raise
               
               # 4. 清理
               c_file.unlink()
+              print(f"Successfully compiled {file_path} to {pyd_file}")
           
           # 处理所有.py文件
           for root, _, files in os.walk('.'):
               for file in files:
                   if file.endswith('.py') and not file.startswith('.'):
-                      compile_to_pyd(os.path.join(root, file))
+                      try:
+                          compile_to_pyd(os.path.join(root, file))
+                      except Exception as e:
+                          print(f"Failed to compile {os.path.join(root, file)}: {str(e)}")
+                          # 不中断整个流程，继续尝试其他文件
+          
+          # 确认至少有一个.pyd文件被创建
+          pyd_files = list(Path('.').rglob('*.pyd'))
+          if not pyd_files:
+              raise RuntimeError("No .pyd files were created. Compilation failed for all files.")
+          print(f"Successfully created {len(pyd_files)} .pyd files")
           '@
           
           $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
           
-          # 运行编译
+          # 运行编译（显示详细输出）
           python compile_to_pyd.py
           
-          # 删除原始.py文件
+          # 删除原始.py文件（保留 start.py 和 __init__.py）
           Get-ChildItem -Path . -Include *.py -Recurse | 
             Where-Object { $_.Name -notin @('start.py', '__init__.py') } |
             Remove-Item -Force
@@ -156,7 +188,7 @@ jobs:
       - name: 🖥️ Build Windows executable
         shell: pwsh
         run: |
-          # 设置MSVC环境（PyInstaller需要）
+          # 设置 MSVC 环境（PyInstaller 需要）
           $vsPath = vswhere.exe -latest -property installationPath
           $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
           cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
@@ -165,7 +197,7 @@ jobs:
               }
           }
           
-          # 构建EXE
+          # 构建 EXE
           pyinstaller `
             --onefile `
             --windowed `
@@ -175,7 +207,7 @@ jobs:
             --paths "." `
             start.py
 
-          # 移动EXE到根目录
+          # 移动 EXE 到根目录
           Move-Item -Path "dist\\app.exe" -Destination "." -Force
 
       - name: 🗑️ Cleanup build artifacts
