@@ -101,14 +101,20 @@ def convert_to_16k_wav(input_path, output_path):
     return output_path
 
 @app.route('/')
-def index():
-    """首页"""
-    global need_config
+def home():
+    """
+    访问主页
+    """
+    # 如果需要配置，重定向到配置页
     if need_config:
         return render_template('config.html')
+    return render_template('index.html')
+
+@app.route('/chat')
+def chat_page():
+    """聊天页面"""
     # 获取当前背景图片
     background = image_service.get_current_background()
-    
     # 如果没有背景图片，生成一个
     if not background:
         try:
@@ -118,31 +124,24 @@ def index():
         except Exception as e:
             print(f"背景图片生成失败: {str(e)}")
             traceback.print_exc()
-    
     # 将背景路径转换为URL
     background_url = None
     if background:
-        # 从绝对路径转换为相对URL
         rel_path = os.path.relpath(background, start=app.static_folder)
         background_url = f"/static/{rel_path.replace(os.sep, '/')}"
-    
     # 检查默认角色图片是否存在，如果不存在则创建一个提示
     character_image_path = os.path.join(app.static_folder, 'images', 'default', '1.png')
     if not os.path.exists(character_image_path):
         print(f"警告: 默认角色图片不存在: {character_image_path}")
         print("请将角色图片放置在 static/images/default/1.png")
-    
     # 获取当前场景
     current_scene = scene_service.get_current_scene()
     scene_data = current_scene.to_dict() if current_scene else None
-    
     # 获取应用配置
     app_config = config_service.get_app_config()
     show_scene_name = app_config.get("show_scene_name", True)
-    
-    # 渲染模板
     return render_template(
-        'index.html',
+        'chat.html',
         background_url=background_url,
         current_scene=scene_data,
         show_scene_name=show_scene_name
@@ -568,6 +567,11 @@ def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
 
+@app.route('/custom_character')
+def custom_character_page():
+    """自定义角色页面"""
+    return render_template('custom_character.html')
+
 @app.route('/api/custom-character', methods=['POST'])
 def create_custom_character():
     """创建自定义角色API"""
@@ -617,6 +621,7 @@ def create_custom_character():
         mood_names = request.form.getlist('mood_name[]')
         mood_images = request.files.getlist('mood_image[]')
         mood_audios = request.files.getlist('mood_audio[]')
+        mood_ref_texts = request.form.getlist('mood_ref_text[]')
         
         if not mood_names or len(mood_names) == 0:
             return jsonify({
@@ -624,82 +629,144 @@ def create_custom_character():
                 'error': '至少需要一个心情设置'
             }), 400
         
-        # 处理详细信息文件
-        detail_files = request.files.getlist('characterDetails')
-        if not detail_files or len(detail_files) == 0:
+        # 检查角色是否已存在
+        character_file_path = Path('characters') / f"{character_id}.py"
+        if character_file_path.exists():
             return jsonify({
                 'success': False,
-                'error': '必须上传角色详细信息文件'
+                'error': f'角色ID "{character_id}" 已存在'
             }), 400
         
-        # 创建角色目录
-        character_dir = Path('characters') / character_id
-        character_dir.mkdir(exist_ok=True)
+        # 创建角色图片目录
+        image_dir = Path('static') / 'images' / character_id
+        image_dir.mkdir(parents=True, exist_ok=True)
         
-        # 创建角色数据目录
-        data_dir = Path('data') / 'images' / character_id
-        data_dir.mkdir(parents=True, exist_ok=True)
+        # 创建参考音频目录
+        ref_audio_dir = Path('data') / 'ref_audio' / character_id
+        ref_audio_dir.mkdir(parents=True, exist_ok=True)
         
-        # 保存心情图片和音频
-        moods_data = []
-        for i, (name, image_file) in enumerate(zip(mood_names, mood_images)):
+        # 保存心情图片和参考音频/文本，按顺序命名为1.png, 2.png...和1.wav, 2.wav...
+        valid_moods = []
+        counter = 1
+        for i, name in enumerate(mood_names):
             if name.strip():
-                mood_data = {
-                    'name': name.strip(),
-                    'image': None,
-                    'audio': None
-                }
-                
                 # 保存心情图片
-                if image_file and image_file.filename:
-                    image_ext = Path(image_file.filename).suffix
-                    image_filename = f"{name}_{i}{image_ext}"
-                    image_path = data_dir / image_filename
-                    image_file.save(str(image_path))
-                    mood_data['image'] = f"data/images/{character_id}/{image_filename}"
+                if i < len(mood_images) and mood_images[i] and mood_images[i].filename:
+                    # 强制使用.png格式
+                    image_filename = f"{counter}.png"
+                    image_path = image_dir / image_filename
+                    mood_images[i].save(str(image_path))
                 
-                # 保存心情音频（如果有）
+                # 保存参考音频（如果有）
                 if i < len(mood_audios) and mood_audios[i] and mood_audios[i].filename:
-                    audio_file = mood_audios[i]
-                    audio_ext = Path(audio_file.filename).suffix
-                    audio_filename = f"{name}_{i}{audio_ext}"
-                    audio_path = data_dir / audio_filename
-                    audio_file.save(str(audio_path))
-                    mood_data['audio'] = f"data/images/{character_id}/{audio_filename}"
+                    audio_filename = f"{counter}.wav"
+                    audio_path = ref_audio_dir / audio_filename
+                    
+                    # 如果不是wav格式，转换为wav
+                    if mood_audios[i].filename.lower().endswith('.wav'):
+                        mood_audios[i].save(str(audio_path))
+                    else:
+                        # 使用pydub转换音频格式
+                        import tempfile
+                        import uuid
+                        
+                        # 使用唯一的临时文件名避免冲突
+                        temp_filename = f"temp_{uuid.uuid4().hex}_{mood_audios[i].filename}"
+                        temp_path = ref_audio_dir / temp_filename
+                        
+                        try:
+                            # 保存临时文件
+                            mood_audios[i].save(str(temp_path))
+                            
+                            # 转换音频格式
+                            audio = AudioSegment.from_file(str(temp_path))
+                            audio.export(str(audio_path), format="wav")
+                            
+                            # 确保音频对象被正确释放
+                            del audio
+                            
+                        except Exception as e:
+                            print(f"音频转换失败: {e}")
+                        finally:
+                            # 无论成功失败都尝试删除临时文件
+                            try:
+                                if temp_path.exists():
+                                    # 添加延迟确保文件句柄被释放
+                                    import time
+                                    time.sleep(0.1)
+                                    temp_path.unlink()
+                            except Exception as cleanup_error:
+                                print(f"清理临时文件失败: {cleanup_error}")
+                                # 如果删除失败，记录但不阻止程序继续
                 
-                moods_data.append(mood_data)
+                # 保存参考文本（如果有）
+                if i < len(mood_ref_texts) and mood_ref_texts[i].strip():
+                    text_filename = f"{counter}.txt"
+                    text_path = ref_audio_dir / text_filename
+                    with open(text_path, 'w', encoding='utf-8') as f:
+                        f.write(mood_ref_texts[i].strip())
+                
+                valid_moods.append(name.strip())
+                counter += 1
         
-        # 保存详细信息文件
-        details_content = ""
-        for detail_file in detail_files:
-            if detail_file and detail_file.filename.endswith('.txt'):
-                content = detail_file.read().decode('utf-8')
-                details_content += f"\n\n=== {detail_file.filename} ===\n{content}"
-        
-        # 创建角色Python文件
+        # 创建角色配置文件，完全按照lingyin.py的格式
         character_file_content = f'''"""
-{character_name} 角色配置
+角色配置文件: {character_name}
 """
 
-CHARACTER_CONFIG = {{
-    "id": "{character_id}",
-    "name": "{character_name}",
-    "english_name": "{character_english_name}",
-    "theme_color": "{theme_color}",
-    "image_offset": {image_offset},
-    "intro": """{character_intro}""",
-    "description": """{character_description}""",
-    "details": """{details_content}""",
-    "moods": {moods_data}
-}}
+# 角色基本信息
+CHARACTER_ID = "{character_id}"
+CHARACTER_NAME = "{character_name}"
+CHARACTER_NAME_EN = "{character_english_name}"
 
+# 角色外观
+CHARACTER_IMAGE = "static/images/{character_id}"  # 角色立绘目录路径
+CALIB = {offset}   # 显示位置的校准值（负值向上移动，正值向下移动）
+CHARACTER_COLOR = "{theme_color}"  # 角色名称颜色
+
+# 角色心情
+MOODS = {valid_moods}
+
+#是否启用语音（未实现）
+ENABLE_VOICE = False
+
+# 角色设定
+CHARACTER_DESCRIPTION = """
+{character_description}
+"""
+
+# AI系统提示词
+CHARACTER_PROMPT = """
+{character_intro}
+"""
+
+# 角色欢迎语
+CHARACTER_WELCOME = "你好！我是{character_name}，很高兴认识你！"
+
+# 角色对话示例
+CHARACTER_EXAMPLES = [
+    {{"role": "user", "content": "你好，请介绍一下自己"}},
+    {{"role": "assistant", "content": "你好！我是{character_name}，很高兴认识你！"}},
+]
+
+# 获取角色配置
 def get_character_config():
     """获取角色配置"""
-    return CHARACTER_CONFIG
+    return {{
+        "id": CHARACTER_ID,
+        "name": CHARACTER_NAME,
+        "name_en": CHARACTER_NAME_EN,
+        "image": CHARACTER_IMAGE,
+        "calib": CALIB,
+        "color": CHARACTER_COLOR,
+        "description": CHARACTER_DESCRIPTION,
+        "prompt": CHARACTER_PROMPT,
+        "welcome": CHARACTER_WELCOME,
+        "examples": CHARACTER_EXAMPLES
+    }}
 '''
         
-        # 保存角色文件
-        character_file_path = character_dir / f"{character_id}.py"
+        # 保存角色配置文件到characters目录
         with open(character_file_path, 'w', encoding='utf-8') as f:
             f.write(character_file_content)
         
@@ -715,6 +782,30 @@ def get_character_config():
         return jsonify({
             'success': False,
             'error': f'创建失败: {str(e)}'
+        }), 500
+
+@app.route('/api/reload-characters', methods=['GET'])
+def reload_characters():
+    """重新加载角色列表API"""
+    try:
+        # 清除角色配置缓存
+        import characters
+        characters._character_configs.clear()
+        
+        # 重新获取所有可用角色
+        available_characters = config_service.list_available_characters()
+        
+        return jsonify({
+            'success': True,
+            'characters': available_characters
+        })
+        
+    except Exception as e:
+        print(f"重新加载角色列表失败: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'重新加载失败: {str(e)}'
         }), 500
 
 @app.route('/api/tts', methods=['POST'])

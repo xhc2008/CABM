@@ -1,4 +1,8 @@
 // 主入口文件 - 事件绑定和初始化
+
+// TTS开关变量 - 控制是否启用TTS功能
+window.ttsEnabled = true; // 默认开启TTS，设为false可关闭TTS功能
+
 import { 
     startButton, 
     backButton, 
@@ -11,7 +15,7 @@ import {
     characterButton, 
     closeCharacterButton, 
     continueButton, 
-    skipButton, 
+   // skipButton, 
     micButton, 
     errorCloseButton, 
     confirmYesButton, 
@@ -43,6 +47,7 @@ import {
 
 import { 
     playAudio, 
+    playTextAudio,
     toggleRecording,
     stopCurrentAudio
 } from './audio-service.js';
@@ -69,50 +74,15 @@ window.addEventListener('unhandledrejection', (event) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        console.log('开始初始化CABM应用...');
-        
-        // 加载角色数据
-        loadCharacters();
-
-        // 绑定页面切换事件
-        startButton.addEventListener('click', showChatPage);
-        backButton.addEventListener('click', confirmBackToHome);
-        exitButton.addEventListener('click', confirmExit);
-
-        // 绑定对话事件
-        sendButton.addEventListener('click', sendMessage);
-        playaudioButton.addEventListener('click', () => playAudio(getCurrentCharacter(), false)); // 用户主动播放
-        backgroundButton.addEventListener('click', changeBackground);
-        historyButton.addEventListener('click', toggleHistory);
-        closeHistoryButton.addEventListener('click', toggleHistory);
-        characterButton.addEventListener('click', toggleCharacterModal);
-        closeCharacterButton.addEventListener('click', toggleCharacterModal);
-        continueButton.addEventListener('click', continueOutput);
-        skipButton.addEventListener('click', skipTyping);
-        micButton.addEventListener('click', () => toggleRecording(messageInput, micButton, showError));
-        errorCloseButton.addEventListener('click', hideError);
-
-        // 绑定确认对话框事件
-        confirmYesButton.addEventListener('click', handleConfirmYes);
-        confirmNoButton.addEventListener('click', handleConfirmNo);
-        closeConfirmButton.addEventListener('click', hideConfirmModal);
-
-        // 绑定回车键发送消息
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
+        console.log('主页初始化...');
+        // 主页只需要绑定主页按钮
+        // 主页按钮跳转已用<a>标签实现，无需JS跳转
+        exitButton?.addEventListener('click', () => {
+            window.close();
         });
-
-        // 绑定点击事件继续输出
-        currentMessage.addEventListener('click', continueOutput);
-        clickToContinue.addEventListener('click', continueOutput);
-        
-        console.log('CABM应用初始化完成');
+        console.log('主页初始化完成');
     } catch (error) {
-        console.error('初始化失败:', error);
-        showError(`初始化失败: ${error.message}`);
+        console.error('主页初始化失败:', error);
     }
 });
 
@@ -138,9 +108,23 @@ registrationShortcuts({
     b: changeBackground
 });
 
+// TTS开关控制函数
+window.toggleTTS = function() {
+    window.ttsEnabled = !window.ttsEnabled;
+    console.log(`TTS已${window.ttsEnabled ? '开启' : '关闭'}`);
+    return window.ttsEnabled;
+};
+
+window.setTTS = function(enabled) {
+    window.ttsEnabled = !!enabled;
+    console.log(`TTS已${window.ttsEnabled ? '开启' : '关闭'}`);
+    return window.ttsEnabled;
+};
+
 // 暴露必要的函数给全局使用
 window.getCurrentCharacter = getCurrentCharacter;
 window.showOptionButtons = showOptionButtons;
 window.playAudio = (autoPlay = false) => playAudio(getCurrentCharacter(), autoPlay);
+window.playTextAudio = (text, autoPlay = false) => playTextAudio(text, getCurrentCharacter(), autoPlay);
 window.stopCurrentAudio = stopCurrentAudio;
 window.showError = showError;

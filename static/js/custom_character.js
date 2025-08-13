@@ -95,10 +95,10 @@ class CustomCharacterManager {
         
         if (value && !isValid) {
             description.classList.add('error');
-            description.textContent = '只能包含英文字母、数字或下划线';
+            description.textContent = '⚠只能包含英文字母、数字或下划线';
         } else {
             description.classList.remove('error');
-            description.textContent = '必须是英文字母、数字或下划线';
+            description.textContent = '只能包含英文字母、数字或下划线';
         }
     }
 
@@ -120,13 +120,16 @@ class CustomCharacterManager {
         
         row.innerHTML = `
             <div class="mood-cell">
-                <input type="text" name="mood_name[]" placeholder="心情名称" value="${defaultMood}" required>
+                <input type="text" name="mood_name[]" placeholder="心情名称" value="${defaultMood}" required style="width: 80px;">
             </div>
             <div class="mood-cell">
                 <input type="file" name="mood_image[]" accept="image/*" required>
             </div>
             <div class="mood-cell">
                 <input type="file" name="mood_audio[]" accept="audio/*">
+            </div>
+            <div class="mood-cell">
+                <input type="text" name="mood_ref_text[]" placeholder="音频的内容">
             </div>
             <div class="mood-cell">
                 <button type="button" class="remove-mood-btn" onclick="customCharacterManager.removeMoodRow('${rowId}')">×</button>
@@ -237,6 +240,7 @@ class CustomCharacterManager {
         // 验证心情设置
         const moodNames = formData.getAll('mood_name[]');
         const moodImages = formData.getAll('mood_image[]');
+        const moodRefTexts = formData.getAll('mood_ref_text[]');
         
         if (moodNames.length === 0) {
             errors.push('至少需要添加一个心情设置');
@@ -249,10 +253,10 @@ class CustomCharacterManager {
         });
 
         // 验证文件上传
-        const detailFiles = document.getElementById('characterDetails').files;
-        if (detailFiles.length === 0) {
-            errors.push('必须上传至少一个角色详细信息文件');
-        }
+        // const detailFiles = document.getElementById('characterDetails').files;
+        // if (detailFiles.length === 0) {
+        //     errors.push('必须上传至少一个角色详细信息文件');
+        // }
 
         return errors;
     }
@@ -280,9 +284,13 @@ class CustomCharacterManager {
             const result = await response.json();
 
             if (result.success) {
-                alert(`自定义角色创建成功！\n角色ID: ${result.character_id}`);
+                alert(`自定义角色创建成功！\n角色ID: ${result.character_id}\n需重启程序生效`);
                 // 清除草稿
                 localStorage.removeItem('customCharacterDraft');
+                // 清空表单
+                this.clearForm();
+                // 重新加载角色列表
+                await this.reloadCharacterList();
                 this.showHomePage();
             } else {
                 alert('创建失败：' + result.error);
@@ -337,6 +345,71 @@ class CustomCharacterManager {
         const loadingIndicator = document.getElementById('loadingIndicator');
         if (loadingIndicator) {
             loadingIndicator.style.display = show ? 'flex' : 'none';
+        }
+    }
+
+    clearForm() {
+        const form = document.getElementById('customCharacterForm');
+        if (form) {
+            // 重置表单
+            form.reset();
+            
+            // 清空心情表格，重新添加默认心情
+            const tableBody = document.getElementById('moodTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                this.moodRowCount = 0;
+                this.addInitialMoodRow();
+            }
+            
+            // 清空文件选择显示
+            const selectedFiles = document.getElementById('selectedFiles');
+            if (selectedFiles) {
+                selectedFiles.innerHTML = '';
+            }
+            
+            // 重置颜色选择器
+            const themeColor = document.getElementById('themeColor');
+            const themeColorText = document.getElementById('themeColorText');
+            if (themeColor && themeColorText) {
+                themeColor.value = '#ffffff';
+                themeColorText.value = '#ffffff';
+            }
+        }
+    }
+
+    async reloadCharacterList() {
+        try {
+            const response = await fetch('/api/reload-characters');
+            const result = await response.json();
+            
+            if (result.success) {
+                // 如果页面有角色选择器，更新它
+                const characterSelect = document.getElementById('characterSelect');
+                if (characterSelect) {
+                    // 清空现有选项
+                    characterSelect.innerHTML = '';
+                    
+                    // 添加新的角色选项
+                    result.characters.forEach(character => {
+                        const option = document.createElement('option');
+                        option.value = character.id;
+                        option.textContent = character.name;
+                        characterSelect.appendChild(option);
+                    });
+                }
+                
+                // 触发自定义事件，通知其他组件角色列表已更新
+                window.dispatchEvent(new CustomEvent('charactersReloaded', {
+                    detail: { characters: result.characters }
+                }));
+                
+                console.log('角色列表已重新加载');
+            } else {
+                console.error('重新加载角色列表失败:', result.error);
+            }
+        } catch (error) {
+            console.error('重新加载角色列表时发生错误:', error);
         }
     }
 }
