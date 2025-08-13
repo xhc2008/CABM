@@ -45,13 +45,11 @@ jobs:
           # 复制虚拟环境
           cp -r venv dist/
           
-          # 创建启动脚本（适配 start.py 入口文件）
-          cat > dist/run.sh <<'EOF'
-#!/bin/bash
-source venv/bin/activate
-cd app
-python start.py
-EOF
+          # 创建启动脚本（修复缩进问题的关键）
+          echo '#!/bin/bash' > dist/run.sh
+          echo 'source venv/bin/activate' >> dist/run.sh
+          echo 'cd app' >> dist/run.sh
+          echo 'python start.py' >> dist/run.sh
           chmod +x dist/run.sh
           
           # 打包为ZIP
