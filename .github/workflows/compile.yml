@@ -1,4 +1,4 @@
-name: Build Windows Executable with Console
+name: Build Windows Executable with Nuitka
 
 on:
   workflow_dispatch:
@@ -79,186 +79,17 @@ jobs:
             (Get-ChildItem -Path $_.FullName -Recurse -File).Count -eq 0 
           } | Remove-Item -Recurse -Force
 
-      - name: 🔧 Create distutils.cfg for Cython
-        shell: pwsh
-        run: |
-          # 正确获取Python安装路径
-          $pythonHome = (python -c "import sys; print(sys.prefix)").Trim()
-          $distutilsPath = Join-Path $pythonHome "Lib\distutils"
-          
-          # 确保目录存在
-          if (-not (Test-Path $distutilsPath)) {
-              New-Item -ItemType Directory -Path $distutilsPath -Force
-          }
-          
-          # 创建distutils配置
-          $distutilsCfg = @"
-          [build]
-          compiler = msvc
-          
-          [build_ext]
-          compiler = msvc
-          "@
-          
-          $distutilsCfg | Out-File -FilePath (Join-Path $distutilsPath "distutils.cfg") -Encoding UTF8
-          
-          # 验证文件创建
-          Write-Output "Created distutils.cfg at $(Join-Path $distutilsPath "distutils.cfg")"
-          Get-Content (Join-Path $distutilsPath "distutils.cfg")
-
-      - name: 🔒 Setup MSVC environment for Cython
-        shell: pwsh
-        run: |
-          # 设置 MSVC 环境变量
-          $vsPath = vswhere.exe -latest -property installationPath
-          $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
-          cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
-              if ($_ -match "(\w+)=(.*)") {
-                  [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-              }
-          }
-          
-          # 验证 cl.exe 可用
-          cl.exe /?
-
-      - name: 🔒 Install cython with C++ compiler
-        shell: pwsh
-        run: |
-          pip install cython wheel setuptools
-
-      - name: 🔒 Compile .py to .pyd (proper package structure)
-        shell: pwsh
-        run: |
-          # 创建编译脚本（正确处理Python包结构）
-          $compileScript = @'
-          import os
-          import subprocess
-          import sys
-          from pathlib import Path
-          
-          def is_package(directory):
-              """检查目录是否为Python包（包含__init__.py）"""
-              return (Path(directory) / "__init__.py").exists()
-          
-          def compile_to_pyd(file_path):
-              file_path = Path(file_path)
-              # 排除特殊文件
-              if (file_path.name in ['start.py', 'compile_to_pyd.py'] or
-                  'site-packages' in str(file_path) or
-                  '__pycache__' in str(file_path) or
-                  file_path.name.endswith('.spec') or
-                  file_path.name.endswith('.c') or
-                  file_path.name.endswith('.pyd') or
-                  'characters' in str(file_path)):
-                  print(f"Skipping {file_path} (entry point, special file or DLC plugin)")
-                  return
-              
-              # 处理包中的__init__.py - 保留为.py文件，不编译
-              if file_path.name == '__init__.py' and is_package(file_path.parent):
-                  print(f"Preserving {file_path} as package initializer (not compiling)")
-                  return
-                  
-              print(f"Compiling {file_path} to .pyd...")
-              
-              # 1. 生成C代码
-              try:
-                  # 使用绝对路径
-                  abs_path = os.path.abspath(file_path)
-                  result = subprocess.run([
-                      'python', '-m', 'cython', 
-                      '--embed', 
-                      '--cplus',
-                      '-3',
-                      abs_path
-                  ], capture_output=True, text=True, check=True)
-                  
-                  if result.stderr:
-                      print(f"Cython warnings: {result.stderr}")
-              except subprocess.CalledProcessError as e:
-                  print(f"ERROR: Cython failed for {file_path}")
-                  print(f"Command: {e.cmd}")
-                  print(f"Return code: {e.returncode}")
-                  print(f"Stdout: {e.stdout}")
-                  print(f"Stderr: {e.stderr}")
-                  raise
-              
-              # 2. 验证.c文件存在
-              c_file = file_path.with_suffix('.c')
-              if not c_file.exists():
-                  raise FileNotFoundError(f"Missing {c_file} after Cython processing")
-              
-              # 3. 编译.c到.pyd
-              pyd_file = file_path.with_suffix('.pyd')
-              print(f"Compiling {c_file} to {pyd_file}...")
-              try:
-                  # 使用绝对路径
-                  abs_c_file = os.path.abspath(c_file)
-                  abs_pyd_file = os.path.abspath(pyd_file)
-                  
-                  subprocess.run([
-                      'cl', '/LD', 
-                      '/I%PYTHONHOME%\\include',
-                      '/I%PYTHONHOME%\\Lib\\site-packages\\numpy\\core\\include',
-                      '/link', '/LIBPATH:%PYTHONHOME%\\libs',
-                      abs_c_file,
-                      f'/out:{abs_pyd_file}'
-                  ], shell=True, check=True)
-              except subprocess.CalledProcessError as e:
-                  print(f"ERROR: MSVC failed for {file_path}")
-                  print(f"Command: {e.cmd}")
-                  print(f"Return code: {e.returncode}")
-                  print(f"Stdout: {e.stdout}")
-                  print(f"Stderr: {e.stderr}")
-                  raise
-              
-              # 4. 清理
-              try:
-                  os.remove(c_file)
-                  print(f"Successfully compiled {file_path} to {pyd_file}")
-              except Exception as e:
-                  print(f"Warning: Could not remove {c_file}: {str(e)}")
-          
-          # 处理所有.py文件
-          pyd_count = 0
-          for root, _, files in os.walk('.'):
-              for file in files:
-                  if file.endswith('.py') and not file.startswith('.'):
-                      try:
-                          compile_to_pyd(os.path.join(root, file))
-                          pyd_count += 1
-                      except Exception as e:
-                          print(f"Failed to compile {os.path.join(root, file)}: {str(e)}")
-          
-          # 确认至少有一个.pyd文件被创建
-          if pyd_count == 0:
-              raise RuntimeError("No .pyd files were created. Compilation failed for all files.")
-          print(f"Successfully created {pyd_count} .pyd files")
-          '@
-          
-          $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
-          
-          # 运行编译
-          python compile_to_pyd.py
-          
-          # 删除原始.py文件（但保留所有__init__.py文件）
-          Get-ChildItem -Path . -Include *.py -Recurse | 
-            Where-Object { 
-                $_.Name -notin @('start.py', 'compile_to_pyd.py') -and
-                $_.Name -ne '__init__.py' -and
-                -not $_.DirectoryName.Contains('characters')
-            } | Remove-Item -Force
-
       - name: 📦 Install dependencies
         shell: pwsh
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install nuitka
 
-      - name: 🖥️ Build Windows executable (WITH CONSOLE)
+      - name: 🖥️ Build Windows executable with Nuitka
         shell: pwsh
         run: |
-          # 设置 MSVC 环境（PyInstaller 需要）
+          # 设置 MSVC 环境（Nuitka 需要）
           $vsPath = vswhere.exe -latest -property installationPath
           $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
           cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
@@ -267,32 +98,65 @@ jobs:
               }
           }
           
-          # 构建 EXE (保留控制台窗口)
-          pyinstaller `
-            --onefile `
-            --name "app" `
-            --add-data "static;static" `
-            --add-data "templates;templates" `
-            --paths "." `
-            --hidden-import "services" `
-            --hidden-import "utils" `
-            --hidden-import "utils.RAG" `
-            --hidden-import "utils.RAG.Multi_Recall" `
-            --hidden-import "utils.RAG.Reranker" `
+          # 构建 EXE (使用standalone模式，保留目录结构)
+          python -m nuitka `
+            --standalone `
+            --mingw64 `
+            --enable-plugin=multiprocessing `
+            --enable-plugin=numpy `
+            --enable-plugin=pylint-warnings `
+            --enable-plugin=requests `
+            --include-package=services `
+            --include-package=utils `
+            --include-package=utils.RAG `
+            --include-package=utils.RAG.Multi_Recall `
+            --include-package=utils.RAG.Reranker `
+            --windows-disable-console=off `  # 保留控制台
+            --output-dir="dist" `
             start.py
-
-          # 移动 EXE 到根目录
-          Move-Item -Path "dist\\app.exe" -Destination "." -Force
+          
+          # 保留 characters 目录（DLC 插件）
+          if (Test-Path "characters") {
+            Copy-Item -Path "characters" -Destination "dist\start.dist\characters" -Recurse -Force
+          }
+          
+          # 复制静态资源和模板
+          if (Test-Path "static") {
+            Copy-Item -Path "static" -Destination "dist\start.dist\static" -Recurse -Force
+          }
+          if (Test-Path "templates") {
+            Copy-Item -Path "templates" -Destination "dist\start.dist\templates" -Recurse -Force
+          }
+          if (Test-Path "config") {
+            Copy-Item -Path "config" -Destination "dist\start.dist\config" -Recurse -Force
+          }
+          
+          # 重命名 dist 目录为 app
+          Move-Item -Path "dist\start.dist" -Destination "app" -Force
 
       - name: 🗑️ Cleanup build artifacts
         shell: pwsh
         run: |
-          Remove-Item -Path "build", "dist", "*.c", "*.o", "compile_to_pyd.py" -Recurse -Force -ErrorAction Ignore
+          Remove-Item -Path "dist", "start.build" -Recurse -Force -ErrorAction Ignore
           Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
 
-      - name: 📦 Package release
+      - name: 📦 Package release (copy to root and compress)
         shell: pwsh
         run: |
+          # 将 app 目录内容复制到根目录
+          Get-ChildItem -Path "app" | ForEach-Object {
+            Move-Item -Path $_.FullName -Destination "." -Force
+          }
+          
+          # 删除空的 app 目录
+          Remove-Item -Path "app" -Recurse -Force
+          
+          # 重命名 start.exe 为 app.exe
+          if (Test-Path "start.exe") {
+            Move-Item -Path "start.exe" -Destination "app.exe" -Force
+          }
+          
+          # 压缩整个目录
           Compress-Archive -Path * -DestinationPath "Windows-Release-${{ inputs.version }}.zip" -Force
 
       - name: 🚀 Create Release
@@ -301,5 +165,5 @@ jobs:
         run: |
           gh release create "${{ inputs.version }}" `
             --title "${{ inputs.release_name || inputs.version }}" `
-            --notes "Windows release with console and .py files compiled to .pyd (proper package structure)" `
+            --notes "Windows release built with Nuitka (standalone mode, with console)" `
             "Windows-Release-${{ inputs.version }}.zip"
