@@ -126,21 +126,24 @@ jobs:
         run: |
           pip install cython wheel setuptools
 
-      - name: 🔒 Compile .py to .pyd (excluding characters directory)
+      - name: 🔒 Compile .py to .pyd (proper package structure)
         shell: pwsh
         run: |
-          # 创建更健壮的编译脚本（捕获详细错误）
+          # 创建编译脚本（正确处理Python包结构）
           $compileScript = @'
           import os
           import subprocess
           import sys
-          import re
           from pathlib import Path
+          
+          def is_package(directory):
+              """检查目录是否为Python包（包含__init__.py）"""
+              return (Path(directory) / "__init__.py").exists()
           
           def compile_to_pyd(file_path):
               file_path = Path(file_path)
-              # 排除特殊文件和characters目录
-              if (file_path.name in ['start.py', '__init__.py', 'compile_to_pyd.py'] or
+              # 排除特殊文件
+              if (file_path.name in ['start.py', 'compile_to_pyd.py'] or
                   'site-packages' in str(file_path) or
                   '__pycache__' in str(file_path) or
                   file_path.name.endswith('.spec') or
@@ -149,12 +152,17 @@ jobs:
                   'characters' in str(file_path)):
                   print(f"Skipping {file_path} (entry point, special file or DLC plugin)")
                   return
+              
+              # 处理包中的__init__.py - 保留为.py文件，不编译
+              if file_path.name == '__init__.py' and is_package(file_path.parent):
+                  print(f"Preserving {file_path} as package initializer (not compiling)")
+                  return
                   
               print(f"Compiling {file_path} to .pyd...")
               
-              # 1. 生成C代码（捕获详细错误）
+              # 1. 生成C代码
               try:
-                  # 使用绝对路径避免Windows路径问题
+                  # 使用绝对路径
                   abs_path = os.path.abspath(file_path)
                   result = subprocess.run([
                       'python', '-m', 'cython', 
@@ -164,9 +172,6 @@ jobs:
                       abs_path
                   ], capture_output=True, text=True, check=True)
                   
-                  # 显示Cython输出
-                  if result.stdout:
-                      print(f"Cython output: {result.stdout}")
                   if result.stderr:
                       print(f"Cython warnings: {result.stderr}")
               except subprocess.CalledProcessError as e:
@@ -232,13 +237,14 @@ jobs:
           
           $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
           
-          # 运行编译（显示详细输出）
+          # 运行编译
           python compile_to_pyd.py
           
-          # 删除原始.py文件（保留 start.py 和 __init__.py，但排除characters目录）
+          # 删除原始.py文件（但保留所有__init__.py文件）
           Get-ChildItem -Path . -Include *.py -Recurse | 
             Where-Object { 
-                $_.Name -notin @('start.py', '__init__.py', 'compile_to_pyd.py') -and
+                $_.Name -notin @('start.py', 'compile_to_pyd.py') -and
+                $_.Name -ne '__init__.py' -and
                 -not $_.DirectoryName.Contains('characters')
             } | Remove-Item -Force
 
@@ -261,13 +267,18 @@ jobs:
               }
           }
           
-          # 构建 EXE (保留控制台窗口 - 移除了 --windowed)
+          # 构建 EXE (保留控制台窗口)
           pyinstaller `
             --onefile `
             --name "app" `
             --add-data "static;static" `
             --add-data "templates;templates" `
             --paths "." `
+            --hidden-import "services" `
+            --hidden-import "utils" `
+            --hidden-import "utils.RAG" `
+            --hidden-import "utils.RAG.Multi_Recall" `
+            --hidden-import "utils.RAG.Reranker" `
             start.py
 
           # 移动 EXE 到根目录
@@ -290,5 +301,5 @@ jobs:
         run: |
           gh release create "${{ inputs.version }}" `
             --title "${{ inputs.release_name || inputs.version }}" `
-            --notes "Windows release with console and .py files compiled to .pyd (excluded characters directory)" `
+            --notes "Windows release with console and .py files compiled to .pyd (proper package structure)" `
             "Windows-Release-${{ inputs.version }}.zip"
