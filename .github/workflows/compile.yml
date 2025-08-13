@@ -54,26 +54,25 @@ jobs:
             }
           }
 
-      - name: 🔒 Compile .py to .pyd (Security Step)
+      - name: 🔒 Create compile script (fix YAML issues)
         shell: pwsh
         run: |
-          # 安装编译工具
-          pip install cython nuitka
-          
-          # 创建编译脚本
-          $compileScript = @"
+          # 创建安全的编译脚本（避免YAML解析问题）
+          $scriptContent = @"
+`# Compile .py files to .pyd (except start.py and __init__.py)
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 def compile_to_pyd(file_path):
     file_path = Path(file_path)
     if file_path.name == 'start.py' or file_path.name == '__init__.py':
-        return  # 保留入口文件和初始化文件
+        return  # Skip entry point and init files
         
     print(f"Compiling {{file_path}} to .pyd...")
     
-    # 使用Cython编译
+    # Generate C code from Python
     subprocess.run([
         'python', '-m', 'cython', 
         '--embed', 
@@ -82,38 +81,49 @@ def compile_to_pyd(file_path):
         str(file_path)
     ], check=True)
     
-    # 编译C文件为.pyd
-    obj_file = file_path.with_suffix('.o')
+    # Compile C to .pyd
+    c_file = file_path.with_suffix('.c')
     pyd_file = file_path.with_suffix('.pyd')
     
+    # Get Python include paths
+    include_path = sys.prefix + '\\\\include'
+    numpy_path = sys.prefix + '\\\\Lib\\\\site-packages\\\\numpy\\\\core\\\\include'
+    lib_path = sys.prefix + '\\\\libs'
+    
+    # Compile with MSVC
     subprocess.run([
         'cl', '/LD', 
-        '/I', r'{{sys.prefix}}\\include',
-        '/I', r'{{sys.prefix}}\\Lib\\site-packages\\numpy\\core\\include',
-        '/link', '/LIBPATH:{{sys.prefix}}\\libs',
-        str(file_path.with_suffix('.c')),
-        '/out:{{pyd_file}}'
+        f'/I{{include_path}}',
+        f'/I{{numpy_path}}',
+        '/link', f'/LIBPATH:{{lib_path}}',
+        str(c_file),
+        f'/out:{{pyd_file}}'
     ], shell=True, check=True)
     
-    # 清理中间文件
-    if file_path.with_suffix('.c').exists():
-        file_path.with_suffix('.c').unlink()
-    if obj_file.exists():
-        obj_file.unlink()
+    # Clean up intermediate files
+    if c_file.exists():
+        c_file.unlink()
 
-# 遍历所有.py文件进行编译
+# Process all .py files
 for root, _, files in os.walk('.'):
     for file in files:
         if file.endswith('.py') and not file.startswith('.'):
             compile_to_pyd(os.path.join(root, file))
 "@
           
-          $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
+          # Write script with proper encoding
+          $scriptContent | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
+
+      - name: 🔒 Compile .py to .pyd
+        shell: pwsh
+        run: |
+          # Install compilation tools
+          pip install cython nuitka wheel setuptools
           
-          # 执行编译
+          # Run compilation script
           python compile_to_pyd.py
           
-          # 删除原始.py文件（保留start.py和__init__.py）
+          # Remove original .py files (keep start.py and __init__.py)
           Get-ChildItem -Path . -Include *.py -Recurse | 
             Where-Object { $_.Name -notin @('start.py', '__init__.py') } |
             Remove-Item -Force
@@ -128,26 +138,18 @@ for root, _, files in os.walk('.'):
       - name: 🖥️ Build Windows executable
         shell: pwsh
         run: |
-          # 使用PyInstaller打包（特殊处理.pyd文件）
+          # Build EXE with PyInstaller
           pyinstaller `
             --onefile `
             --windowed `
             --name "app" `
             --add-data "static;static" `
             --add-data "templates;templates" `
-            --hidden-import "flask" `
-            --hidden-import "openai" `
-            --hidden-import "dotenv" `
-            --hidden-import "numpy" `
-            --hidden-import "requests" `
-            --hidden-import "httpx" `
-            --hidden-import "pydub" `
-            --hidden-import "tenacity" `
-            --paths "." `  # 确保包含当前目录的.pyd文件
+            --paths "." `
             start.py
 
-          # 将生成的exe移动到根目录
-          Move-Item -Path "dist\app.exe" -Destination "." -Force
+          # Move EXE to root
+          Move-Item -Path "dist\\app.exe" -Destination "." -Force
 
       - name: 🗑️ Cleanup build artifacts
         shell: pwsh
