@@ -27,6 +27,16 @@ jobs:
           python-version: '3.10'
           architecture: 'x64'
 
+      - name: ⚙️ Install Visual Studio Build Tools
+        shell: pwsh
+        run: |
+          # 安装 Visual Studio 构建工具（包含 C++ 编译器）
+          choco install visualstudio2022buildtools --no-progress --yes `
+            --package-parameters="'--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'"
+          
+          # 验证安装
+          vswhere.exe -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+
       - name: 🧹 Clean excluded files
         shell: pwsh
         run: |
@@ -54,10 +64,10 @@ jobs:
             }
           }
 
-      - name: 🔒 Create secure compile script (FIXED)
+      - name: 🔒 Create secure compile script
         shell: pwsh
         run: |
-          # 使用单引号定义字符串，避免Python语法错误
+          # 使用单引号 heredoc 避免语法问题
           $compileScript = @'
           # Compile .py files to .pyd (except start.py and __init__.py)
           import os
@@ -90,7 +100,7 @@ jobs:
               numpy_path = sys.prefix + '\\\\Lib\\\\site-packages\\\\numpy\\\\core\\\\include'
               lib_path = sys.prefix + '\\\\libs'
               
-              # Compile with MSVC
+              # Compile with MSVC (without shell=True)
               subprocess.run([
                   'cl', '/LD', 
                   f'/I{include_path}',
@@ -98,7 +108,7 @@ jobs:
                   '/link', f'/LIBPATH:{lib_path}',
                   str(c_file),
                   f'/out:{pyd_file}'
-              ], shell=True, check=True)
+              ], check=True)
               
               # Clean up intermediate files
               if c_file.exists():
@@ -116,8 +126,17 @@ jobs:
       - name: 🔒 Compile .py to .pyd
         shell: pwsh
         run: |
+          # 设置 MSVC 环境变量
+          $vsPath = vswhere.exe -latest -property installationPath
+          $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
+          cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
+              if ($_ -match "(\w+)=(.*)") {
+                  [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+              }
+          }
+          
           # 安装编译工具
-          pip install cython nuitka wheel setuptools
+          pip install cython wheel setuptools
           
           # 运行编译脚本
           python compile_to_pyd.py
@@ -137,6 +156,15 @@ jobs:
       - name: 🖥️ Build Windows executable
         shell: pwsh
         run: |
+          # 设置 MSVC 环境（PyInstaller 需要）
+          $vsPath = vswhere.exe -latest -property installationPath
+          $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
+          cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
+              if ($_ -match "(\w+)=(.*)") {
+                  [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+              }
+          }
+          
           # 构建 EXE
           pyinstaller `
             --onefile `
