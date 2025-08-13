@@ -54,11 +54,11 @@ jobs:
             }
           }
 
-      - name: 🔒 Create secure compile script
+      - name: 🔒 Create secure compile script (FIXED)
         shell: pwsh
         run: |
-          # 安全创建编译脚本（避免YAML解析问题）
-          $compileScript = @"
+          # 使用单引号定义字符串，避免Python语法错误
+          $compileScript = @'
           # Compile .py files to .pyd (except start.py and __init__.py)
           import os
           import subprocess
@@ -70,7 +70,7 @@ jobs:
               if file_path.name == 'start.py' or file_path.name == '__init__.py':
                   return  # Skip entry point and init files
                   
-              print(f""Compiling {file_path} to .pyd..."")
+              print(f'Compiling {file_path} to .pyd...')
               
               # Generate C code from Python
               subprocess.run([
@@ -93,11 +93,11 @@ jobs:
               # Compile with MSVC
               subprocess.run([
                   'cl', '/LD', 
-                  f""/I{include_path}"",
-                  f""/I{numpy_path}"",
-                  '/link', f""/LIBPATH:{lib_path}"",
+                  f'/I{include_path}',
+                  f'/I{numpy_path}',
+                  '/link', f'/LIBPATH:{lib_path}',
                   str(c_file),
-                  f""/out:{pyd_file}""
+                  f'/out:{pyd_file}'
               ], shell=True, check=True)
               
               # Clean up intermediate files
@@ -109,9 +109,8 @@ jobs:
               for file in files:
                   if file.endswith('.py') and not file.startswith('.'):
                       compile_to_pyd(os.path.join(root, file))
-          "@
+          '@
           
-          # 写入文件（使用单引号避免YAML解析）
           $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
 
       - name: 🔒 Compile .py to .pyd
