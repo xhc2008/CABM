@@ -64,10 +64,19 @@ jobs:
             }
           }
 
-      - name: 🔧 Create distutils.cfg for Cython
+      - name: 🔧 Create distutils.cfg for Cython (FIXED)
         shell: pwsh
         run: |
-          # 创建 distutils 配置，让Cython找到MSVC编译器
+          # 正确获取Python安装路径
+          $pythonHome = (python -c "import sys; print(sys.prefix)").Trim()
+          $distutilsPath = Join-Path $pythonHome "Lib\distutils"
+          
+          # 确保目录存在
+          if (-not (Test-Path $distutilsPath)) {
+              New-Item -ItemType Directory -Path $distutilsPath -Force
+          }
+          
+          # 创建distutils配置
           $distutilsCfg = @"
           [build]
           compiler = msvc
@@ -76,7 +85,11 @@ jobs:
           compiler = msvc
           "@
           
-          $distutilsCfg | Out-File -FilePath "$env:PYTHONHOME\Lib\distutils\distutils.cfg" -Encoding UTF8
+          $distutilsCfg | Out-File -FilePath (Join-Path $distutilsPath "distutils.cfg") -Encoding UTF8
+          
+          # 验证文件创建
+          Write-Output "Created distutils.cfg at $(Join-Path $distutilsPath "distutils.cfg")"
+          Get-Content (Join-Path $distutilsPath "distutils.cfg")
 
       - name: 🔒 Setup MSVC environment for Cython
         shell: pwsh
