@@ -98,21 +98,7 @@ jobs:
           }
           
           # 构建 EXE (使用cmd.exe执行，避免PowerShell解析问题)
-          cmd.exe /c "python -m nuitka ^
-            --standalone ^
-            --mingw64 ^
-            --enable-plugin=multiprocessing ^
-            --enable-plugin=numpy ^
-            --enable-plugin=pylint-warnings ^
-            --enable-plugin=requests ^
-            --include-package=services ^
-            --include-package=utils ^
-            --include-package=utils.RAG ^
-            --include-package=utils.RAG.Multi_Recall ^
-            --include-package=utils.RAG.Reranker ^
-            --windows-disable-console=off ^
-            --output-dir=dist ^
-            start.py"
+          cmd.exe /c "python -m nuitka --standalone --mingw64 --enable-plugin=multiprocessing --enable-plugin=numpy --enable-plugin=pylint-warnings --enable-plugin=requests --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --windows-disable-console=off --output-dir=dist start.py"
 
           # 保留 characters 目录（DLC 插件）
           if (Test-Path "characters") {
