@@ -30,7 +30,7 @@ jobs:
       - name: ⚙️ Install Visual Studio Build Tools
         shell: pwsh
         run: |
-          # 安装 Visual Studio 构建工具（包含 C++ 编译器）
+          # 安装 VS 2022 构建工具（包含 C++ 编译器）
           choco install visualstudio2022buildtools --no-progress --yes `
             --package-parameters="'--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'"
           
@@ -64,69 +64,10 @@ jobs:
             }
           }
 
-      - name: 🔒 Create secure compile script
+      - name: 🔒 Setup MSVC environment for Cython
         shell: pwsh
         run: |
-          # 使用单引号 heredoc 避免语法问题
-          $compileScript = @'
-          # Compile .py files to .pyd (except start.py and __init__.py)
-          import os
-          import subprocess
-          import sys
-          from pathlib import Path
-          
-          def compile_to_pyd(file_path):
-              file_path = Path(file_path)
-              if file_path.name == 'start.py' or file_path.name == '__init__.py':
-                  return  # Skip entry point and init files
-                  
-              print(f'Compiling {file_path} to .pyd...')
-              
-              # Generate C code from Python
-              subprocess.run([
-                  'python', '-m', 'cython', 
-                  '--embed', 
-                  '--cplus',
-                  '-3',
-                  str(file_path)
-              ], check=True)
-              
-              # Compile C to .pyd
-              c_file = file_path.with_suffix('.c')
-              pyd_file = file_path.with_suffix('.pyd')
-              
-              # Get Python include paths
-              include_path = sys.prefix + '\\\\include'
-              numpy_path = sys.prefix + '\\\\Lib\\\\site-packages\\\\numpy\\\\core\\\\include'
-              lib_path = sys.prefix + '\\\\libs'
-              
-              # Compile with MSVC (without shell=True)
-              subprocess.run([
-                  'cl', '/LD', 
-                  f'/I{include_path}',
-                  f'/I{numpy_path}',
-                  '/link', f'/LIBPATH:{lib_path}',
-                  str(c_file),
-                  f'/out:{pyd_file}'
-              ], check=True)
-              
-              # Clean up intermediate files
-              if c_file.exists():
-                  c_file.unlink()
-          
-          # Process all .py files
-          for root, _, files in os.walk('.'):
-              for file in files:
-                  if file.endswith('.py') and not file.startswith('.'):
-                      compile_to_pyd(os.path.join(root, file))
-          '@
-          
-          $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
-
-      - name: 🔒 Compile .py to .pyd
-        shell: pwsh
-        run: |
-          # 设置 MSVC 环境变量
+          # 必须在安装 Cython 前设置环境！
           $vsPath = vswhere.exe -latest -property installationPath
           $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
           cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
@@ -135,13 +76,72 @@ jobs:
               }
           }
           
-          # 安装编译工具
+          # 验证 cl.exe 可用
+          cl.exe /?
+
+      - name: 🔒 Install cython with C++ compiler
+        shell: pwsh
+        run: |
           pip install cython wheel setuptools
+
+      - name: 🔒 Compile .py to .pyd
+        shell: pwsh
+        run: |
+          # 创建编译脚本（简化版，避免复杂路径）
+          $compileScript = @'
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
           
-          # 运行编译脚本
+          def compile_to_pyd(file_path):
+              file_path = Path(file_path)
+              if file_path.name == 'start.py' or file_path.name == '__init__.py':
+                  return
+                  
+              print(f'Compiling {file_path} to .pyd...')
+              
+              # 1. 生成C代码（关键：需要MSVC环境）
+              subprocess.run([
+                  'python', '-m', 'cython', 
+                  '--embed', 
+                  '--cplus',
+                  '-3',
+                  str(file_path)
+              ], check=True)
+              
+              # 2. 验证.c文件存在
+              c_file = file_path.with_suffix('.c')
+              if not c_file.exists():
+                  raise FileNotFoundError(f"Missing {c_file}")
+              
+              # 3. 编译.c到.pyd
+              pyd_file = file_path.with_suffix('.pyd')
+              subprocess.run([
+                  'cl', '/LD', 
+                  '/I%PYTHONHOME%\\include',
+                  '/I%PYTHONHOME%\\Lib\\site-packages\\numpy\\core\\include',
+                  '/link', '/LIBPATH:%PYTHONHOME%\\libs',
+                  str(c_file),
+                  f'/out:{pyd_file}'
+              ], check=True, shell=True)
+              
+              # 4. 清理
+              c_file.unlink()
+          
+          # 处理所有.py文件
+          for root, _, files in os.walk('.'):
+              for file in files:
+                  if file.endswith('.py') and not file.startswith('.'):
+                      compile_to_pyd(os.path.join(root, file))
+          '@
+          
+          $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
+          
+          # 运行编译
           python compile_to_pyd.py
           
-          # 删除原始 .py 文件（保留 start.py 和 __init__.py）
+          # 删除原始.py文件
           Get-ChildItem -Path . -Include *.py -Recurse | 
             Where-Object { $_.Name -notin @('start.py', '__init__.py') } |
             Remove-Item -Force
@@ -156,7 +156,7 @@ jobs:
       - name: 🖥️ Build Windows executable
         shell: pwsh
         run: |
-          # 设置 MSVC 环境（PyInstaller 需要）
+          # 设置MSVC环境（PyInstaller需要）
           $vsPath = vswhere.exe -latest -property installationPath
           $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
           cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
@@ -165,7 +165,7 @@ jobs:
               }
           }
           
-          # 构建 EXE
+          # 构建EXE
           pyinstaller `
             --onefile `
             --windowed `
@@ -175,7 +175,7 @@ jobs:
             --paths "." `
             start.py
 
-          # 移动 EXE 到根目录
+          # 移动EXE到根目录
           Move-Item -Path "dist\\app.exe" -Destination "." -Force
 
       - name: 🗑️ Cleanup build artifacts
