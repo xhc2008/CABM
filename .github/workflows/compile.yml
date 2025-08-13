@@ -48,7 +48,6 @@ jobs:
             "package-lock.json",
             "package.json",
             "release.sh",
-            "requirements.txt",
             "deploy.ps1",
             "deploy.sh",
             "deploy-docker.sh",

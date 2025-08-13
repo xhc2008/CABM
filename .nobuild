@@ -5,7 +5,6 @@ Dockerfile
 package-lock.json
 package.json
 release.sh
-requirements.txt
 deploy.ps1deploy.sh
 deploy-docker.sh
 cabm-gui.ps1
