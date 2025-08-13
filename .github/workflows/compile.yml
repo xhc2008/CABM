@@ -1,4 +1,4 @@
-name: Create Release Package
+name: Build Secure Windows Executable
 
 on:
   workflow_dispatch:
@@ -15,8 +15,8 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
-    runs-on: ubuntu-latest
+  build-secure-windows:
+    runs-on: windows-latest
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -25,41 +25,146 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          architecture: 'x64'
 
-      - name: ⚙️ Create virtual environment
+      - name: 🧹 Clean excluded files
+        shell: pwsh
         run: |
-          python -m venv venv
-          source venv/bin/activate
+          $excludedFiles = @(
+            "docker-compose.dockerhub.yml",
+            "docker-compose.yml",
+            "Dockerfile",
+            "package-lock.json",
+            "package.json",
+            "release.sh",
+            "requirements.txt",
+            "deploy.ps1",
+            "deploy.sh",
+            "deploy-docker.sh",
+            "cabm-gui.ps1",
+            "启动沙雕UI第二代.bat",
+            ".gitignore",
+            ".gitattributes",
+            ".dockerignore"
+          )
+          
+          foreach ($file in $excludedFiles) {
+            if (Test-Path $file) {
+              Remove-Item -Path $file -Force
+            }
+          }
+
+      - name: 🔒 Compile .py to .pyd (Security Step)
+        shell: pwsh
+        run: |
+          # 安装编译工具
+          pip install cython nuitka
+          
+          # 创建编译脚本
+          $compileScript = @"
+import os
+import subprocess
+from pathlib import Path
+
+def compile_to_pyd(file_path):
+    file_path = Path(file_path)
+    if file_path.name == 'start.py' or file_path.name == '__init__.py':
+        return  # 保留入口文件和初始化文件
+        
+    print(f"Compiling {{file_path}} to .pyd...")
+    
+    # 使用Cython编译
+    subprocess.run([
+        'python', '-m', 'cython', 
+        '--embed', 
+        '--cplus',
+        '-3',
+        str(file_path)
+    ], check=True)
+    
+    # 编译C文件为.pyd
+    obj_file = file_path.with_suffix('.o')
+    pyd_file = file_path.with_suffix('.pyd')
+    
+    subprocess.run([
+        'cl', '/LD', 
+        '/I', r'{{sys.prefix}}\\include',
+        '/I', r'{{sys.prefix}}\\Lib\\site-packages\\numpy\\core\\include',
+        '/link', '/LIBPATH:{{sys.prefix}}\\libs',
+        str(file_path.with_suffix('.c')),
+        '/out:{{pyd_file}}'
+    ], shell=True, check=True)
+    
+    # 清理中间文件
+    if file_path.with_suffix('.c').exists():
+        file_path.with_suffix('.c').unlink()
+    if obj_file.exists():
+        obj_file.unlink()
+
+# 遍历所有.py文件进行编译
+for root, _, files in os.walk('.'):
+    for file in files:
+        if file.endswith('.py') and not file.startswith('.'):
+            compile_to_pyd(os.path.join(root, file))
+"@
+          
+          $compileScript | Out-File -FilePath "compile_to_pyd.py" -Encoding UTF8
+          
+          # 执行编译
+          python compile_to_pyd.py
+          
+          # 删除原始.py文件（保留start.py和__init__.py）
+          Get-ChildItem -Path . -Include *.py -Recurse | 
+            Where-Object { $_.Name -notin @('start.py', '__init__.py') } |
+            Remove-Item -Force
+
+      - name: 📦 Install dependencies
+        shell: pwsh
+        run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pyinstaller
 
-      - name: 📦 Package application (with dependencies)
+      - name: 🖥️ Build Windows executable
+        shell: pwsh
         run: |
-          # 创建发布目录结构
-          mkdir -p dist/app
-          
-          # 复制项目文件（排除开发专用文件）
-          rsync -r --exclude '.git' --exclude '.github' --exclude 'venv' \
-                --exclude '*.pyc' --exclude '__pycache__' . dist/app/
-          
-          # 复制虚拟环境
-          cp -r venv dist/
-          
-          # 创建启动脚本（修复缩进问题的关键）
-          echo '#!/bin/bash' > dist/run.sh
-          echo 'source venv/bin/activate' >> dist/run.sh
-          echo 'cd app' >> dist/run.sh
-          echo 'python start.py' >> dist/run.sh
-          chmod +x dist/run.sh
-          
-          # 打包为ZIP
-          zip -r "release-${{ inputs.version }}.zip" dist
+          # 使用PyInstaller打包（特殊处理.pyd文件）
+          pyinstaller `
+            --onefile `
+            --windowed `
+            --name "app" `
+            --add-data "static;static" `
+            --add-data "templates;templates" `
+            --hidden-import "flask" `
+            --hidden-import "openai" `
+            --hidden-import "dotenv" `
+            --hidden-import "numpy" `
+            --hidden-import "requests" `
+            --hidden-import "httpx" `
+            --hidden-import "pydub" `
+            --hidden-import "tenacity" `
+            --paths "." `  # 确保包含当前目录的.pyd文件
+            start.py
 
-      - name: 🚀 Create Release & Upload Asset
+          # 将生成的exe移动到根目录
+          Move-Item -Path "dist\app.exe" -Destination "." -Force
+
+      - name: 🗑️ Cleanup build artifacts
+        shell: pwsh
+        run: |
+          Remove-Item -Path "build", "dist", "*.c", "*.o", "compile_to_pyd.py" -Recurse -Force -ErrorAction Ignore
+          Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
+
+      - name: 📦 Package release
+        shell: pwsh
+        run: |
+          Compress-Archive -Path * -DestinationPath "Secure-Windows-Release-${{ inputs.version }}.zip" -Force
+
+      - name: 🚀 Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ inputs.version }}" \
-            --title "${{ inputs.release_name || inputs.version }}" \
-            --notes "Release with dependencies for Flask application" \
-            "release-${{ inputs.version }}.zip"
+          gh release create "${{ inputs.version }}" `
+            --title "${{ inputs.release_name || inputs.version }}" `
+            --notes "Secure Windows release with .py files compiled to .pyd" `
+            "Secure-Windows-Release-${{ inputs.version }}.zip"
