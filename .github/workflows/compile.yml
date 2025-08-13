@@ -1,0 +1,67 @@
+name: Create Release Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      release_name:
+        description: 'Release title (optional)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: ⚙️ Create virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 📦 Package application (with dependencies)
+        run: |
+          # 创建发布目录结构
+          mkdir -p dist/app
+          
+          # 复制项目文件（排除开发专用文件）
+          rsync -r --exclude '.git' --exclude '.github' --exclude 'venv' \
+                --exclude '*.pyc' --exclude '__pycache__' . dist/app/
+          
+          # 复制虚拟环境
+          cp -r venv dist/
+          
+          # 创建启动脚本（适配 start.py 入口文件）
+          cat > dist/run.sh <<'EOF'
+#!/bin/bash
+source venv/bin/activate
+cd app
+python start.py
+EOF
+          chmod +x dist/run.sh
+          
+          # 打包为ZIP
+          zip -r "release-${{ inputs.version }}.zip" dist
+
+      - name: 🚀 Create Release & Upload Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.version }}" \
+            --title "${{ inputs.release_name || inputs.version }}" \
+            --notes "Release with dependencies for Flask application" \
+            "release-${{ inputs.version }}.zip"
