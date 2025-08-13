@@ -1,4 +1,4 @@
-name: Build Secure Windows Executable
+name: Build Windows Executable with Console
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  build-secure-windows:
+  build-windows:
     runs-on: windows-latest
     steps:
       - name: 🛒 Checkout code
@@ -37,9 +37,10 @@ jobs:
           # 验证安装
           vswhere.exe -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 
-      - name: 🧹 Clean excluded files
+      - name: 🧹 Read .nobuild file and clean excluded files
         shell: pwsh
         run: |
+          # 读取.nobuild文件中的排除列表
           $excludedFiles = @(
             "docker-compose.dockerhub.yml",
             "docker-compose.yml",
@@ -58,13 +59,27 @@ jobs:
             ".dockerignore"
           )
           
+          # 添加.nobuild文件中指定的文件
+          if (Test-Path ".nobuild") {
+            $nobuildContent = Get-Content -Path ".nobuild" | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '\S' }
+            $excludedFiles += $nobuildContent
+            Write-Output "Loaded $($nobuildContent.Count) exclusion rules from .nobuild"
+          }
+          
+          # 删除指定文件
           foreach ($file in $excludedFiles) {
             if (Test-Path $file) {
               Remove-Item -Path $file -Force
+              Write-Output "Removed excluded file: $file"
             }
           }
+          
+          # 清理空目录
+          Get-ChildItem -Directory | Where-Object { 
+            (Get-ChildItem -Path $_.FullName -Recurse -File).Count -eq 0 
+          } | Remove-Item -Recurse -Force
 
-      - name: 🔧 Create distutils.cfg for Cython (FIXED)
+      - name: 🔧 Create distutils.cfg for Cython
         shell: pwsh
         run: |
           # 正确获取Python安装路径
@@ -111,7 +126,7 @@ jobs:
         run: |
           pip install cython wheel setuptools
 
-      - name: 🔒 Compile .py to .pyd
+      - name: 🔒 Compile .py to .pyd (excluding characters directory)
         shell: pwsh
         run: |
           # 创建更健壮的编译脚本（捕获详细错误）
@@ -122,20 +137,17 @@ jobs:
           import re
           from pathlib import Path
           
-          # 修复Windows路径问题
-          def fix_windows_path(path):
-              return str(path).replace("\\\\", "\\")
-          
           def compile_to_pyd(file_path):
               file_path = Path(file_path)
-              # 排除特殊文件
+              # 排除特殊文件和characters目录
               if (file_path.name in ['start.py', '__init__.py', 'compile_to_pyd.py'] or
                   'site-packages' in str(file_path) or
                   '__pycache__' in str(file_path) or
                   file_path.name.endswith('.spec') or
                   file_path.name.endswith('.c') or
-                  file_path.name.endswith('.pyd')):
-                  print(f"Skipping {file_path} (entry point or special file)")
+                  file_path.name.endswith('.pyd') or
+                  'characters' in str(file_path)):
+                  print(f"Skipping {file_path} (entry point, special file or DLC plugin)")
                   return
                   
               print(f"Compiling {file_path} to .pyd...")
@@ -163,16 +175,6 @@ jobs:
                   print(f"Return code: {e.returncode}")
                   print(f"Stdout: {e.stdout}")
                   print(f"Stderr: {e.stderr}")
-                  
-                  # 检查是否是语法错误
-                  if "SyntaxError" in e.stderr or "SyntaxError" in e.stdout:
-                      print("This is likely a Python syntax error in your code. Check your code for compatibility with Cython.")
-                  # 检查是否找不到编译器
-                  elif "Unable to find vcvarsall.bat" in e.stderr or "No compiler" in e.stderr:
-                      print("Cython cannot find the C++ compiler. Ensure MSVC environment is properly set up.")
-                  # 检查是否路径问题
-                  elif "No such file or directory" in e.stderr:
-                      print("File path issue. Check if the file exists and path is correct.")
                   raise
               
               # 2. 验证.c文件存在
@@ -233,10 +235,12 @@ jobs:
           # 运行编译（显示详细输出）
           python compile_to_pyd.py
           
-          # 删除原始.py文件（保留 start.py 和 __init__.py）
+          # 删除原始.py文件（保留 start.py 和 __init__.py，但排除characters目录）
           Get-ChildItem -Path . -Include *.py -Recurse | 
-            Where-Object { $_.Name -notin @('start.py', '__init__.py', 'compile_to_pyd.py') } |
-            Remove-Item -Force
+            Where-Object { 
+                $_.Name -notin @('start.py', '__init__.py', 'compile_to_pyd.py') -and
+                -not $_.DirectoryName.Contains('characters')
+            } | Remove-Item -Force
 
       - name: 📦 Install dependencies
         shell: pwsh
@@ -245,7 +249,7 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: 🖥️ Build Windows executable
+      - name: 🖥️ Build Windows executable (WITH CONSOLE)
         shell: pwsh
         run: |
           # 设置 MSVC 环境（PyInstaller 需要）
@@ -257,10 +261,9 @@ jobs:
               }
           }
           
-          # 构建 EXE
+          # 构建 EXE (保留控制台窗口 - 移除了 --windowed)
           pyinstaller `
             --onefile `
-            --windowed `
             --name "app" `
             --add-data "static;static" `
             --add-data "templates;templates" `
@@ -279,7 +282,7 @@ jobs:
       - name: 📦 Package release
         shell: pwsh
         run: |
-          Compress-Archive -Path * -DestinationPath "Secure-Windows-Release-${{ inputs.version }}.zip" -Force
+          Compress-Archive -Path * -DestinationPath "Windows-Release-${{ inputs.version }}.zip" -Force
 
       - name: 🚀 Create Release
         env:
@@ -287,5 +290,5 @@ jobs:
         run: |
           gh release create "${{ inputs.version }}" `
             --title "${{ inputs.release_name || inputs.version }}" `
-            --notes "Secure Windows release with .py files compiled to .pyd" `
-            "Secure-Windows-Release-${{ inputs.version }}.zip"
+            --notes "Windows release with console and .py files compiled to .pyd (excluded characters directory)" `
+            "Windows-Release-${{ inputs.version }}.zip"
