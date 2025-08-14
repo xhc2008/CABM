@@ -78,8 +78,8 @@ jobs:
       - name: 🖥️ Build Windows executable with Nuitka
         shell: pwsh
         run: |
-          # 构建 EXE (使用cmd.exe执行，避免PowerShell解析问题)
-          yes | cmd.exe /c "python -m nuitka --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py"
+          # 构建 EXE (直接使用python命令)
+          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py
 
           # 保留 characters 目录（DLC 插件）
           if (Test-Path "characters") {
