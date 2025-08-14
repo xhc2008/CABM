@@ -45,6 +45,28 @@ class CustomCharacterManager {
             }
         });
 
+        // 头像上传
+        document.getElementById('avatarImage')?.addEventListener('change', (e) => {
+            this.handleAvatarUpload(e);
+        });
+
+        document.getElementById('cropAvatarButton')?.addEventListener('click', () => {
+            this.showCropModal();
+        });
+
+        // 裁剪相关事件
+        document.getElementById('closeCropButton')?.addEventListener('click', () => {
+            this.hideCropModal();
+        });
+
+        document.getElementById('cancelCropButton')?.addEventListener('click', () => {
+            this.hideCropModal();
+        });
+
+        document.getElementById('confirmCropButton')?.addEventListener('click', () => {
+            this.confirmCrop();
+        });
+
         // 添加心情行
         document.getElementById('addMoodButton')?.addEventListener('click', () => {
             this.addMoodRow();
@@ -209,11 +231,17 @@ class CustomCharacterManager {
             errors.push('角色ID必须填写且只能包含英文字母、数字或下划线');
         }
 
+        // 验证头像
+        if (!this.croppedAvatarData && !formData.get('avatarImage')) {
+            errors.push('必须上传并裁剪角色头像');
+        }
+
         // 验证必填字段
         const requiredFields = [
             { name: 'characterName', label: '角色名' },
             { name: 'themeColorText', label: '主题颜色' },
             { name: 'imageOffset', label: '角色立绘校准' },
+            { name: 'scaleRate', label: '立绘缩放率' },
             { name: 'characterIntro', label: '角色简介' },
             { name: 'characterDescription', label: '角色描述' }
         ];
@@ -237,10 +265,14 @@ class CustomCharacterManager {
             errors.push('角色立绘校准必须是-100到100之间的整数');
         }
 
+        // 验证缩放率范围
+        const scaleRate = parseInt(formData.get('scaleRate'));
+        if (isNaN(scaleRate) || scaleRate < 1 || scaleRate > 300) {
+            errors.push('立绘缩放率必须是1到300之间的整数');
+        }
+
         // 验证心情设置
         const moodNames = formData.getAll('mood_name[]');
-        const moodImages = formData.getAll('mood_image[]');
-        const moodRefTexts = formData.getAll('mood_ref_text[]');
         
         if (moodNames.length === 0) {
             errors.push('至少需要添加一个心情设置');
@@ -271,6 +303,14 @@ class CustomCharacterManager {
 
         const form = document.getElementById('customCharacterForm');
         const formData = new FormData(form);
+
+        // 添加裁剪后的头像数据
+        if (this.croppedAvatarData) {
+            // 将base64数据转换为blob
+            const response = await fetch(this.croppedAvatarData);
+            const blob = await response.blob();
+            formData.set('avatarImage', blob, 'avatar.png');
+        }
 
         try {
             // 显示加载指示器
@@ -410,6 +450,150 @@ class CustomCharacterManager {
             }
         } catch (error) {
             console.error('重新加载角色列表时发生错误:', error);
+        }
+    }
+
+    // 头像上传处理
+    handleAvatarUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // 验证文件类型
+        if (!file.type.startsWith('image/')) {
+            alert('请选择图片文件');
+            return;
+        }
+
+        // 验证文件大小 (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('图片文件不能超过10MB');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.originalAvatarData = e.target.result;
+            this.showAvatarPreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    showAvatarPreview(imageSrc) {
+        const preview = document.getElementById('avatarPreview');
+        const previewImg = document.getElementById('avatarPreviewImg');
+        
+        previewImg.src = imageSrc;
+        preview.style.display = 'flex';
+    }
+
+    showCropModal() {
+        if (!this.originalAvatarData) {
+            alert('请先选择头像图片');
+            return;
+        }
+
+        // 检查Cropper.js是否已加载
+        if (typeof Cropper === 'undefined') {
+            alert('裁剪功能加载失败，请检查网络连接后刷新页面');
+            return;
+        }
+
+        const modal = document.getElementById('cropModal');
+        modal.style.display = 'flex';
+        
+        // 初始化Cropper.js
+        this.initCropper();
+    }
+
+    hideCropModal() {
+        const modal = document.getElementById('cropModal');
+        modal.style.display = 'none';
+        
+        // 销毁cropper实例
+        if (this.cropper) {
+            this.cropper.destroy();
+            this.cropper = null;
+        }
+    }
+
+    initCropper() {
+        const image = document.getElementById('cropImage');
+        image.src = this.originalAvatarData;
+        
+        // 等待图片加载完成后初始化cropper
+        image.onload = () => {
+            try {
+                // 如果已存在cropper实例，先销毁
+                if (this.cropper) {
+                    this.cropper.destroy();
+                }
+                
+                // 初始化Cropper.js
+                this.cropper = new Cropper(image, {
+                    aspectRatio: 1, // 1:1 正方形裁剪
+                    viewMode: 1, // 限制裁剪框不超出画布
+                    dragMode: 'move', // 拖拽模式
+                    autoCropArea: 0.8, // 初始裁剪区域占比
+                    restore: false, // 不恢复裁剪状态
+                    guides: true, // 显示网格线
+                    center: true, // 显示中心指示器
+                    highlight: true, // 高亮裁剪区域
+                    cropBoxMovable: true, // 裁剪框可移动
+                    cropBoxResizable: true, // 裁剪框可调整大小
+                    toggleDragModeOnDblclick: false, // 禁用双击切换拖拽模式
+                    responsive: true, // 响应式
+                    modal: true, // 显示遮罩
+                    background: true, // 显示网格背景
+                    minContainerWidth: 300,
+                    minContainerHeight: 300,
+                    ready: function () {
+                        console.log('Cropper.js 初始化完成');
+                    }
+                });
+            } catch (error) {
+                console.error('初始化Cropper.js失败:', error);
+                alert('初始化裁剪器失败，请刷新页面重试');
+            }
+        };
+        
+        // 添加图片加载错误处理
+        image.onerror = () => {
+            console.error('图片加载失败');
+            alert('图片加载失败，请重新选择图片');
+            this.hideCropModal();
+        };
+    }
+
+    confirmCrop() {
+        if (!this.cropper) {
+            alert('裁剪器未初始化');
+            return;
+        }
+        
+        // 获取裁剪后的canvas
+        const canvas = this.cropper.getCroppedCanvas({
+            width: 200,
+            height: 200,
+            minWidth: 200,
+            minHeight: 200,
+            maxWidth: 200,
+            maxHeight: 200,
+            fillColor: '#fff',
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        
+        if (canvas) {
+            // 获取裁剪后的数据
+            this.croppedAvatarData = canvas.toDataURL('image/png', 0.9);
+            
+            // 更新预览
+            this.showAvatarPreview(this.croppedAvatarData);
+            
+            // 隐藏裁剪模态框
+            this.hideCropModal();
+        } else {
+            alert('裁剪失败，请重试');
         }
     }
 }

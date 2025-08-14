@@ -531,8 +531,15 @@ def get_character_images(character_id):
         
         # 获取目录下的所有png文件
         image_files = []
+        avatar_url = None
+        
         for filename in os.listdir(full_image_dir):
             if filename.lower().endswith('.png'):
+                # 检查是否是头像文件
+                if filename.lower() == 'avatar.png':
+                    avatar_url = f"/{image_dir}/{filename}"
+                    continue
+                
                 # 提取数字编号
                 name_without_ext = os.path.splitext(filename)[0]
                 try:
@@ -549,10 +556,14 @@ def get_character_images(character_id):
         # 按数字排序
         image_files.sort(key=lambda x: x['number'])
         
+        # 确定默认图片：优先使用1.png，否则使用avatar.png
+        default_image = f"/{image_dir}/1.png" if image_files and image_files[0]['number'] == 1 else (avatar_url if avatar_url else f"/{image_dir}/1.png")
+        
         return jsonify({
             'success': True,
             'images': image_files,
-            'default_image': f"/{image_dir}/1.png"
+            'avatar_url': avatar_url,
+            'default_image': default_image
         })
         
     except Exception as e:
@@ -582,14 +593,25 @@ def create_custom_character():
         character_english_name = request.form.get('characterEnglishName', '')
         theme_color = request.form.get('themeColorText')
         image_offset = request.form.get('imageOffset', '0')
+        scale_rate = request.form.get('scaleRate', '100')
         character_intro = request.form.get('characterIntro')
         character_description = request.form.get('characterDescription')
+        
+        # 获取头像文件
+        avatar_image = request.files.get('avatarImage')
         
         # 验证必填字段
         if not all([character_id, character_name, theme_color, character_intro, character_description]):
             return jsonify({
                 'success': False,
                 'error': '缺少必填字段'
+            }), 400
+        
+        # 验证头像
+        if not avatar_image or not avatar_image.filename:
+            return jsonify({
+                'success': False,
+                'error': '必须上传角色头像'
             }), 400
         
         # 验证角色ID格式
@@ -616,6 +638,17 @@ def create_custom_character():
                 'success': False,
                 'error': '角色立绘校准必须是-100到100之间的整数'
             }), 400
+
+        # 验证缩放率范围
+        try:
+            scale = int(scale_rate)
+            if scale < 1 or scale > 300:
+                raise ValueError()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': '立绘缩放率必须是1到300之间的整数'
+            }), 400
         
         # 处理心情数据
         mood_names = request.form.getlist('mood_name[]')
@@ -640,6 +673,10 @@ def create_custom_character():
         # 创建角色图片目录
         image_dir = Path('static') / 'images' / character_id
         image_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 保存头像
+        avatar_path = image_dir / 'avatar.png'
+        avatar_image.save(str(avatar_path))
         
         # 创建参考音频目录
         ref_audio_dir = Path('data') / 'ref_audio' / character_id
@@ -718,6 +755,7 @@ def create_custom_character():
 CHARACTER_ID = "{character_id}"
 CHARACTER_NAME = "{character_name}"
 CHARACTER_NAME_EN = "{character_english_name}"
+SCALE_RATE = {scale} #缩放率（百分比）
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/{character_id}"  # 角色立绘目录路径
@@ -755,6 +793,7 @@ def get_character_config():
         "name_en": CHARACTER_NAME_EN,
         "image": CHARACTER_IMAGE,
         "calib": CALIB,
+        "scale_rate": SCALE_RATE,
         "color": CHARACTER_COLOR,
         "description": CHARACTER_DESCRIPTION,
         "prompt": CHARACTER_PROMPT,

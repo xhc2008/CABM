@@ -6,6 +6,7 @@
 CHARACTER_ID = "lingyin"
 CHARACTER_NAME = "灵音"
 CHARACTER_NAME_EN = "Lingyin"
+SCALE_RATE = 100 #缩放率（百分比）
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/lingyin"  # 角色立绘目录路径
@@ -69,6 +70,7 @@ def get_character_config():
         "name_en": CHARACTER_NAME_EN,
         "image": CHARACTER_IMAGE,
         "calib": CALIB,
+        "scale_rate": SCALE_RATE,
         "color": CHARACTER_COLOR,
         "description": CHARACTER_DESCRIPTION,
         "prompt": CHARACTER_PROMPT,

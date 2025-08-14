@@ -9,8 +9,9 @@ CHARACTER_NAME_EN = "Collei"
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/Collei"  # 角色立绘目录路径
-CALIB = 80   # 显示位置的校准值（负值向上移动，正值向下移动）
+CALIB = 30   # 显示位置的校准值（负值向上移动，正值向下移动）
 CHARACTER_COLOR = "#00ff00"  # 角色名称颜色
+SCALE_RATE = 50 #缩放率（百分比）
 
 # 角色心情
 MOODS = ['平静', '生气', '紧张', '兴奋', '害怕', '自信', '疑惑']
@@ -43,6 +44,7 @@ def get_character_config():
         "name_en": CHARACTER_NAME_EN,
         "image": CHARACTER_IMAGE,
         "calib": CALIB,
+        "scale_rate": SCALE_RATE,
         "color": CHARACTER_COLOR,
         "description": CHARACTER_DESCRIPTION,
         "prompt": CHARACTER_PROMPT,
