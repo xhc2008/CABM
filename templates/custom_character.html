@@ -6,6 +6,7 @@
     <title>CABM - 自定义角色</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 </head>
 <body>
     <div class="container">
@@ -37,6 +38,17 @@
                         <div class="color-input-group">
                             <input type="text" id="themeColorText" name="themeColorText" class="form-input color-text" placeholder="#000000">
                             <input type="color" id="themeColor" name="themeColor" class="color-picker" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group required">
+                        <label for="avatarImage">角色头像 <span class="required-mark">*</span></label>
+                        <div class="form-description">用于角色选择页面显示，建议正方形图片</div>
+                        <div class="avatar-upload-container">
+                            <input type="file" id="avatarImage" name="avatarImage" class="form-file" accept="image/*" required>
+                            <div id="avatarPreview" class="avatar-preview" style="display: none;">
+                                <img id="avatarPreviewImg" src="" alt="头像预览">
+                                <button type="button" id="cropAvatarButton" class="btn secondary-btn">裁剪头像</button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group required">
@@ -99,6 +111,31 @@
                 </div>
             </div>
         </div>
+        
+        <div class="modal" id="cropModal">
+            <div class="modal-content crop-modal-content">
+                <div class="modal-header">
+                    <h3>裁剪头像</h3>
+                    <button id="closeCropButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="crop-container">
+                        <div class="crop-image-container">
+                            <img id="cropImage" src="" alt="待裁剪图片" style="max-width: 100%; display: block;">
+                        </div>
+                        <div class="crop-controls">
+                            <div class="crop-info">
+                                <span>拖拽调整裁剪区域，支持长方形图片自动适配</span>
+                            </div>
+                            <div class="crop-buttons">
+                                <button id="confirmCropButton" class="btn primary-btn">确认裁剪</button>
+                                <button id="cancelCropButton" class="btn secondary-btn">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="loading-container" id="loadingIndicator">
             <div class="loading-spinner"></div>
             <p>处理中...</p>
@@ -108,6 +145,7 @@
             <button id="errorCloseButton" class="btn">关闭</button>
         </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <script src="/static/js/logo.js"></script>
     <script src="/static/js/custom_character.js"></script>
     <script src="/static/js/sci-fi-effects.js"></script>

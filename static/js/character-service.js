@@ -123,10 +123,22 @@ function renderCharacterList() {
         const imageContainer = document.createElement('div');
         imageContainer.className = 'character-card-image';
         const image = document.createElement('img');
-        image.src = character.image.endsWith('/')
+        // 优先使用avatar.png，如果不存在则使用第一张立绘
+        const avatarUrl = character.image.endsWith('/')
+            ? `${character.image}avatar.png`
+            : `${character.image}/avatar.png`;
+        const fallbackUrl = character.image.endsWith('/')
             ? `${character.image}1.png`
             : `${character.image}/1.png`;
+        
+        image.src = avatarUrl;
         image.alt = character.name;
+        
+        // 如果avatar.png加载失败，使用第一张立绘作为后备
+        image.onerror = function() {
+            this.src = fallbackUrl;
+        };
+        
         imageContainer.appendChild(image);
 
         const name = document.createElement('div');
