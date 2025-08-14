@@ -42,7 +42,7 @@
                     </div>
                     <div class="form-group required">
                         <label for="avatarImage">角色头像 <span class="required-mark">*</span></label>
-                        <div class="form-description">用于角色选择页面显示，建议正方形图片</div>
+                        <div class="form-description">用于角色选择页面显示</div>
                         <div class="avatar-upload-container">
                             <input type="file" id="avatarImage" name="avatarImage" class="form-file" accept="image/*" required>
                             <div id="avatarPreview" class="avatar-preview" style="display: none;">
@@ -55,6 +55,11 @@
                         <label for="imageOffset">角色立绘校准 <span class="required-mark">*</span></label>
                         <div class="form-description">调整立绘位置，负值为上，正值为下</div>
                         <input type="number" id="imageOffset" name="imageOffset" class="form-input" min="-100" max="100" value="0" required>
+                    </div>
+                    <div class="form-group required">
+                        <label for="scaleRate">立绘缩放率 <span class="required-mark">*</span></label>
+                        <div class="form-description">调整立绘大小，100为原始大小，数值越大图片越大</div>
+                        <input type="number" id="scaleRate" name="scaleRate" class="form-input" min="1" max="300" value="100" required>
                     </div>
                     <div class="form-group required">
                         <label for="characterIntro">角色简介 <span class="required-mark">*</span></label>
@@ -125,7 +130,7 @@
                         </div>
                         <div class="crop-controls">
                             <div class="crop-info">
-                                <span>拖拽调整裁剪区域，支持长方形图片自动适配</span>
+                                <span>拖拽调整裁剪区域</span>
                             </div>
                             <div class="crop-buttons">
                                 <button id="confirmCropButton" class="btn primary-btn">确认裁剪</button>

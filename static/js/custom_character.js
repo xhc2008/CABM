@@ -241,6 +241,7 @@ class CustomCharacterManager {
             { name: 'characterName', label: '角色名' },
             { name: 'themeColorText', label: '主题颜色' },
             { name: 'imageOffset', label: '角色立绘校准' },
+            { name: 'scaleRate', label: '立绘缩放率' },
             { name: 'characterIntro', label: '角色简介' },
             { name: 'characterDescription', label: '角色描述' }
         ];
@@ -262,6 +263,12 @@ class CustomCharacterManager {
         const imageOffset = parseInt(formData.get('imageOffset'));
         if (isNaN(imageOffset) || imageOffset < -100 || imageOffset > 100) {
             errors.push('角色立绘校准必须是-100到100之间的整数');
+        }
+
+        // 验证缩放率范围
+        const scaleRate = parseInt(formData.get('scaleRate'));
+        if (isNaN(scaleRate) || scaleRate < 1 || scaleRate > 300) {
+            errors.push('立绘缩放率必须是1到300之间的整数');
         }
 
         // 验证心情设置

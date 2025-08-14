@@ -69,6 +69,7 @@ def get_character_config(character_id: Optional[str] = None) -> Dict[str, Any]:
             "name_en": "AI Assistant",
             "image": "static/images/default/1.png",
             "calib": 0,
+            "scale_rate": 100,
             "color": "#ffffff",
             "description": "默认AI助手",
             "prompt": "你是一个有用的AI助手。",
@@ -80,6 +81,10 @@ def get_character_config(character_id: Optional[str] = None) -> Dict[str, Any]:
     if "image" in config and config["image"].startswith("data/"):
         # 将data路径转换为URL路径
         config["image"] = "/" + config["image"]
+    
+    # 确保所有必要字段都有默认值
+    if "scale_rate" not in config:
+        config["scale_rate"] = 100
     
     return config
 

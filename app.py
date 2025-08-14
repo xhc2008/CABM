@@ -593,6 +593,7 @@ def create_custom_character():
         character_english_name = request.form.get('characterEnglishName', '')
         theme_color = request.form.get('themeColorText')
         image_offset = request.form.get('imageOffset', '0')
+        scale_rate = request.form.get('scaleRate', '100')
         character_intro = request.form.get('characterIntro')
         character_description = request.form.get('characterDescription')
         
@@ -636,6 +637,17 @@ def create_custom_character():
             return jsonify({
                 'success': False,
                 'error': '角色立绘校准必须是-100到100之间的整数'
+            }), 400
+
+        # 验证缩放率范围
+        try:
+            scale = int(scale_rate)
+            if scale < 1 or scale > 300:
+                raise ValueError()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': '立绘缩放率必须是1到300之间的整数'
             }), 400
         
         # 处理心情数据
@@ -743,6 +755,7 @@ def create_custom_character():
 CHARACTER_ID = "{character_id}"
 CHARACTER_NAME = "{character_name}"
 CHARACTER_NAME_EN = "{character_english_name}"
+SCALE_RATE = {scale} #缩放率（百分比）
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/{character_id}"  # 角色立绘目录路径
@@ -780,6 +793,7 @@ def get_character_config():
         "name_en": CHARACTER_NAME_EN,
         "image": CHARACTER_IMAGE,
         "calib": CALIB,
+        "scale_rate": SCALE_RATE,
         "color": CHARACTER_COLOR,
         "description": CHARACTER_DESCRIPTION,
         "prompt": CHARACTER_PROMPT,
