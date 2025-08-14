@@ -127,8 +127,7 @@ def chat_page():
     # 将背景路径转换为URL
     background_url = None
     if background:
-        rel_path = os.path.relpath(background, start=app.static_folder)
-        background_url = f"/static/{rel_path.replace(os.sep, '/')}"
+        background_url = f"/static/images/cache/{os.path.basename(background)}"
     # 检查默认角色图片是否存在，如果不存在则创建一个提示
     character_image_path = os.path.join(app.static_folder, 'images', 'default', '1.png')
     if not os.path.exists(character_image_path):
