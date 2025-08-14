@@ -134,6 +134,7 @@ APP_CONFIG = {
     "max_history_length": 8,  # 最大对话历史长度（发送给AI的上下文长度）
     "history_dir": "data/history",  # 历史记录存储目录
     "show_scene_name": True,  # 是否在前端显示场景名称
+    "show_logo_splash": get_env_var("SHOW_LOGO_SPLASH", "True").lower() == "true",  # 是否显示启动logo动画
     "auto_open_browser": get_env_var("AUTO_OPEN_BROWSER", "True").lower() == "true",  # 是否自动打开浏览器（会自动使用本地IP地址）
     "clean_assistant_history": get_env_var("CLEAN_ASSISTANT_HISTORY", "True").lower() == "true",  # 已弃用：JSON格式下不再需要清理【】标记
 }
