@@ -27,16 +27,6 @@ jobs:
           python-version: '3.10'
           architecture: 'x64'
 
-      - name: ⚙️ Install Visual Studio Build Tools
-        shell: pwsh
-        run: |
-          # 安装 VS 2022 构建工具（包含 C++ 编译器）
-          choco install visualstudio2022buildtools --no-progress --yes `
-            --package-parameters="'--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'"
-          
-          # 验证安装
-          vswhere.exe -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64
-
       - name: 🧹 Read .nobuild file and clean excluded files
         shell: pwsh
         run: |
@@ -98,7 +88,7 @@ jobs:
           }
           
           # 构建 EXE (使用cmd.exe执行，避免PowerShell解析问题)
-          cmd.exe /c "python -m nuitka --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py"
+          cmd.exe /c "python -m nuitka --standalone --mingw64 --windows-console-mode=disable --accept-downloads --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py"
 
           # 保留 characters 目录（DLC 插件）
           if (Test-Path "characters") {
