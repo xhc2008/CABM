@@ -12,3 +12,8 @@ cabm-gui.ps1
 .gitignore
 .gitattributes
 .dockerignore
+CONTRIBUTING.md
+start.bat
+start.sh
+README.md
+environment.yaml

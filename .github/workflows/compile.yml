@@ -31,22 +31,7 @@ jobs:
         shell: pwsh
         run: |
           # 读取.nobuild文件中的排除列表
-          $excludedFiles = @(
-            "docker-compose.dockerhub.yml",
-            "docker-compose.yml",
-            "Dockerfile",
-            "package-lock.json",
-            "package.json",
-            "release.sh",
-            "deploy.ps1",
-            "deploy.sh",
-            "deploy-docker.sh",
-            "cabm-gui.ps1",
-            "启动沙雕UI第二代.bat",
-            ".gitignore",
-            ".gitattributes",
-            ".dockerignore"
-          )
+          $excludedFiles = @()
           
           # 添加.nobuild文件中指定的文件
           if (Test-Path ".nobuild") {
@@ -79,7 +64,7 @@ jobs:
         shell: pwsh
         run: |
           # 构建 EXE (直接使用python命令)
-          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py
+          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py
 
           # 保留 characters 目录（DLC 插件）
           if (Test-Path "characters") {
