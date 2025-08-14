@@ -404,4 +404,10 @@ body {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+    
+    /* 立绘动画也遵循减少动画偏好 */
+    .character-jump,
+    .character-breathing {
+        animation: none !important;
+    }
 }
