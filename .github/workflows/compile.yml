@@ -4,12 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. v1.0.0)'
+        description: '构建版本号 (e.g. v1.0.0)'
         required: true
         default: 'v1.0.0'
       release_name:
-        description: 'Release title (optional)'
-        required: false
+        description: '构建名称 (optional)'
+        required: true
+        default: 'v1.0.0'
+      release_text:
+        description: '构建描述 (optional)'
+        required: true
+        default: 'Windows 编译版本'
 
 permissions:
   contents: write
@@ -31,22 +36,7 @@ jobs:
         shell: pwsh
         run: |
           # 读取.nobuild文件中的排除列表
-          $excludedFiles = @(
-            "docker-compose.dockerhub.yml",
-            "docker-compose.yml",
-            "Dockerfile",
-            "package-lock.json",
-            "package.json",
-            "release.sh",
-            "deploy.ps1",
-            "deploy.sh",
-            "deploy-docker.sh",
-            "cabm-gui.ps1",
-            "启动沙雕UI第二代.bat",
-            ".gitignore",
-            ".gitattributes",
-            ".dockerignore"
-          )
+          $excludedFiles = @()
           
           # 添加.nobuild文件中指定的文件
           if (Test-Path ".nobuild") {
@@ -79,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           # 构建 EXE (直接使用python命令)
-          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py
+          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py
 
           # 保留 characters 目录（DLC 插件）
           if (Test-Path "characters") {
@@ -135,5 +125,5 @@ jobs:
         run: |
           gh release create "${{ inputs.version }}" `
             --title "${{ inputs.release_name || inputs.version }}" `
-            --notes "Windows release built with Nuitka (standalone mode, with console)" `
+            --notes "${{ inputs.release_text }}" `
             "Windows-Release-${{ inputs.version }}.zip"
