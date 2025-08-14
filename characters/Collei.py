@@ -11,7 +11,7 @@ CHARACTER_NAME_EN = "Collei"
 CHARACTER_IMAGE = "static/images/Collei"  # 角色立绘目录路径
 CALIB = 30   # 显示位置的校准值（负值向上移动，正值向下移动）
 CHARACTER_COLOR = "#00ff00"  # 角色名称颜色
-SCALE_RATE = 60 #缩放率（百分比）
+SCALE_RATE = 50 #缩放率（百分比）
 
 # 角色心情
 MOODS = ['平静', '生气', '紧张', '兴奋', '害怕', '自信', '疑惑']
