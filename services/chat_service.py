@@ -7,7 +7,7 @@ import json
 import time
 import re
 import os
-from typing import List, Dict, Any, Optional, Generator, Union, Tuple
+from typing import List, Dict, Any, Optional, Iterator, Union, Tuple
 from pathlib import Path
 
 # 添加项目根目录到系统路径
@@ -48,6 +48,10 @@ class Message:
 
 
 
+import logging
+from openai import OpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential
+
 class ChatService:
     """对话服务类"""
     
@@ -55,6 +59,7 @@ class ChatService:
         """初始化对话服务"""
         self.history: List[Message] = []
         self.config_service = config_service
+        self.logger = logging.getLogger(__name__)
         
         # 确保配置服务已初始化
         if not self.config_service.initialized:
@@ -75,16 +80,38 @@ class ChatService:
         # 初始化当前角色的记忆数据库
         self._initialize_character_memory()
         
+        # 初始化OpenAI客户端
         self.openai_answer = True
         try:
-            from openai import OpenAI
+            # 获取环境变量
+            api_key = os.getenv("CHAT_API_KEY")
+            base_url = os.getenv("CHAT_API_BASE_URL")
+            model = os.getenv("CHAT_MODEL", "gpt-3.5-turbo")
+            
+            # 验证必要的环境变量
+            if not api_key:
+                self.logger.error("缺少CHAT_API_KEY环境变量")
+                raise ValueError("Missing CHAT_API_KEY environment variable")
+                
+            if not base_url:
+                self.logger.warning("未设置CHAT_API_BASE_URL，将使用默认API地址")
+                base_url = "https://api.openai.com/v1"
+            
+            # 初始化客户端（带重试和超时配置）
             self.client = OpenAI(
-                api_key=os.getenv("CHAT_API_KEY"), 
-                base_url=os.getenv("CHAT_API_BASE_URL")
+                api_key=api_key,
+                base_url=base_url,
+                timeout=60.0,  # 60秒超时
+                max_retries=3  # 最多重试3次
             )
+            self.chat_model = model
+            
         except ImportError:
             self.openai_answer = False
-            print("未找到openai模块，请安装openai模块")
+            self.logger.error("未找到openai模块，请安装openai模块")
+        except Exception as e:
+            self.openai_answer = False
+            self.logger.error(f"OpenAI客户端初始化失败: {e}")
     
     def add_message(self, role: str, content: str) -> Message:
         """
@@ -120,14 +147,24 @@ class ChatService:
         
         return message
     
-    def clear_history(self, keep_system: bool = True, clear_persistent: bool = False) -> None:
+    def clear_history(self, keep_system: bool = True, clear_persistent: bool = False, confirm: bool = False) -> None:
         """
         清空对话历史
         
         Args:
             keep_system: 是否保留system消息
             clear_persistent: 是否清空持久化历史记录
+            confirm: 是否已确认清空操作（对于危险操作的安全确认）
+        
+        Raises:
+            ValueError: 当尝试清空持久化历史但未确认时
         """
+        if clear_persistent and not confirm:
+            raise ValueError("清空持久化历史记录需要确认操作")
+        
+        character_id = self.config_service.current_character_id or "default"
+        self.logger.info(f"正在清空历史记录 - 角色: {character_id}, 保留系统消息: {keep_system}, 清空持久化: {clear_persistent}")
+        
         if keep_system:
             self.history = [msg for msg in self.history if msg.role == "system"]
         else:
@@ -135,8 +172,9 @@ class ChatService:
             
         # 如果需要清空持久化历史记录
         if clear_persistent:
-            character_id = self.config_service.current_character_id or "default"
+            self.logger.warning(f"正在清空持久化历史记录 - 角色: {character_id}")
             self.history_manager.clear_history(character_id)
+            self.logger.info("持久化历史记录已清空")
     
     def get_history(self) -> List[Message]:
         """获取对话历史"""
@@ -148,7 +186,7 @@ class ChatService:
     
     def set_system_prompt(self, prompt_type: str = "default") -> None:
         """
-        设置系统提示词
+        设置系统提示词（统一由config_service处理拼接）
         
         Args:
             prompt_type: 提示词类型，如果为"character"则使用当前角色的提示词
@@ -156,9 +194,10 @@ class ChatService:
         # 移除现有的system消息
         self.history = [msg for msg in self.history if msg.role != "system"]
         
-        # 添加新的system消息
+        # 统一由config_service拼接系统提示词
         system_prompt = self.config_service.get_system_prompt(prompt_type)
         self.add_message("system", system_prompt)
+        self.logger.info(f"系统提示词已设置: {system_prompt[:50]}...")
     
     def _load_history_on_startup(self):
         """在启动时加载历史记录到内存"""
@@ -226,40 +265,38 @@ class ChatService:
         """
         return self.config_service.get_character_config()
         
-    def load_persistent_history(self, count: Optional[int] = None) -> List[Dict[str, str]]:
+    def load_persistent_history(self, count: Optional[int] = None) -> List[Message]:
         """
         加载持久化历史记录
         
         Args:
             count: 加载的消息数量，如果为None则使用配置中的值
-            
         Returns:
-            历史记录列表
+            历史记录列表（Message对象）
         """
         character_id = self.config_service.current_character_id or "default"
         if count is None:
             count = self.config_service.get_app_config()["max_history_length"]
-        
-        return self.history_manager.load_history(character_id, count)
+        raw_msgs = self.history_manager.load_history(character_id, count)
+        return [Message.from_dict(msg) for msg in raw_msgs]
     
     def chat_completion(
         self, 
         messages: Optional[List[Dict[str, str]]] = None, 
         stream: bool = True,
-        user_query: str = None
-    ) -> Union[Dict[str, Any], Generator[Dict[str, Any], None, None]]:
+        user_query: str = None,
+        on_token=None
+    ) -> Iterator[str]:
         """
-        调用对话API（集成记忆检索）
+        调用对话API（集成记忆检索，仅流式返回）
         
         Args:
             messages: 消息列表，如果为None则使用历史记录
             stream: 是否使用流式输出
             user_query: 用户查询，用于记忆检索和日志记录
-            
+            on_token: 可选，流式生成时每个token的回调
         Returns:
-            如果stream为False，返回完整响应
-            如果stream为True，返回生成器，逐步产生响应
-            
+            迭代器，每次yield一个字符串token
         Raises:
             APIError: 当API调用失败时
         """
@@ -278,13 +315,10 @@ class ChatService:
             # 使用内存中的历史记录（已经包含了从持久化存储加载的记录）
             messages = self.format_messages()
             
-            # 确保系统提示词中包含角色设定
+            # 确保系统提示词中包含角色设定（统一由config_service处理）
             has_system_message = any(msg.get("role") == "system" for msg in messages)
             if not has_system_message:
-                # 如果没有系统消息，添加一个
-                character_config = self.config_service.get_character_config()
-                general_prompt = self.config_service.get_system_prompt("default")
-                system_prompt = f"{general_prompt}\n\n{character_config['prompt']}"
+                system_prompt = self.config_service.get_system_prompt("default")
                 messages.insert(0, {"role": "system", "content": system_prompt})
         
         # 如果有用户查询，进行记忆检索
@@ -307,7 +341,7 @@ class ChatService:
                             break
                             
             except Exception as e:
-                print(f"记忆检索失败: {e}")
+                self.logger.error(f"记忆检索失败: {e}")
                 memory_context = ""
         
         # 记录完整提示词到日志
@@ -319,7 +353,7 @@ class ChatService:
                 user_query=user_query
             )
         except Exception as e:
-            print(f"记录提示词日志失败: {e}")
+            self.logger.error(f"记录提示词日志失败: {e}")
         
         try:
             # 发送API请求
@@ -408,6 +442,23 @@ class ChatService:
             error_info = handle_api_error(e)
             raise APIError(error_info["error"], e.status_code, error_info)
 
+    async def chat_completion_async(self, messages: Optional[List[Dict[str, str]]] = None, 
+                                user_query: str = None) -> Iterator[str]:
+        """
+        异步对话API调用（预留接口）
+        
+        Args:
+            messages: 消息列表
+            user_query: 用户查询
+            
+        Returns:
+            Iterator[str]: 流式响应
+            
+        Note:
+            此为预留接口，将在未来实现异步支持
+        """
+        raise NotImplementedError("异步支持将在未来版本实现")
+
 # 创建全局对话服务实例
 chat_service = ChatService()
 
@@ -416,7 +467,7 @@ if __name__ == "__main__":
     try:
         # 初始化配置
         if not config_service.initialize():
-            print("配置初始化失败")
+            logging.error("配置初始化失败")
             sys.exit(1)
         
         # 设置系统提示词
@@ -425,24 +476,21 @@ if __name__ == "__main__":
         # 添加用户消息
         chat_service.add_message("user", "你好，请介绍一下自己")
         
-        # 调用API（非流式）
-        print("发送API请求...")
-        response = chat_service.chat_completion(stream=False)
-        
-        # 打印响应
-        print("\nAPI响应:")
-        print(json.dumps(response, ensure_ascii=False, indent=2))
+        # 调用API（流式）
+        logging.info("发送API请求...")
+        for token in chat_service.chat_completion(stream=True):
+            print(token, end="", flush=True)
         
         # 打印对话历史
-        print("\n对话历史:")
+        logging.info("\n对话历史:")
         for msg in chat_service.get_history():
-            print(f"{msg.role}: {msg.content[:50]}...")
+            logging.info(f"{msg.role}: {msg.content[:50]}...")
         
     except APIError as e:
-        print(f"API错误: {e.message}")
+        logging.error(f"API错误: {e.message}")
         if hasattr(e, "response") and e.response:
-            print(f"详细信息: {e.response}")
+            logging.error(f"详细信息: {e.response}")
         sys.exit(1)
     except Exception as e:
-        print(f"发生错误: {str(e)}")
+        logging.error(f"发生错误: {str(e)}")
         sys.exit(1)

@@ -99,11 +99,8 @@ export async function sendMessage() {
                 addToHistory('assistant', newContent, characterName);
                 updateCurrentMessage('assistant', newContent);
                 addedToHistoryLength = fullContent.length;
-                showContinuePrompt();
-            } else {
-                showContinuePrompt();
             }
-            
+            showContinuePrompt();
             // 重置句子跟踪变量
             lastPlayedLength = 0;
             isFirstSentence = true;
@@ -238,7 +235,8 @@ export async function sendMessage() {
                             }
 
                             // 处理选项数据
-                            if (data.options) {
+                            if (data.options && Array.isArray(data.options)) {
+                                console.log('收到选项数据:', data.options);
                                 window.pendingOptions = data.options;
                             }
                         } catch (e) {

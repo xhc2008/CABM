@@ -74,44 +74,15 @@ window.addEventListener('unhandledrejection', (event) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        console.log('开始初始化CABM应用...');
-        
-        // 加载角色数据
-        loadCharacters();
-
-        // 绑定页面切换事件
-        startButton.addEventListener('click', showChatPage);
-        backButton.addEventListener('click', confirmBackToHome);
-        exitButton.addEventListener('click', confirmExit);
-
-        // 绑定对话事件
-        // sendButton 的点击事件已经在 input-enhancements.js 中处理
-        playaudioButton.addEventListener('click', () => playAudio(getCurrentCharacter(), false)); // 用户主动播放
-        backgroundButton.addEventListener('click', changeBackground);
-        historyButton.addEventListener('click', toggleHistory);
-        closeHistoryButton.addEventListener('click', toggleHistory);
-        characterButton.addEventListener('click', toggleCharacterModal);
-        closeCharacterButton.addEventListener('click', toggleCharacterModal);
-        continueButton.addEventListener('click', continueOutput);
-        //skipButton.addEventListener('click', skipTyping);
-        micButton.addEventListener('click', () => toggleRecording(messageInput, micButton, showError));
-        errorCloseButton.addEventListener('click', hideError);
-
-        // 绑定确认对话框事件
-        confirmYesButton.addEventListener('click', handleConfirmYes);
-        confirmNoButton.addEventListener('click', handleConfirmNo);
-        closeConfirmButton.addEventListener('click', hideConfirmModal);
-
-        // 键盘快捷键已经在 input-enhancements.js 中处理
-
-        // 绑定点击事件继续输出
-        currentMessage.addEventListener('click', continueOutput);
-        clickToContinue.addEventListener('click', continueOutput);
-        
-        console.log('CABM应用初始化完成');
+        console.log('主页初始化...');
+        // 主页只需要绑定主页按钮
+        // 主页按钮跳转已用<a>标签实现，无需JS跳转
+        exitButton?.addEventListener('click', () => {
+            window.close();
+        });
+        console.log('主页初始化完成');
     } catch (error) {
-        console.error('初始化失败:', error);
-        showError(`初始化失败: ${error.message}`);
+        console.error('主页初始化失败:', error);
     }
 });
 

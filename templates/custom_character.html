@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CABM - 自定义角色</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+</head>
+<body>
+    <div class="container">
+        <div id="customCharacterPage" class="page active">
+            <div class="custom-character-background"></div>
+            <div class="custom-character-header">
+                <a href="/" class="btn back-btn">返回</a>
+                <h2>自定义角色</h2>
+            </div>
+            <div class="custom-character-container">
+                <form id="customCharacterForm" class="custom-character-form">
+                    <div class="form-group required">
+                        <label for="characterId">角色ID <span class="required-mark">*</span></label>
+                        <div class="form-description" id="characterIdDesc">必须是英文字母、数字或下划线</div>
+                        <input type="text" id="characterId" name="characterId" class="form-input" required>
+                    </div>
+                    <div class="form-group required">
+                        <label for="characterName">角色名 <span class="required-mark">*</span></label>
+                        <div class="form-description">角色的名字</div>
+                        <input type="text" id="characterName" name="characterName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="characterEnglishName">角色英文名</label>
+                        <input type="text" id="characterEnglishName" name="characterEnglishName" class="form-input">
+                    </div>
+                    <div class="form-group required">
+                        <label for="themeColor">主题颜色 <span class="required-mark">*</span></label>
+                        <div class="form-description">角色名字的颜色</div>
+                        <div class="color-input-group">
+                            <input type="text" id="themeColorText" name="themeColorText" class="form-input color-text" placeholder="#000000">
+                            <input type="color" id="themeColor" name="themeColor" class="color-picker" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group required">
+                        <label for="imageOffset">角色立绘校准 <span class="required-mark">*</span></label>
+                        <div class="form-description">调整立绘位置，负值为上，正值为下</div>
+                        <input type="number" id="imageOffset" name="imageOffset" class="form-input" min="-100" max="100" value="0" required>
+                    </div>
+                    <div class="form-group required">
+                        <label for="characterIntro">角色简介 <span class="required-mark">*</span></label>
+                        <div class="form-description">此内容不会发送给AI</div>
+                        <textarea id="characterIntro" name="characterIntro" class="form-textarea" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group required">
+                        <label for="characterDescription">角色描述 <span class="required-mark">*</span></label>
+                        <div class="form-description">尽量简短，只包含基本设定、说话风格</div>
+                        <textarea id="characterDescription" name="characterDescription" class="form-textarea" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group required">
+                        <label>角色心情设置 <span class="required-mark">*</span></label>
+                        <div class="form-description">即使没有足够的素材，也建议至少四个</div>
+                        <div class="mood-table">
+                            <div class="mood-table-header">
+                                <div class="mood-header-cell">心情 <span class="required-mark">*</span></div>
+                                <div class="mood-header-cell">角色立绘 <span class="required-mark">*</span></div>
+                                <div class="mood-header-cell">参考音频</div>
+                                <div class="mood-header-cell">参考文本</div>
+                                <div class="mood-header-cell">操作</div>
+                            </div>
+                            <div id="moodTableBody" class="mood-table-body">
+                            </div>
+                            <button type="button" id="addMoodButton" class="btn secondary-btn add-mood-btn">+ 添加心情</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="characterDetails">角色详细信息（暂不支持）</label>
+                        <div class="form-description">角色的背景故事、人物细节等，只支持纯文本</div>
+                        <input type="file" id="characterDetails" name="characterDetails" class="form-file" multiple accept=".txt">
+                        <div id="selectedFiles" class="selected-files"></div>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn primary-btn">完成</button>
+                        <button type="button" id="cancelButton" class="btn secondary-btn">取消</button>
+                        <button type="button" id="saveDraftButton" class="btn secondary-btn">存草稿</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="modal" id="confirmModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>确认</h3>
+                    <button id="closeConfirmButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage">确定要执行此操作吗？</p>
+                    <div class="confirm-buttons">
+                        <button id="confirmYesButton" class="btn primary-btn">确定</button>
+                        <button id="confirmNoButton" class="btn secondary-btn">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="loading-container" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <p>处理中...</p>
+        </div>
+        <div class="error-container" id="errorContainer">
+            <p id="errorMessage"></p>
+            <button id="errorCloseButton" class="btn">关闭</button>
+        </div>
+    </div>
+    <script src="/static/js/logo.js"></script>
+    <script src="/static/js/custom_character.js"></script>
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

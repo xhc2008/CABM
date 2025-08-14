@@ -101,14 +101,20 @@ def convert_to_16k_wav(input_path, output_path):
     return output_path
 
 @app.route('/')
-def index():
-    """首页"""
-    global need_config
+def home():
+    """
+    访问主页
+    """
+    # 如果需要配置，重定向到配置页
     if need_config:
         return render_template('config.html')
+    return render_template('index.html')
+
+@app.route('/chat')
+def chat_page():
+    """聊天页面"""
     # 获取当前背景图片
     background = image_service.get_current_background()
-    
     # 如果没有背景图片，生成一个
     if not background:
         try:
@@ -118,31 +124,24 @@ def index():
         except Exception as e:
             print(f"背景图片生成失败: {str(e)}")
             traceback.print_exc()
-    
     # 将背景路径转换为URL
     background_url = None
     if background:
-        # 从绝对路径转换为相对URL
         rel_path = os.path.relpath(background, start=app.static_folder)
         background_url = f"/static/{rel_path.replace(os.sep, '/')}"
-    
     # 检查默认角色图片是否存在，如果不存在则创建一个提示
     character_image_path = os.path.join(app.static_folder, 'images', 'default', '1.png')
     if not os.path.exists(character_image_path):
         print(f"警告: 默认角色图片不存在: {character_image_path}")
         print("请将角色图片放置在 static/images/default/1.png")
-    
     # 获取当前场景
     current_scene = scene_service.get_current_scene()
     scene_data = current_scene.to_dict() if current_scene else None
-    
     # 获取应用配置
     app_config = config_service.get_app_config()
     show_scene_name = app_config.get("show_scene_name", True)
-    
-    # 渲染模板
     return render_template(
-        'index.html',
+        'chat.html',
         background_url=background_url,
         current_scene=scene_data,
         show_scene_name=show_scene_name
@@ -567,6 +566,11 @@ def get_character_images(character_id):
 def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
+
+@app.route('/custom_character')
+def custom_character_page():
+    """自定义角色页面"""
+    return render_template('custom_character.html')
 
 @app.route('/api/custom-character', methods=['POST'])
 def create_custom_character():

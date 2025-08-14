@@ -363,7 +363,11 @@ body {
     justify-content: center;
     align-items: center;
 }
-
+@media (max-width: 600px) {
+    .character-img {
+        max-width: 220%;
+    }
+}
 .character-image img {
     max-width: 100%;
     max-height: 100%;

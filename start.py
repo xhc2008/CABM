@@ -74,44 +74,6 @@ def get_logo(height, width, logo):
     return result
 print(get_logo(int(height),int(width), random_logo()))
 
-#获得终端长与宽
-try:
-    height = int(os.get_terminal_size().lines)
-    width = int(os.get_terminal_size().columns)
-except OSError:
-    # Docker容器环境下的默认值
-    height = 24
-    width = 80
-def findLen(str): 
-    counter = 0
-    while str[counter:]: 
-        counter += 1
-    return counter 
-def get_logo(height, width, logo):
-    result = ""
-    if height < len(logo)+1:
-        if logo == LITTLE_LOGO:
-            return  get_logo(height, width, MINI_LOGO)
-        if logo == MINI_LOGO:
-            return "CABM"
-        return get_logo(height, width, LITTLE_LOGO)
-    for line in logo:
-        if int(findLen(line)) > int(width):
-            if logo == LITTLE_LOGO:
-                return  get_logo(height, width, MINI_LOGO)
-            if logo == MINI_LOGO:
-                return "CABM"
-            return get_logo(height, width, LITTLE_LOGO)
-        if int(len(line) - width) % 2 != 0:
-            air = int(((width - len(line)) - 1) / 2) * " "
-            air2 = int(((width - len(line)) + 1) / 2) * " "
-            result += air + line + air2 + "\n"
-        else:
-            air = int((width - len(line)) / 2) * " "
-            result += air + line + air + "\n"
-    return result
-print(get_logo(int(height),int(width), random_logo()))
-
 def setup_environment():
     """设置环境"""
     try:

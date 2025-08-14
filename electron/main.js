@@ -117,15 +117,9 @@ app.on('window-all-closed', () => {
       path: '/api/exit',
       method: 'POST',
     }, (res) => {
-      console.log('已通知后端退出（POST），状态码:', res.statusCode);
-      res.resume();
+      console.log('退出请求已发送，状态码:', res.statusCode);
       app.quit();
     });
-    req.on('error', (err) => {
-      console.error('通知后端退出失败:', err);
-      app.quit();
-    });
-    req.end();
   }
 });
 
