@@ -381,6 +381,7 @@ body {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    transform-origin: center center; /* 确保缩放以图片中心为原点 */
 }
 
 /* 用户输入区域样式 - 右上角 - 优化布局 */
@@ -906,6 +907,54 @@ body {
     }
 }
 
+/* 立绘跳跃动画 - 2D立绘常见的轻快跳跃效果 */
+/* 使用JavaScript动态计算的跳跃距离，已考虑缩放率 */
+@keyframes characterJump {
+    0% {
+        transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+    }
+    
+    25% {
+        transform: translateY(var(--jump-distance-25, -12px)) scale(calc(var(--base-scale, 1) * 1.03)) scaleY(0.98);
+    }
+    
+    50% {
+        transform: translateY(var(--jump-distance-50, -20px)) scale(calc(var(--base-scale, 1) * 1.01)) scaleY(1.02);
+    }
+    
+    75% {
+        transform: translateY(var(--jump-distance-75, -5px)) scale(calc(var(--base-scale, 1) * 0.99)) scaleY(0.99);
+    }
+    
+    100% {
+        transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+    }
+}
+
+.character-jump {
+    animation: characterJump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 立绘呼吸动画 - 模拟角色呼吸的Y轴拉伸收缩 */
+@keyframes characterBreathe {
+    0% {
+        transform: scale(var(--base-scale, 1)) scaleY(1);
+    }
+    
+    50% {
+        transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.02));
+    }
+    
+    100% {
+        transform: scale(var(--base-scale, 1)) scaleY(1);
+    }
+}
+
+.character-breathing {
+    animation: characterBreathe 4s ease-in-out infinite;
+    transform-origin: center center; /* 使用中心原点，与容器缩放保持一致 */
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .home-header h1 {
@@ -988,6 +1037,53 @@ body {
         backdrop-filter: blur(5px);
         /* 减少模糊强度 */
     }
+
+    /* 移动端立绘跳跃动画优化 - 使用JavaScript动态计算的距离 */
+    @keyframes characterJump {
+        0% {
+            transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+        }
+        
+        25% {
+            transform: translateY(var(--jump-distance-25, -8px)) scale(calc(var(--base-scale, 1) * 1.02)) scaleY(0.99);
+        }
+        
+        50% {
+            transform: translateY(var(--jump-distance-50, -12px)) scale(calc(var(--base-scale, 1) * 1.01)) scaleY(1.01);
+        }
+        
+        75% {
+            transform: translateY(var(--jump-distance-75, -3px)) scale(calc(var(--base-scale, 1) * 0.995)) scaleY(0.995);
+        }
+        
+        100% {
+            transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+        }
+    }
+
+    .character-jump {
+        animation: characterJump 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* 移动端呼吸动画优化 - 使用相同的CSS变量但可以调整基础值 */
+    @keyframes characterBreathe {
+        0% {
+            transform: scale(var(--base-scale, 1)) scaleY(1);
+        }
+        
+        50% {
+            transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.015));
+        }
+        
+        100% {
+            transform: scale(var(--base-scale, 1)) scaleY(1);
+        }
+    }
+
+    .character-breathing {
+        animation: characterBreathe 3.5s ease-in-out infinite;
+        transform-origin: center center; /* 使用中心原点，与容器缩放保持一致 */
+    }
 }
 
 /* 超小屏幕优化 */
@@ -1068,6 +1164,21 @@ body {
         padding: 1rem;
         min-width: 50px;
         height: 50px;
+    }
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    /* 立绘动画也遵循减少动画偏好 */
+    .character-jump,
+    .character-breathing {
+        animation: none !important;
     }
 }
 
