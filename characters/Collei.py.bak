@@ -1,5 +1,5 @@
 """
-角色配置文件: 柯莱
+角色配置文件: 柯莱（已迁移为 Collei.toml，仅供备份）
 """
 
 # 角色基本信息
@@ -36,6 +36,8 @@ CHARACTER_EXAMPLES = [
 ]
 
 # 获取角色配置
+# 已迁移为 TOML 格式，建议使用 Collei.toml 进行角色管理
+
 def get_character_config():
     """获取角色配置"""
     return {
