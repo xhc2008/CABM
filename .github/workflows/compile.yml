@@ -78,17 +78,8 @@ jobs:
       - name: 🖥️ Build Windows executable with Nuitka
         shell: pwsh
         run: |
-          # 设置 MSVC 环境（Nuitka 需要）
-          $vsPath = vswhere.exe -latest -property installationPath
-          $vcVarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
-          cmd.exe /c "`"$vcVarsPath`" amd64 && set" | ForEach-Object {
-              if ($_ -match "(\w+)=(.*)") {
-                  [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-              }
-          }
-          
           # 构建 EXE (使用cmd.exe执行，避免PowerShell解析问题)
-          cmd.exe /c "python -m nuitka --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py"
+          echo Yes | cmd.exe /c "python -m nuitka --standalone --mingw64 --windows-console-mode=disable --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --output-dir=dist start.py"
 
           # 保留 characters 目录（DLC 插件）
           if (Test-Path "characters") {
