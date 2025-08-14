@@ -587,6 +587,9 @@ def custom_character_page():
 def create_custom_character():
     """创建自定义角色API"""
     try:
+        import rtoml
+        from utils.env_utils import get_env_var
+
         # 获取表单数据
         character_id = request.form.get('characterId')
         character_name = request.form.get('characterName')
@@ -662,9 +665,10 @@ def create_custom_character():
                 'error': '至少需要一个心情设置'
             }), 400
         
-        # 检查角色是否已存在
-        character_file_path = Path('characters') / f"{character_id}.py"
-        if character_file_path.exists():
+        # 检查角色是否已存在（同时检查.py和.toml）
+        character_py_path = Path('characters') / f"{character_id}.py"
+        character_toml_path = Path('characters') / f"{character_id}.toml"
+        if character_py_path.exists() or character_toml_path.exists():
             return jsonify({
                 'success': False,
                 'error': f'角色ID "{character_id}" 已存在'
@@ -734,7 +738,6 @@ def create_custom_character():
                                     temp_path.unlink()
                             except Exception as cleanup_error:
                                 print(f"清理临时文件失败: {cleanup_error}")
-                                # 如果删除失败，记录但不阻止程序继续
                 
                 # 保存参考文本（如果有）
                 if i < len(mood_ref_texts) and mood_ref_texts[i].strip():
@@ -743,11 +746,15 @@ def create_custom_character():
                     with open(text_path, 'w', encoding='utf-8') as f:
                         f.write(mood_ref_texts[i].strip())
                 
-                valid_moods.append(name.strip())
+                valid_moods.append({"name": name.strip()})
                 counter += 1
+
+        # 检查是否使用旧版格式
+        open_saovc = get_env_var("OPEN_SAOVC", "false").lower() == "true"
         
-        # 创建角色配置文件，完全按照lingyin.py的格式
-        character_file_content = f'''"""
+        if open_saovc:
+            # 使用旧版Python格式
+            character_file_content = f'''"""
 角色配置文件: {character_name}
 """
 
@@ -763,7 +770,7 @@ CALIB = {offset}   # 显示位置的校准值（负值向上移动，正值向�
 CHARACTER_COLOR = "{theme_color}"  # 角色名称颜色
 
 # 角色心情
-MOODS = {valid_moods}
+MOODS = {[m["name"] for m in valid_moods]}
 
 # 角色设定
 CHARACTER_DESCRIPTION = """
@@ -801,10 +808,32 @@ def get_character_config():
         "examples": CHARACTER_EXAMPLES
     }}
 '''
-        
-        # 保存角色配置文件到characters目录
-        with open(character_file_path, 'w', encoding='utf-8') as f:
-            f.write(character_file_content)
+            # 保存Python格式配置文件
+            with open(character_py_path, 'w', encoding='utf-8') as f:
+                f.write(character_file_content)
+        else:
+            # 使用新版TOML格式
+            character_config = {
+                "id": character_id,
+                "name": character_name,
+                "name_en": character_english_name,
+                "image": f"static/images/{character_id}",
+                "calib": offset,
+                "scale_rate": scale,
+                "color": theme_color,
+                "description": character_intro,
+                "prompt": character_description,
+                "welcome": f"你好！我是{character_name}，很高兴认识你！",
+                "moods": valid_moods,
+                "examples": [
+                    {"role": "user", "content": "你好，请介绍一下自己"},
+                    {"role": "assistant", "content": f"你好！我是{character_name}，很高兴认识你！"}
+                ]
+            }
+            
+            # 保存TOML格式配置文件
+            with open(character_toml_path, 'w', encoding='utf-8') as f:
+                f.write(rtoml.dumps(character_config))
         
         return jsonify({
             'success': True,

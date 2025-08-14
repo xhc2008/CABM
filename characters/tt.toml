@@ -1,0 +1,21 @@
+id = "tt"
+name = "ttttt"
+name_en = "tt"
+image = "static/images/tt"
+calib = 0
+scale_rate = 100
+color = "#ffffff"
+description = "erfv"
+prompt = "efrvg"
+welcome = "你好！我是ttttt，很高兴认识你！"
+
+[[moods]]
+name = "平静"
+
+[[examples]]
+role = "user"
+content = "你好，请介绍一下自己"
+
+[[examples]]
+role = "assistant"
+content = "你好！我是ttttt，很高兴认识你！"
