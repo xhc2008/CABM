@@ -5,6 +5,15 @@
     box-sizing: border-box;
 }
 
+/* 去除所有链接的下划线 */
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
 body {
     font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
     line-height: 1.6;
