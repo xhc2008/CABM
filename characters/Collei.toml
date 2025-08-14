@@ -7,7 +7,7 @@ name = "柯莱"            # 中文名称
 name_en = "Collei"      # 英文名称
 image = "static/images/Collei"  # 角色立绘目录路径
 calib = 30                # 显示位置的校准值（负值向上移动，正值向下移动）
-scale_rate = 50           # 立绘缩放率（百分比）
+scale_rate = 70           # 立绘缩放率（百分比）
 color = "#00ff00"        # 角色名称颜色
 
 description = """
