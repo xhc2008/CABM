@@ -727,17 +727,14 @@ CHARACTER_COLOR = "{theme_color}"  # 角色名称颜色
 # 角色心情
 MOODS = {valid_moods}
 
-#是否启用语音（未实现）
-ENABLE_VOICE = False
-
 # 角色设定
 CHARACTER_DESCRIPTION = """
-{character_description}
+{character_intro}
 """
 
 # AI系统提示词
 CHARACTER_PROMPT = """
-{character_intro}
+{character_description}
 """
 
 # 角色欢迎语
