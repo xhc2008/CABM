@@ -6,6 +6,7 @@
 CHARACTER_ID = "Silver_Wolf"
 CHARACTER_NAME = "银狼"
 CHARACTER_NAME_EN = "Silver_Wolf"
+SCALE_RATE = 100 #缩放率（百分比）
 
 # 角色外观
 CHARACTER_IMAGE = "static/images/Silver_Wolf"  # 角色立绘目录路径
@@ -44,6 +45,7 @@ def get_character_config():
         "name_en": CHARACTER_NAME_EN,
         "image": CHARACTER_IMAGE,
         "calib": CALIB,
+        "scale_rate": SCALE_RATE,
         "color": CHARACTER_COLOR,
         "description": CHARACTER_DESCRIPTION,
         "prompt": CHARACTER_PROMPT,
