@@ -17,9 +17,6 @@ MOODS=[
     "平静","开心","愤怒","惊讶","无语","委屈"
 ]
 
-#是否启用语音（未实现）
-ENABLE_VOICE = True
-
 # 角色设定
 CHARACTER_DESCRIPTION = """
 「星核猎手」的成员，骇客高手。

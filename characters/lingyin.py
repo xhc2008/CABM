@@ -17,9 +17,6 @@ MOODS = [
     "平静", "兴奋", "生气", "难过","疑惑"
 ]
 
-#是否启用语音（未实现）
-ENABLE_VOICE = False
-
 # 角色设定
 CHARACTER_DESCRIPTION = """
 灵音是一位活泼开朗的AI助手，拥有音乐和艺术方面的专长。
