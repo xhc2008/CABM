@@ -119,6 +119,26 @@ jobs:
           # 压缩整个目录
           Compress-Archive -Path * -DestinationPath "Windows-Release-${{ inputs.version }}.zip" -Force
 
+      - name: 🗑️ Delete existing release if exists
+        shell: pwsh
+        run: |
+          # 删除 release（如果存在）
+          try {
+            gh release delete "${{ inputs.version }}" --yes
+          } catch {
+            Write-Output "Release not found, skip delete."
+          }
+
+          # 删除本地 tag（如果存在）
+          if (git tag | Select-String -Pattern "${{ inputs.version }}") {
+            git tag -d "${{ inputs.version }}"
+          }
+
+          # 删除远程 tag（如果存在）
+          if (git ls-remote --tags origin | Select-String -Pattern "refs/tags/${{ inputs.version }}") {
+            git push --delete origin "${{ inputs.version }}"
+          }
+
       - name: 🚀 Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
