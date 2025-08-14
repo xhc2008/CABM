@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>立绘缩放测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .character-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            border: 2px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .character-image {
+            max-width: 80%;
+            max-height: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .character-image img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            background: #333;
+            color: white;
+            border: 1px solid #666;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>立绘缩放测试</h1>
+        <div class="character-container">
+            <div class="character-image">
+                <img id="testImage" src="/static/images/Silver_Wolf/1.png" alt="测试图片">
+            </div>
+        </div>
+        <div class="controls">
+            <label>缩放率: </label>
+            <input type="range" id="scaleSlider" min="10" max="200" value="100">
+            <span id="scaleValue">100%</span>
+            <button onclick="resetScale()">重置</button>
+        </div>
+        <div class="controls">
+            <button onclick="testCharacter('Silver_Wolf')">银狼 (100%)</button>
+            <button onclick="testCharacter('Collei')">柯莱 (60%)</button>
+            <button onclick="testCharacter('lingyin')">灵音 (100%)</button>
+        </div>
+    </div>
+
+    <script>
+        const testImage = document.getElementById('testImage');
+        const scaleSlider = document.getElementById('scaleSlider');
+        const scaleValue = document.getElementById('scaleValue');
+
+        // 角色配置
+        const characters = {
+            'Silver_Wolf': { scale_rate: 100, image: '/static/images/Silver_Wolf/1.png' },
+            'Collei': { scale_rate: 60, image: '/static/images/Collei/1.png' },
+            'lingyin': { scale_rate: 100, image: '/static/images/lingyin/1.png' }
+        };
+
+        scaleSlider.addEventListener('input', function() {
+            const scale = this.value / 100;
+            testImage.style.transform = `scale(${scale})`;
+            scaleValue.textContent = this.value + '%';
+        });
+
+        function resetScale() {
+            scaleSlider.value = 100;
+            testImage.style.transform = 'scale(1)';
+            scaleValue.textContent = '100%';
+        }
+
+        function testCharacter(characterId) {
+            const character = characters[characterId];
+            if (character) {
+                testImage.src = character.image;
+                scaleSlider.value = character.scale_rate;
+                const scale = character.scale_rate / 100;
+                testImage.style.transform = `scale(${scale})`;
+                scaleValue.textContent = character.scale_rate + '%';
+            }
+        }
+
+        // 图片加载失败时的处理
+        testImage.onerror = function() {
+            this.src = '/static/images/default.svg';
+        };
+    </script>
+</body>
+</html>

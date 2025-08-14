@@ -98,6 +98,16 @@ function updateCharacterImage() {
             console.log('使用默认位置: 50%');
             characterContainer.style.top = '50%';
         }
+
+        // 应用缩放率
+        if (characterImage && typeof currentCharacter.scale_rate !== 'undefined') {
+            const scaleValue = currentCharacter.scale_rate / 100; // 将百分比转换为小数
+            console.log(`角色缩放调整: SCALE_RATE=${currentCharacter.scale_rate}%, 缩放值=${scaleValue}`);
+            characterImage.style.transform = `scale(${scaleValue})`;
+        } else if (characterImage) {
+            console.log('使用默认缩放: 100%');
+            characterImage.style.transform = 'scale(1)';
+        }
     }
 }
 
@@ -226,6 +236,11 @@ async function loadCharacterImages(characterId) {
             if (characterImage && data.default_image) {
                 characterImage.src = data.default_image;
                 console.log(`设置默认图片: ${data.default_image}`);
+                // 应用缩放率
+                if (typeof currentCharacter.scale_rate !== 'undefined') {
+                    const scaleValue = currentCharacter.scale_rate / 100;
+                    characterImage.style.transform = `scale(${scaleValue})`;
+                }
             }
         } else {
             console.error('加载角色图片失败:', data.error);
@@ -251,6 +266,11 @@ export function switchCharacterImage(imageNumber) {
         const characterImage = document.getElementById('characterImage');
         if (characterImage) {
             characterImage.src = targetImage.url;
+            // 应用缩放率
+            if (typeof currentCharacter.scale_rate !== 'undefined') {
+                const scaleValue = currentCharacter.scale_rate / 100;
+                characterImage.style.transform = `scale(${scaleValue})`;
+            }
         }
     } else {
         console.log(`未找到编号为 ${imageNumber} 的图片，使用默认图片`);
@@ -259,6 +279,11 @@ export function switchCharacterImage(imageNumber) {
             const characterImage = document.getElementById('characterImage');
             if (characterImage) {
                 characterImage.src = defaultImage.url;
+                // 应用缩放率
+                if (typeof currentCharacter.scale_rate !== 'undefined') {
+                    const scaleValue = currentCharacter.scale_rate / 100;
+                    characterImage.style.transform = `scale(${scaleValue})`;
+                }
             }
         } else {
             console.log('连默认图片都没有找到');
