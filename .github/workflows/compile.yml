@@ -109,8 +109,12 @@ jobs:
       - name: 📦 Package release (copy to root and compress)
         shell: pwsh
         run: |
-          # 将 app 目录内容复制到根目录
+          # 将 app 目录内容复制到根目录（如有同名先删除）
           Get-ChildItem -Path "app" | ForEach-Object {
+            $dest = Join-Path "." $_.Name
+            if (Test-Path $dest) {
+              Remove-Item -Path $dest -Recurse -Force
+            }
             Move-Item -Path $_.FullName -Destination "." -Force
           }
           
