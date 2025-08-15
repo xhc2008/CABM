@@ -1733,7 +1733,7 @@ def create_story():
                     story_data = json.loads(json_content)
                     summary = story_data.get('summary', '暂无简介')
                     outline = story_data.get('outline', ['开始'])
-                    outline[0] = "故事开始"
+                    #outline[0] = "故事开始"
                     outline[-1] = "故事结束"
                     
                     # 在调试文件中添加解析结果
