@@ -21,7 +21,9 @@ class MemoryService:
     def __init__(self):
         """初始化记忆服务"""
         self.memory_databases: Dict[str, ChatHistoryVectorDB] = {}
+        self.story_databases: Dict[str, ChatHistoryVectorDB] = {}
         self.current_character = None
+        self.current_story = None
         self.logger = logging.getLogger("MemoryService")
         
         # 设置日志格式
@@ -143,6 +145,106 @@ class MemoryService:
             self.logger.error(f"保存记忆数据库失败: {e}")
             traceback.print_exc()
     
+    def initialize_story_memory(self, story_id: str) -> bool:
+        """
+        初始化指定故事的记忆数据库
+        
+        参数:
+            story_id: 故事ID
+            
+        返回:
+            是否初始化成功
+        """
+        try:
+            if story_id not in self.story_databases:
+                # 创建新的故事记忆数据库
+                memory_db = ChatHistoryVectorDB(RAG_config=get_RAG_config(), character_name=story_id, is_story=True)
+                memory_db.initialize_database()
+                self.story_databases[story_id] = memory_db
+                self.logger.info(f"初始化故事记忆数据库: {story_id}")
+            
+            self.current_story = story_id
+            return True
+            
+        except Exception as e:
+            traceback.print_exc()
+            self.logger.error(f"初始化故事记忆数据库失败 {story_id}: {e}")
+            return False
+    
+    def search_story_memory(self, query: str, story_id: str = None, top_k: int = None, timeout: int = None) -> str:
+        """
+        搜索故事记忆并返回格式化的提示词
+        
+        参数:
+            query: 查询文本
+            story_id: 故事ID，如果为None则使用当前故事
+            top_k: 返回的最相似结果数量，如果为None则使用配置中的值
+            timeout: 超时时间（秒），如果为None则使用配置中的值
+            
+        返回:
+            格式化的记忆提示词
+        """
+        if story_id is None:
+            story_id = self.current_story
+        
+        if not story_id:
+            self.logger.warning("没有指定故事，无法搜索记忆")
+            return ""
+        
+        # 从配置中获取默认值
+        memory_config = get_memory_config()
+        if top_k is None:
+            top_k = memory_config['top_k']
+        if timeout is None:
+            timeout = memory_config['timeout']
+        
+        self.logger.info(f"开始故事记忆搜索: 故事={story_id}, 查询='{query}', top_k={top_k}, 超时={timeout}秒")
+        
+        # 确保故事记忆数据库已初始化
+        if not self.initialize_story_memory(story_id):
+            self.logger.error(f"故事记忆数据库初始化失败: {story_id}")
+            return ""
+        
+        memory_db = self.story_databases[story_id]
+        result = memory_db.get_relevant_memory(query, top_k, timeout)
+        
+        if result:
+            self.logger.info(f"故事记忆搜索完成: 生成了 {len(result)} 字符的记忆上下文")
+        else:
+            self.logger.info("故事记忆搜索完成: 未找到相关记忆")
+        
+        return result
+    
+    def add_story_conversation(self, user_message: str, assistant_message: str, story_id: str = None):
+        """
+        添加对话到故事记忆数据库
+        
+        参数:
+            user_message: 用户消息
+            assistant_message: 助手回复
+            story_id: 故事ID，如果为None则使用当前故事
+        """
+        if story_id is None:
+            story_id = self.current_story
+        
+        if not story_id:
+            self.logger.warning("没有指定故事，无法添加对话记录")
+            return
+        
+        # 确保故事记忆数据库已初始化
+        if not self.initialize_story_memory(story_id):
+            return
+        
+        memory_db = self.story_databases[story_id]
+        memory_db.add_chat_turn(user_message, assistant_message)
+        
+        # 保存到文件
+        try:
+            memory_db.save_to_file()
+        except Exception as e:
+            self.logger.error(f"保存故事记忆数据库失败: {e}")
+            traceback.print_exc()
+    
     def set_current_character(self, character_name: str) -> bool:
         """
         设置当前角色
@@ -154,6 +256,18 @@ class MemoryService:
             是否设置成功
         """
         return self.initialize_character_memory(character_name)
+    
+    def set_current_story(self, story_id: str) -> bool:
+        """
+        设置当前故事
+        
+        参数:
+            story_id: 故事ID
+            
+        返回:
+            是否设置成功
+        """
+        return self.initialize_story_memory(story_id)
     
     def get_memory_stats(self, character_name: str = None) -> Dict:
         """

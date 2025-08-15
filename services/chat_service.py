@@ -61,6 +61,10 @@ class ChatService:
         self.config_service = config_service
         self.logger = logging.getLogger(__name__)
         
+        # 剧情模式相关
+        self.story_mode = False
+        self.current_story_id = None
+        
         # 确保配置服务已初始化
         if not self.config_service.initialized:
             self.config_service.initialize()
@@ -142,8 +146,15 @@ class ChatService:
         
         # 如果不是系统消息，保存到持久化历史记录
         if role != "system":
-            character_id = self.config_service.current_character_id or "default"
-            self.history_manager.save_message(character_id, role, content)
+            if self.story_mode and self.current_story_id:
+                # 剧情模式：保存到故事目录
+                from services.story_service import story_service
+                history_path = story_service.get_story_history_path()
+                self.history_manager.save_message_to_file(history_path, role, content)
+            else:
+                # 普通模式：保存到角色目录
+                character_id = self.config_service.current_character_id or "default"
+                self.history_manager.save_message(character_id, role, content)
         
         return message
     
@@ -201,15 +212,23 @@ class ChatService:
     
     def _load_history_on_startup(self):
         """在启动时加载历史记录到内存"""
-        # 获取当前角色ID
-        character_id = self.config_service.current_character_id or "default"
-        
-        # 获取配置
-        app_config = self.config_service.get_app_config()
-        max_history = app_config["max_history_length"]
-        
-        # 加载历史记录
-        history_messages = self.history_manager.load_history(character_id, max_history, max_history * 2)
+        if self.story_mode and self.current_story_id:
+            # 剧情模式：从故事目录加载
+            from services.story_service import story_service
+            history_path = story_service.get_story_history_path()
+            
+            app_config = self.config_service.get_app_config()
+            max_history = app_config["max_history_length"]
+            
+            history_messages = self.history_manager.load_history_from_file(history_path, max_history, max_history * 2)
+        else:
+            # 普通模式：从角色目录加载
+            character_id = self.config_service.current_character_id or "default"
+            
+            app_config = self.config_service.get_app_config()
+            max_history = app_config["max_history_length"]
+            
+            history_messages = self.history_manager.load_history(character_id, max_history, max_history * 2)
         
         # 转换为Message对象并添加到内存中
         for msg in history_messages:
@@ -218,8 +237,13 @@ class ChatService:
     
     def _initialize_character_memory(self):
         """初始化当前角色的记忆数据库"""
-        character_id = self.config_service.current_character_id or "default"
-        self.memory_service.initialize_character_memory(character_id)
+        if self.story_mode and self.current_story_id:
+            # 剧情模式：使用故事ID作为记忆标识
+            self.memory_service.initialize_story_memory(self.current_story_id)
+        else:
+            # 普通模式：使用角色ID
+            character_id = self.config_service.current_character_id or "default"
+            self.memory_service.initialize_character_memory(character_id)
     
     def set_character(self, character_id: str) -> bool:
         """
@@ -255,6 +279,112 @@ class ChatService:
             return True
         
         return False
+    
+    def set_story_mode(self, story_id: str) -> bool:
+        """
+        设置剧情模式
+        
+        Args:
+            story_id: 故事ID
+            
+        Returns:
+            是否设置成功
+        """
+        try:
+            from services.story_service import story_service
+            
+            # 加载故事
+            if not story_service.load_story(story_id):
+                return False
+            
+            # 获取故事数据
+            story_data = story_service.get_current_story_data()
+            if not story_data:
+                return False
+            
+            # 获取故事中的角色
+            characters = story_data.get('characters', {}).get('list', [])
+            if not characters:
+                return False
+            
+            # 设置第一个角色为当前角色
+            character_id = characters[0]
+            if not self.config_service.set_character(character_id):
+                return False
+            
+            # 启用剧情模式
+            self.story_mode = True
+            self.current_story_id = story_id
+            
+            # 清空当前会话历史
+            self.history = []
+            
+            # 设置剧情模式的系统提示词
+            self.set_story_system_prompt()
+            
+            # 初始化故事记忆数据库
+            self.memory_service.initialize_story_memory(story_id)
+            
+            # 加载故事的历史记录
+            history_path = story_service.get_story_history_path()
+            app_config = self.config_service.get_app_config()
+            max_history = app_config["max_history_length"]
+            
+            history_messages = self.history_manager.load_history_from_file(history_path, max_history, max_history * 2)
+            
+            # 转换为Message对象并添加到内存中
+            for msg in history_messages:
+                if msg["role"] != "system":
+                    self.history.append(Message.from_dict(msg))
+            
+            self.logger.info(f"成功设置剧情模式: {story_id}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"设置剧情模式失败: {e}")
+            return False
+    
+    def set_story_system_prompt(self):
+        """设置剧情模式的系统提示词"""
+        from services.story_service import story_service
+        
+        # 获取基础系统提示词
+        base_prompt = self.config_service.get_system_prompt("character")
+        
+        # 获取故事进度信息
+        offset = story_service.get_offset()
+        current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
+        
+        # 根据偏移值添加引导内容
+        guidance = ""
+        if next_chapter:  # 只有在还有下一章节时才添加引导
+            if 20 <= offset < 50:
+                guidance = f"请潜移默化地引导用户向`{next_chapter}`方向推进故事"
+            elif offset >= 50:
+                guidance = f"请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
+        
+        # 在基础提示词中插入引导内容
+        if guidance:
+            # 在"你正在进行角色扮演，和用户进行交互。"后面插入引导内容
+            modified_prompt = base_prompt.replace(
+                "你正在进行角色扮演，和用户进行交互。",
+                f"你正在进行角色扮演，和用户进行交互。{guidance}"
+            )
+        else:
+            modified_prompt = base_prompt
+        
+        # 移除现有的system消息
+        self.history = [msg for msg in self.history if msg.role != "system"]
+        
+        # 添加修改后的系统提示词
+        self.add_message("system", modified_prompt)
+        self.logger.info(f"剧情模式系统提示词已设置，偏移值: {offset}")
+    
+    def exit_story_mode(self):
+        """退出剧情模式"""
+        self.story_mode = False
+        self.current_story_id = None
+        self.logger.info("已退出剧情模式")
     
     def get_character_config(self):
         """
@@ -325,11 +455,19 @@ class ChatService:
         memory_context = ""
         if user_query:
             try:
-                character_id = self.config_service.current_character_id or "default"
-                memory_context = self.memory_service.search_memory(
-                    query=user_query,
-                    character_name=character_id
-                )
+                if self.story_mode and self.current_story_id:
+                    # 剧情模式：使用故事ID进行记忆检索
+                    memory_context = self.memory_service.search_story_memory(
+                        query=user_query,
+                        story_id=self.current_story_id
+                    )
+                else:
+                    # 普通模式：使用角色ID进行记忆检索
+                    character_id = self.config_service.current_character_id or "default"
+                    memory_context = self.memory_service.search_memory(
+                        query=user_query,
+                        character_name=character_id
+                    )
                 
                 # 如果有相关记忆，添加到最后一条用户消息中
                 if memory_context and messages:
