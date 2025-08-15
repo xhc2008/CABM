@@ -609,6 +609,10 @@ def story_chat_page(story_id):
     if not story_service.load_story(story_id):
         return f"故事 {story_id} 不存在", 404
     
+    # 设置聊天服务为剧情模式
+    if not chat_service.set_story_mode(story_id):
+        return f"无法设置剧情模式: {story_id}", 500
+    
     # 获取当前背景图片
     background = image_service.get_current_background()
     # 如果没有背景图片，生成一个
@@ -629,6 +633,9 @@ def story_chat_page(story_id):
     # 获取故事数据
     story_data = story_service.get_current_story_data()
     
+    # 获取当前角色配置（应该已经通过set_story_mode设置好了）
+    current_character = chat_service.get_character_config()
+    
     # 获取应用配置
     app_config = config_service.get_app_config()
     show_scene_name = app_config.get("show_scene_name", True)
@@ -638,6 +645,7 @@ def story_chat_page(story_id):
         background_url=background_url,
         story_data=story_data,
         story_id=story_id,
+        current_character=current_character,
         show_scene_name=show_scene_name
     )
 

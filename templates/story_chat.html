@@ -160,7 +160,12 @@
             
             <div class="character-container">
                 <div class="character-image">
+                    {% if current_character and current_character.image %}
+                    <img src="/{{ current_character.image }}/1.png" alt="{{ current_character.name }}" id="characterImage" class="character-img" 
+                         onerror="this.src='/static/images/default.svg';">
+                    {% else %}
                     <img src="/static/images/default.svg" alt="AI角色" id="characterImage" class="character-img">
+                    {% endif %}
                 </div>
             </div>
             
@@ -277,6 +282,9 @@
     <script>
         window.storyData = {{ story_data | tojson }};
         window.storyId = "{{ story_id }}";
+        {% if current_character %}
+        window.currentCharacter = {{ current_character | tojson }};
+        {% endif %}
         
         // 故事结束处理函数
         function showStoryFinishedModal() {
