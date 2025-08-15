@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剧情模式 - CABM</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <style>
+        .story-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 40, 80, 0.8));
+        }
+
+        .story-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .story-title {
+            color: white;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 20px rgba(0, 150, 255, 0.5);
+        }
+
+        .new-story-button {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .new-story-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .stories-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .stories-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .stories-grid::-webkit-scrollbar-thumb {
+            background: rgba(0, 150, 255, 0.6);
+            border-radius: 4px;
+        }
+
+        .story-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .story-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 150, 255, 0.3);
+            border-color: rgba(0, 150, 255, 0.5);
+        }
+
+        .story-cover {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .story-info h3 {
+            color: white;
+            margin: 0 0 8px 0;
+            font-size: 1.4em;
+        }
+
+        .story-id {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-bottom: 12px;
+        }
+
+        .story-characters {
+            margin-bottom: 12px;
+        }
+
+        .character-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-right: 6px;
+            margin-bottom: 4px;
+            border: 1px solid currentColor;
+        }
+
+        .story-summary {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .story-progress {
+            color: rgba(0, 255, 136, 0.9);
+            font-size: 0.9em;
+            font-weight: bold;
+            padding: 8px 12px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            margin-bottom: 8px;
+        }
+
+        .story-last-played {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            text-align: right;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 40px;
+        }
+
+        .error {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 1.1em;
+            padding: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="story-container">
+        <div class="story-header">
+            <a href="/" class="back-button">← 返回主页</a>
+            <h1 class="story-title">剧情模式</h1>
+            <button class="new-story-button" onclick="createNewStory()">+ 新建故事</button>
+        </div>
+
+        <div id="storiesContainer">
+            <div class="loading">正在加载存档...</div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取存档列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStories();
+        });
+
+        // 加载存档列表
+        async function loadStories() {
+            try {
+                const response = await fetch('/api/stories');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStories(data.stories);
+                } else {
+                    showError('加载存档失败: ' + data.error);
+                }
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            }
+        }
+
+        // 显示存档列表
+        function displayStories(stories) {
+            const container = document.getElementById('storiesContainer');
+            
+            if (stories.length === 0) {
+                container.innerHTML = '<div class="loading">暂无存档，点击"新建故事"开始创建</div>';
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'stories-grid';
+
+            stories.forEach(story => {
+                const card = createStoryCard(story);
+                grid.appendChild(card);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(grid);
+        }
+
+        // 创建存档卡片
+        function createStoryCard(story) {
+            const card = document.createElement('div');
+            card.className = 'story-card';
+            card.onclick = () => openStory(story.id);
+
+            const coverImg = document.createElement('img');
+            coverImg.className = 'story-cover';
+            coverImg.src = story.cover_url || '/static/images/default-story-cover.png';
+            coverImg.alt = story.title;
+            coverImg.onerror = () => {
+                coverImg.src = '/static/images/default.svg';
+            };
+
+            const info = document.createElement('div');
+            info.className = 'story-info';
+
+            const title = document.createElement('h3');
+            title.textContent = story.title;
+
+            const id = document.createElement('div');
+            id.className = 'story-id';
+            id.textContent = `ID: ${story.id}`;
+
+            const characters = document.createElement('div');
+            characters.className = 'story-characters';
+            story.characters.forEach(char => {
+                const tag = document.createElement('span');
+                tag.className = 'character-tag';
+                tag.textContent = char.name;
+                tag.style.color = char.color;
+                characters.appendChild(tag);
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'story-summary';
+            summary.textContent = story.summary;
+
+            const progress = document.createElement('div');
+            progress.className = 'story-progress';
+            progress.textContent = `当前进度: ${story.current_progress}`;
+
+            const lastPlayed = document.createElement('div');
+            lastPlayed.className = 'story-last-played';
+            if (story.last_played) {
+                lastPlayed.textContent = `上次游玩: ${story.last_played}`;
+            } else {
+                lastPlayed.textContent = '上次游玩: 未知';
+            }
+
+            info.appendChild(title);
+            info.appendChild(id);
+            info.appendChild(characters);
+            info.appendChild(summary);
+            info.appendChild(progress);
+            info.appendChild(lastPlayed);
+
+            card.appendChild(coverImg);
+            card.appendChild(info);
+
+            return card;
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const container = document.getElementById('storiesContainer');
+            container.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // 打开故事
+        function openStory(storyId) {
+            // TODO: 实现打开故事功能
+            alert(`打开故事: ${storyId}`);
+        }
+
+        // 创建新故事
+        function createNewStory() {
+            // TODO: 实现创建新故事功能
+            alert('创建新故事功能待实现');
+        }
+    </script>
+</body>
+
+</html>

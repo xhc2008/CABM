@@ -582,6 +582,11 @@ def custom_character_page():
     """自定义角色页面"""
     return render_template('custom_character.html')
 
+@app.route('/story')
+def story_page():
+    """剧情模式页面"""
+    return render_template('story.html')
+
 @app.route('/api/custom-character', methods=['POST'])
 def create_custom_character():
     """创建自定义角色API"""
@@ -901,6 +906,170 @@ def serve_tts():
     except Exception as e:
         print(f"TTS error: {e}")
         return jsonify({"error": "语音合成失败"}), 500
+
+@app.route('/api/stories', methods=['GET'])
+def get_stories():
+    """获取所有存档列表API"""
+    try:
+        import rtoml
+        from pathlib import Path
+        
+        stories = []
+        saves_dir = Path('data/saves')
+        
+        # 检查存档目录是否存在
+        if not saves_dir.exists():
+            return jsonify({
+                'success': True,
+                'stories': []
+            })
+        
+        # 遍历所有存档目录
+        for story_dir in saves_dir.iterdir():
+            if not story_dir.is_dir():
+                continue
+                
+            story_toml_path = story_dir / 'story.toml'
+            if not story_toml_path.exists():
+                continue
+                
+            try:
+                # 读取story.toml文件
+                with open(story_toml_path, 'r', encoding='utf-8') as f:
+                    story_data = rtoml.load(f)
+                
+                # 获取基本信息
+                metadata = story_data.get('metadata', {})
+                progress = story_data.get('progress', {})
+                summary = story_data.get('summary', {})
+                structure = story_data.get('structure', {})
+                characters_data = story_data.get('characters', {})
+                
+                story_id = metadata.get('story_id', story_dir.name)
+                title = metadata.get('title', '未命名故事')
+                current_index = progress.get('current', 0)
+                outline = structure.get('outline', [])
+                character_ids = characters_data.get('list', [])
+                
+                # 获取当前进度描述
+                current_progress = "未开始"
+                if outline and 0 <= current_index < len(outline):
+                    current_progress = outline[current_index]
+                
+                # 获取角色信息（转换ID为名称和颜色）
+                characters = []
+                for char_id in character_ids:
+                    char_config = config_service.get_character_config(char_id)
+                    if char_config:
+                        characters.append({
+                            'id': char_id,
+                            'name': char_config.get('name', char_id),
+                            'color': char_config.get('color', '#ffffff')
+                        })
+                    else:
+                        characters.append({
+                            'id': char_id,
+                            'name': char_id,
+                            'color': '#ffffff'
+                        })
+                
+                # 获取封面图片URL
+                cover_path = story_dir / 'cover.png'
+                cover_url = None
+                if cover_path.exists():
+                    cover_url = f"/api/stories/{story_id}/cover"
+                else:
+                    # 检查是否有cover.jpg
+                    cover_jpg_path = story_dir / 'cover.jpg'
+                    if cover_jpg_path.exists():
+                        cover_url = f"/api/stories/{story_id}/cover"
+                
+                # 获取文件夹最近更新时间
+                import os
+                import datetime
+                last_played = None
+                try:
+                    # 获取目录下所有文件的最新修改时间
+                    latest_time = 0
+                    for file_path in story_dir.rglob('*'):
+                        if file_path.is_file():
+                            mtime = file_path.stat().st_mtime
+                            if mtime > latest_time:
+                                latest_time = mtime
+                    
+                    if latest_time > 0:
+                        last_played = datetime.datetime.fromtimestamp(latest_time).strftime('%Y-%m-%d %H:%M:%S')
+                except Exception as e:
+                    print(f"获取最后游玩时间失败: {e}")
+                
+                story_info = {
+                    'id': story_id,
+                    'title': title,
+                    'summary': summary.get('text', '暂无简介'),
+                    'characters': characters,
+                    'current_progress': current_progress,
+                    'cover_url': cover_url,
+                    'create_date': metadata.get('create_date', ''),
+                    'creator': metadata.get('creator', ''),
+                    'version': metadata.get('version', '1.0.0'),
+                    'last_played': last_played
+                }
+                
+                stories.append(story_info)
+                
+            except Exception as e:
+                print(f"读取存档 {story_dir.name} 失败: {e}")
+                continue
+        
+        # 按最后游玩时间排序（最近的在前），如果没有则按创建日期排序
+        stories.sort(key=lambda x: (x.get('last_played', ''), x.get('create_date', '')), reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'stories': stories
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/stories/<story_id>/cover')
+def get_story_cover(story_id):
+    """获取存档封面图片"""
+    try:
+        from pathlib import Path
+        
+        story_dir = Path('data/saves') / story_id
+        
+        # 优先查找cover.png
+        cover_path = story_dir / 'cover.png'
+        if cover_path.exists():
+            return send_file(str(cover_path), mimetype='image/png')
+        
+        # 其次查找cover.jpg
+        cover_jpg_path = story_dir / 'cover.jpg'
+        if cover_jpg_path.exists():
+            return send_file(str(cover_jpg_path), mimetype='image/jpeg')
+        
+        # 如果都没有，返回默认图片
+        default_cover = Path('static/images/default.svg')
+        if default_cover.exists():
+            return send_file(str(default_cover), mimetype='image/svg+xml')
+        
+        return jsonify({
+            'success': False,
+            'error': '封面图片不存在'
+        }), 404
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     # 设置系统提示词，使用角色提示词
