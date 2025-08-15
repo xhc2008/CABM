@@ -368,22 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clickToContinue?.addEventListener('click', storyContinueOutput);
         
         console.log('剧情聊天页面初始化完成');
-        
-        // 添加测试按钮来验证继续功能
-        const testButton = document.createElement('button');
-        testButton.textContent = '测试继续';
-        testButton.style.position = 'fixed';
-        testButton.style.top = '10px';
-        testButton.style.right = '10px';
-        testButton.style.zIndex = '9999';
-        testButton.style.background = 'red';
-        testButton.style.color = 'white';
-        testButton.style.padding = '10px';
-        testButton.addEventListener('click', () => {
-            console.log('Test button clicked');
-            storyContinueOutput();
-        });
-        document.body.appendChild(testButton);
     } catch (error) {
         console.error('初始化失败:', error);
         showError(`初始化失败: ${error.message}`);

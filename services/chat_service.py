@@ -356,19 +356,19 @@ class ChatService:
         current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
         
         # 根据偏移值添加引导内容
-        guidance = ""
+        guidance = f"当前章节：`{current_chapter}`。"
         if next_chapter:  # 只有在还有下一章节时才添加引导
             if 20 <= offset < 50:
-                guidance = f"请潜移默化地引导用户向`{next_chapter}`方向推进故事"
+                guidance += f"请潜移默化地引导用户向`{next_chapter}`方向推进故事"
             elif offset >= 50:
-                guidance = f"请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
+                guidance += f"请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
         
         # 在基础提示词中插入引导内容
         if guidance:
             # 在"你正在进行角色扮演，和用户进行交互。"后面插入引导内容
             modified_prompt = base_prompt.replace(
                 "你正在进行角色扮演，和用户进行交互。",
-                f"你正在进行角色扮演，和用户进行交互。{guidance}"
+                f"你正在进行角色扮演，和用户进行交互。{guidance}。"
             )
         else:
             modified_prompt = base_prompt
