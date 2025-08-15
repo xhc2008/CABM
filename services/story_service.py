@@ -288,23 +288,25 @@ class StoryService:
         }
         
         request_data = {
-            "model": option_config["model"],
+            "model": os.getenv("OPTION_MODEL"),
             "messages": messages,
-            "max_tokens": 10,  # 只需要一个数字
-            "temperature": 0.1,  # 低温度确保稳定输出
+            "extra_body":{
+                "max_tokens": 10,  # 只需要一个数字
+                "temperature": 0.1,  # 低温度确保稳定输出
+                "enable_thinking": False,  
+            },
             "stream": False
         }
         
         try:
             self.logger.info(f"调用导演模型判断剧情进度...")
             response, data = make_api_request(
-                url=url,
+                url=url+"/chat/completions",
                 method="POST",
                 headers=headers,
                 json_data=request_data,
                 stream=False
             )
-            
             # 提取回复内容
             if "choices" in data and len(data["choices"]) > 0:
                 message = data["choices"][0].get("message", {})
