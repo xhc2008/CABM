@@ -1287,6 +1287,8 @@ def create_story():
                     story_data = json.loads(json_content)
                     summary = story_data.get('summary', '暂无简介')
                     outline = story_data.get('outline', ['开始'])
+                    outline[0] = "故事开始"
+                    outline[-1] = "故事结束"
                     
                     # 在调试文件中添加解析结果
                     try:
@@ -1311,11 +1313,11 @@ def create_story():
                         pass
                     
                     summary = story_direction
-                    outline = ['开始1', '发展', '转折', '高潮', '结局']
+                    outline = ['开始', '发展', '转折', '高潮', '结局']
             else:
                 # 如果API调用失败，使用默认值
                 summary = story_direction
-                outline = ['开始2', '发展', '转折', '高潮', '结局']
+                outline = ['开始', '发展', '转折', '高潮', '结局']
                 
         except Exception as e:
             print(f"LLM生成故事内容失败: {e}")
