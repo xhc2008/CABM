@@ -67,12 +67,8 @@ class StreamProcessor {
             return;
         }
 
-        // 如果暂停，等待继续
+        // 如果暂停，停止处理
         if (this.isPaused) {
-            this.processingTimeout = setTimeout(() => {
-                this.processingTimeout = null;
-                this.processBuffer();
-            }, 100);
             return;
         }
 
@@ -150,13 +146,20 @@ class StreamProcessor {
      * 继续处理
      */
     continue() {
+        console.log('StreamProcessor.continue() called, isPaused:', this.isPaused, 'buffer length:', this.buffer.length);
+        
         if (this.isPaused) {
             this.isPaused = false;
+            console.log('Unpaused, continuing processing...');
 
             // 继续处理缓冲区
             if (!this.processingTimeout) {
                 this.processBuffer();
+            } else {
+                console.log('Processing timeout already exists, not calling processBuffer');
             }
+        } else {
+            console.log('Not paused, no action needed');
         }
     }
 

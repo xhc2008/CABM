@@ -5,6 +5,9 @@ import {
     skipTyping 
 } from './chat-service.js';
 
+// 保存原始的continueOutput函数作为备用
+window.originalContinueOutput = continueOutput;
+
 import {
     loadCharacters,
     toggleCharacterModal,
@@ -28,6 +31,46 @@ import {
     hideConfirmModal
 } from './ui-service.js';
 
+// 全局流式处理器实例
+let globalStreamProcessor = null;
+
+// 剧情模式专用的继续输出函数
+function storyContinueOutput() {
+    console.log('=== storyContinueOutput called ===');
+    
+    // 自动中断正在播放的语音
+    if (window.stopCurrentAudio) {
+        window.stopCurrentAudio();
+    }
+    
+    // 尝试从多个位置获取流式处理器
+    const processor = globalStreamProcessor || window.globalStreamProcessor;
+    
+    console.log('processor:', processor);
+    console.log('processor isPaused:', processor ? processor.isPaused : 'N/A');
+    console.log('processor isProcessing:', processor ? processor.isProcessing() : 'N/A');
+
+    if (processor) {
+        console.log('Hiding continue prompt...');
+        hideContinuePrompt();
+        
+        console.log('Calling continue() on processor...');
+        processor.continue();
+        
+        console.log('Continue() called successfully');
+    } else {
+        console.error('No stream processor found');
+        
+        // 尝试备用方案：直接调用原始的continueOutput
+        if (window.originalContinueOutput) {
+            console.log('Trying fallback to originalContinueOutput');
+            window.originalContinueOutput();
+        }
+    }
+    
+    console.log('=== storyContinueOutput finished ===');
+}
+
 // 剧情模式专用的发送消息函数
 async function sendStoryMessage() {
     const messageInput = document.getElementById('messageInput');
@@ -44,7 +87,10 @@ async function sendStoryMessage() {
     }
 
     // 创建新的流式处理器
-    const streamProcessor = new StreamProcessor();
+    globalStreamProcessor = new StreamProcessor();
+    
+    // 立即暴露给全局作用域
+    window.globalStreamProcessor = globalStreamProcessor;
 
     // 跟踪已添加到历史记录的内容长度
     let addedToHistoryLength = 0;
@@ -52,11 +98,11 @@ async function sendStoryMessage() {
     let isFirstSentence = true;
 
     // 设置回调函数
-    streamProcessor.setCallbacks(
+    globalStreamProcessor.setCallbacks(
         // 字符回调
         (fullContent) => {
             const newContent = fullContent.substring(addedToHistoryLength);
-            window.updateCurrentMessage('assistant', newContent, true);
+            updateCurrentMessage('assistant', newContent, true);
             
             // 检查是否有新的完整句子需要处理
             const sentences = newContent.split(/([。？！…~])/);
@@ -74,8 +120,8 @@ async function sendStoryMessage() {
                     const currentCharacter = getCurrentCharacter();
                     const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
                     
-                    if (window.prefetchAndPlayAudio) {
-                        window.prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
+                    if (prefetchAndPlayAudio) {
+                        prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
                     }
                     
                     lastPlayedLength = completeSentences.length;
@@ -85,22 +131,22 @@ async function sendStoryMessage() {
         },
         // 暂停回调
         (fullContent) => {
-            window.setIsPaused(true);
+            setIsPaused(true);
             const currentCharacter = getCurrentCharacter();
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
                 
                 const unplayedContent = newContent.substring(lastPlayedLength);
-                if (unplayedContent.trim() && window.prefetchAndPlayAudio) {
-                    window.prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
+                if (unplayedContent.trim() && prefetchAndPlayAudio) {
+                    prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
                 }
                 
-                window.addToHistory('assistant', newContent, characterName);
-                window.updateCurrentMessage('assistant', newContent);
+                addToHistory('assistant', newContent, characterName);
+                updateCurrentMessage('assistant', newContent);
                 addedToHistoryLength = fullContent.length;
             }
-            window.showContinuePrompt();
+            showContinuePrompt();
             lastPlayedLength = 0;
             isFirstSentence = true;
         },
@@ -112,30 +158,30 @@ async function sendStoryMessage() {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
                 
                 const unplayedContent = remainingContent.substring(lastPlayedLength);
-                if (unplayedContent.trim() && window.prefetchAndPlayAudio) {
-                    window.prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
+                if (unplayedContent.trim() && prefetchAndPlayAudio) {
+                    prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
                 }
                 
-                window.addToHistory('assistant', remainingContent, characterName);
-                window.updateCurrentMessage('assistant', remainingContent);
-                window.hideContinuePrompt();
-                window.enableUserInput();
-                window.setIsPaused(false);
+                addToHistory('assistant', remainingContent, characterName);
+                updateCurrentMessage('assistant', remainingContent);
+                hideContinuePrompt();
+                enableUserInput();
+                setIsPaused(false);
                 
                 if (window.pendingOptions && window.pendingOptions.length > 0) {
-                    if (window.showOptionButtons) {
-                        window.showOptionButtons(window.pendingOptions);
+                    if (showOptionButtons) {
+                        showOptionButtons(window.pendingOptions);
                     }
                     window.pendingOptions = null;
                 }
             } else {
-                window.hideContinuePrompt();
-                window.enableUserInput();
-                window.setIsPaused(false);
+                hideContinuePrompt();
+                enableUserInput();
+                setIsPaused(false);
                 
                 if (window.pendingOptions && window.pendingOptions.length > 0) {
-                    if (window.showOptionButtons) {
-                        window.showOptionButtons(window.pendingOptions);
+                    if (showOptionButtons) {
+                        showOptionButtons(window.pendingOptions);
                     }
                     window.pendingOptions = null;
                 }
@@ -147,10 +193,10 @@ async function sendStoryMessage() {
     );
 
     // 更新当前消息为用户消息
-    window.updateCurrentMessage('user', message);
+    updateCurrentMessage('user', message);
 
     // 添加到历史记录
-    window.addToHistory('user', message);
+    addToHistory('user', message);
 
     // 隐藏选项按钮
     if (window.hideOptionButtons) {
@@ -167,7 +213,7 @@ async function sendStoryMessage() {
     }
 
     // 禁用用户输入
-    window.disableUserInput();
+    disableUserInput();
 
     try {
         // 发送API请求到剧情模式端点
@@ -193,7 +239,7 @@ async function sendStoryMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        window.updateCurrentMessage('assistant', '\n');
+        updateCurrentMessage('assistant', '\n');
 
         // 读取流式响应
         while (true) {
@@ -213,7 +259,7 @@ async function sendStoryMessage() {
                         const jsonStr = line.slice(6);
 
                         if (jsonStr === '[DONE]') {
-                            streamProcessor.markEnd();
+                            globalStreamProcessor.markEnd();
                             break;
                         }
 
@@ -227,14 +273,14 @@ async function sendStoryMessage() {
                             // 处理mood字段
                             if (data.mood !== undefined) {
                                 console.log('收到mood数据:', data.mood);
-                                if (window.handleMoodChange) {
-                                    window.handleMoodChange(data.mood);
+                                if (handleMoodChange) {
+                                    handleMoodChange(data.mood);
                                 }
                             }
 
                             // 处理content字段
                             if (data.content) {
-                                streamProcessor.addData(data.content);
+                                globalStreamProcessor.addData(data.content);
                             }
 
                             // 处理选项数据
@@ -262,11 +308,11 @@ async function sendStoryMessage() {
     } catch (error) {
         console.error('发送消息失败:', error);
         showError(`发送消息失败: ${error.message}`);
-        window.hideLoading();
-        window.enableUserInput();
+        hideLoading();
+        enableUserInput();
 
-        if (streamProcessor) {
-            streamProcessor.reset();
+        if (globalStreamProcessor) {
+            globalStreamProcessor.reset();
         }
     }
 }
@@ -301,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeHistoryButton?.addEventListener('click', toggleHistory);
         characterButton?.addEventListener('click', toggleCharacterModal);
         closeCharacterButton?.addEventListener('click', toggleCharacterModal);
-        continueButton?.addEventListener('click', continueOutput);
+        continueButton?.addEventListener('click', storyContinueOutput);
         micButton?.addEventListener('click', () => toggleRecording(messageInput, micButton, showError));
         errorCloseButton?.addEventListener('click', hideError);
         
@@ -318,10 +364,26 @@ document.addEventListener('DOMContentLoaded', () => {
         closeConfirmButton?.addEventListener('click', hideConfirmModal);
 
         // 绑定点击事件继续输出
-        currentMessage?.addEventListener('click', continueOutput);
-        clickToContinue?.addEventListener('click', continueOutput);
+        currentMessage?.addEventListener('click', storyContinueOutput);
+        clickToContinue?.addEventListener('click', storyContinueOutput);
         
         console.log('剧情聊天页面初始化完成');
+        
+        // 添加测试按钮来验证继续功能
+        const testButton = document.createElement('button');
+        testButton.textContent = '测试继续';
+        testButton.style.position = 'fixed';
+        testButton.style.top = '10px';
+        testButton.style.right = '10px';
+        testButton.style.zIndex = '9999';
+        testButton.style.background = 'red';
+        testButton.style.color = 'white';
+        testButton.style.padding = '10px';
+        testButton.addEventListener('click', () => {
+            console.log('Test button clicked');
+            storyContinueOutput();
+        });
+        document.body.appendChild(testButton);
     } catch (error) {
         console.error('初始化失败:', error);
         showError(`初始化失败: ${error.message}`);
@@ -344,7 +406,7 @@ function registrationShortcuts(config) {
 }
 
 registrationShortcuts({
-    Enter: continueOutput,
+    Enter: storyContinueOutput,
     s: skipTyping,
     h: toggleHistory,
     b: changeBackground
@@ -396,6 +458,11 @@ window.prefetchAndPlayAudio = prefetchAndPlayAudio;
 window.handleMoodChange = handleMoodChange;
 window.showError = showError;
 window.sendStoryMessage = sendStoryMessage;
+window.storyContinueOutput = storyContinueOutput;
 
-// 重写全局的sendMessage函数为剧情模式版本
+// 重写全局的sendMessage和continueOutput函数为剧情模式版本
 window.sendMessage = sendStoryMessage;
+window.continueOutput = storyContinueOutput;
+
+// 确保全局流式处理器可访问
+window.globalStreamProcessor = globalStreamProcessor;
