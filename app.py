@@ -935,58 +935,70 @@ def story_chat_stream():
                         print(f"添加对话到故事记忆数据库失败: {e}")
                         traceback.print_exc()
                     
-                    # 异步调用导演模型和生成选项
-                    import asyncio
-                    import threading
-                    
-                    def async_tasks():
-                        try:
-                            # 获取聊天历史用于导演判断
-                            app_config = config_service.get_app_config()
-                            max_history = app_config["max_history_length"]
-                            
-                            # 格式化聊天历史
-                            history_messages = chat_service.get_history()[-max_history:]
-                            chat_history_text = ""
-                            for msg in history_messages:
-                                if msg.role == "user":
-                                    chat_history_text += f"玩家：{msg.content}\n"
-                                elif msg.role == "assistant":
-                                    # 解析JSON格式的回复，只取content部分
-                                    try:
-                                        msg_data = json.loads(msg.content)
-                                        content = msg_data.get('content', msg.content)
-                                    except:
-                                        content = msg.content
-                                    
-                                    # 获取角色名
-                                    character_config = chat_service.get_character_config()
-                                    character_name = character_config.get('name', 'AI助手')
-                                    chat_history_text += f"{character_name}：{content}\n"
-                            
-                            # 调用导演模型
-                            director_result = story_service.call_director_model(chat_history_text)
-                            
-                            # 处理导演结果
-                            if director_result == 0:
-                                # 推进到下一章节
-                                story_service.update_progress(advance_chapter=True)
+                    # 调用导演模型和生成选项（同步执行以便发送更新给前端）
+                    try:
+                        # 获取聊天历史用于导演判断
+                        app_config = config_service.get_app_config()
+                        max_history = app_config["max_history_length"]
+                        
+                        # 格式化聊天历史
+                        history_messages = chat_service.get_history()[-max_history:]
+                        chat_history_text = ""
+                        for msg in history_messages:
+                            if msg.role == "user":
+                                chat_history_text += f"玩家：{msg.content}\n"
+                            elif msg.role == "assistant":
+                                # 解析JSON格式的回复，只取content部分
+                                try:
+                                    msg_data = json.loads(msg.content)
+                                    content = msg_data.get('content', msg.content)
+                                except:
+                                    content = msg.content
                                 
-                                # 检查是否故事结束
-                                if story_service.is_story_finished():
-                                    print("故事已结束")
-                                    # TODO: 发送故事结束信号给前端
-                            else:
-                                # 增加偏移值
-                                story_service.update_progress(offset_increment=director_result)
+                                # 获取角色名
+                                character_config = chat_service.get_character_config()
+                                character_name = character_config.get('name', 'AI助手')
+                                chat_history_text += f"{character_name}：{content}\n"
+                        
+                        # 调用导演模型
+                        director_result = story_service.call_director_model(chat_history_text)
+                        
+                        # 处理导演结果
+                        story_finished = False
+                        if director_result == 0:
+                            # 推进到下一章节
+                            story_service.update_progress(advance_chapter=True)
                             
-                        except Exception as e:
-                            print(f"异步任务执行失败: {e}")
-                    
-                    # 在后台线程中执行异步任务
-                    thread = threading.Thread(target=async_tasks)
-                    thread.daemon = True
-                    thread.start()
+                            # 检查是否故事结束
+                            if story_service.is_story_finished():
+                                print("故事已结束")
+                                story_finished = True
+                        else:
+                            # 增加偏移值
+                            story_service.update_progress(offset_increment=director_result)
+                        
+                        # 获取更新后的故事进度
+                        current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
+                        current_offset = story_service.get_offset()
+                        
+                        # 发送故事进度更新给前端
+                        progress_update = {
+                            'storyProgress': {
+                                'current': current_idx,
+                                'currentChapter': current_chapter,
+                                'nextChapter': next_chapter,
+                                'offset': current_offset
+                            }
+                        }
+                        
+                        if story_finished:
+                            progress_update['storyFinished'] = True
+                        
+                        yield f"data: {json.dumps(progress_update)}\n\n"
+                        
+                    except Exception as e:
+                        print(f"导演模型处理失败: {e}")
+                        traceback.print_exc()
                     
                     # 生成选项
                     try:

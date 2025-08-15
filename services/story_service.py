@@ -224,6 +224,15 @@ class StoryService:
         # 保存到文件
         self._save_story_data()
         self.logger.info(f"更新故事进度: 章节={self.story_data['progress']['current']}, 偏移={self.story_data['progress']['offset']}")
+        
+        # 通知聊天服务更新系统提示词（如果在剧情模式下）
+        try:
+            from services.chat_service import chat_service
+            if chat_service.story_mode and chat_service.current_story_id == self.current_story:
+                chat_service.set_story_system_prompt()
+                self.logger.info("已更新剧情模式系统提示词")
+        except Exception as e:
+            self.logger.error(f"更新系统提示词失败: {e}")
     
     def _save_story_data(self):
         """保存故事数据到文件"""

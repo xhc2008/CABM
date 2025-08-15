@@ -63,9 +63,47 @@ function updateCurrentCharacter(character) {
     // 这里可以添加更多的角色状态更新逻辑
 }
 
+// 更新故事进度的函数
+function updateStoryProgress(progress) {
+    console.log('=== 更新故事进度 ===');
+    console.log('进度数据:', progress);
+    
+    // 更新当前章节显示
+    const currentChapterElement = document.getElementById('currentChapter');
+    if (currentChapterElement && progress.currentChapter) {
+        const newText = `当前章节: ${progress.currentChapter}`;
+        console.log('更新章节显示:', newText);
+        currentChapterElement.textContent = newText;
+    } else {
+        console.log('未找到章节元素或章节数据');
+    }
+    
+    // 更新偏移值显示
+    const currentOffsetElement = document.getElementById('currentOffset');
+    if (currentOffsetElement && progress.offset !== undefined) {
+        const newText = `偏移值: ${progress.offset}`;
+        console.log('更新偏移值显示:', newText);
+        currentOffsetElement.textContent = newText;
+    } else {
+        console.log('未找到偏移值元素或偏移值数据');
+    }
+    
+    // 更新全局故事数据
+    if (window.storyData && window.storyData.progress) {
+        window.storyData.progress.current = progress.current;
+        window.storyData.progress.offset = progress.offset;
+        console.log('更新全局故事数据完成');
+    } else {
+        console.log('未找到全局故事数据');
+    }
+    
+    console.log('=== 故事进度更新完成 ===');
+}
+
 // 暴露给全局使用
 window.setCurrentCharacterDirect = setCurrentCharacterDirect;
 window.updateCurrentCharacter = updateCurrentCharacter;
+window.updateStoryProgress = updateStoryProgress;
 
 import {
     loadCharacters,
@@ -347,6 +385,12 @@ async function sendStoryMessage() {
                             if (data.options && Array.isArray(data.options)) {
                                 console.log('收到选项数据:', data.options);
                                 window.pendingOptions = data.options;
+                            }
+                            
+                            // 处理故事进度更新
+                            if (data.storyProgress) {
+                                console.log('收到故事进度更新:', data.storyProgress);
+                                updateStoryProgress(data.storyProgress);
                             }
                             
                             // 处理故事结束信号

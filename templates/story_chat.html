@@ -145,9 +145,9 @@
             <div class="story-info">
                 <div class="story-title">{{ story_data.metadata.title }}</div>
                 <div class="story-progress">
-                    <span class="story-chapter">当前章节: {{ story_data.structure.outline[story_data.progress.current] }}</span>
+                    <span class="story-chapter" id="currentChapter">当前章节: {{ story_data.structure.outline[story_data.progress.current] }}</span>
                 </div>
-                <div class="story-offset">偏移值: {{ story_data.progress.offset }}</div>
+                <div class="story-offset" id="currentOffset">偏移值: {{ story_data.progress.offset }}</div>
                 <div style="margin-top: 10px;">
                     <a href="/story" class="back-to-story">← 返回故事列表</a>
                 </div>
