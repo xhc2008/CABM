@@ -451,8 +451,9 @@ class ChatService:
                 system_prompt = self.config_service.get_system_prompt("default")
                 messages.insert(0, {"role": "system", "content": system_prompt})
         
-        # 如果有用户查询，进行记忆检索
+        # 如果有用户查询，进行记忆和角色详细信息检索
         memory_context = ""
+        details_context = ""
         if user_query:
             try:
                 if self.story_mode and self.current_story_id:
@@ -461,26 +462,48 @@ class ChatService:
                         query=user_query,
                         story_id=self.current_story_id
                     )
+                    # 剧情模式：尝试获取角色详细信息
+                    character_id = self.config_service.current_character_id
+                    if character_id:
+                        from services.character_details_service import character_details_service
+                        details_context = character_details_service.search_character_details(
+                            character_id=character_id,
+                            query=user_query,
+                            top_k=3
+                        )
+                    else:
+                        details_context = ""
                 else:
-                    # 普通模式：使用角色ID进行记忆检索
+                    # 普通模式：同时进行记忆和角色详细信息检索
                     character_id = self.config_service.current_character_id or "default"
-                    memory_context = self.memory_service.search_memory(
+                    memory_context, details_context = self.memory_service.search_memory_and_details(
                         query=user_query,
                         character_name=character_id
                     )
                 
-                # 如果有相关记忆，添加到最后一条用户消息中
-                if memory_context and messages:
+                # 构建完整的上下文
+                full_context = ""
+                if memory_context:
+                    full_context += memory_context
+                if details_context:
+                    if full_context:
+                        full_context += "\n\n" + details_context
+                    else:
+                        full_context = details_context
+                
+                # 如果有相关上下文，添加到最后一条用户消息中
+                if full_context and messages:
                     # 找到最后一条用户消息
                     for i in range(len(messages) - 1, -1, -1):
                         if messages[i]["role"] == "user":
                             original_content = messages[i]["content"]
-                            messages[i]["content"] = memory_context + "\n\n" + original_content
+                            messages[i]["content"] = full_context + "\n\n" + original_content
                             break
                             
             except Exception as e:
-                self.logger.error(f"记忆检索失败: {e}")
+                self.logger.error(f"记忆和详细信息检索失败: {e}")
                 memory_context = ""
+                details_context = ""
         
         # 记录完整提示词到日志
         try:

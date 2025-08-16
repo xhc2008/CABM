@@ -5,14 +5,17 @@
 import os
 import sys
 import logging
-from typing import Dict, Optional
+import asyncio
+from typing import Dict, Optional, Tuple
 from pathlib import Path
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils.memory_utils import ChatHistoryVectorDB
 from services.config_service import config_service
+from services.character_details_service import character_details_service
 from config import get_memory_config,  get_RAG_config
 
 class MemoryService:
@@ -114,6 +117,113 @@ class MemoryService:
             self.logger.info("记忆搜索完成: 未找到相关记忆")
         
         return result
+    
+    async def search_memory_and_details_async(self, query: str, character_name: str = None, 
+                                            memory_top_k: int = None, details_top_k: int = 3, 
+                                            timeout: int = None) -> Tuple[str, str]:
+        """
+        异步同时搜索记忆和角色详细信息
+        
+        参数:
+            query: 查询文本
+            character_name: 角色名称，如果为None则使用当前角色
+            memory_top_k: 记忆检索返回的最相似结果数量
+            details_top_k: 详细信息检索返回的最相似结果数量
+            timeout: 超时时间（秒）
+            
+        返回:
+            (记忆提示词, 角色详细信息提示词) 的元组
+        """
+        if character_name is None:
+            character_name = self.current_character
+        
+        if not character_name:
+            self.logger.warning("没有指定角色，无法搜索记忆和详细信息")
+            return "", ""
+        
+        # 从配置中获取默认值
+        memory_config = get_memory_config()
+        if memory_top_k is None:
+            memory_top_k = memory_config['top_k']
+        if timeout is None:
+            timeout = memory_config['timeout']
+        
+        self.logger.info(f"开始异步记忆和详细信息检索: 角色={character_name}, 查询='{query}'")
+        
+        # 创建异步任务
+        loop = asyncio.get_event_loop()
+        
+        # 记忆检索任务
+        memory_task = loop.run_in_executor(
+            None, 
+            self.search_memory, 
+            query, character_name, memory_top_k, timeout
+        )
+        
+        # 角色详细信息检索任务
+        details_task = character_details_service.search_character_details_async(
+            character_name, query, details_top_k, timeout
+        )
+        
+        try:
+            # 等待两个任务完成
+            memory_result, details_result = await asyncio.gather(
+                memory_task, 
+                details_task, 
+                return_exceptions=True
+            )
+            
+            # 处理异常结果
+            if isinstance(memory_result, Exception):
+                self.logger.error(f"记忆检索异常: {memory_result}")
+                memory_result = ""
+            
+            if isinstance(details_result, Exception):
+                self.logger.error(f"详细信息检索异常: {details_result}")
+                details_result = ""
+            
+            self.logger.info(f"异步检索完成: 记忆={len(memory_result)}字符, 详细信息={len(details_result)}字符")
+            return memory_result, details_result
+            
+        except Exception as e:
+            self.logger.error(f"异步检索失败: {e}")
+            traceback.print_exc()
+            return "", ""
+    
+    def search_memory_and_details(self, query: str, character_name: str = None, 
+                                memory_top_k: int = None, details_top_k: int = 3, 
+                                timeout: int = None) -> Tuple[str, str]:
+        """
+        同步搜索记忆和角色详细信息（使用异步实现）
+        
+        参数:
+            query: 查询文本
+            character_name: 角色名称，如果为None则使用当前角色
+            memory_top_k: 记忆检索返回的最相似结果数量
+            details_top_k: 详细信息检索返回的最相似结果数量
+            timeout: 超时时间（秒）
+            
+        返回:
+            (记忆提示词, 角色详细信息提示词) 的元组
+        """
+        try:
+            # 获取或创建事件循环
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # 运行异步函数
+            return loop.run_until_complete(
+                self.search_memory_and_details_async(
+                    query, character_name, memory_top_k, details_top_k, timeout
+                )
+            )
+        except Exception as e:
+            self.logger.error(f"同步检索失败: {e}")
+            traceback.print_exc()
+            return "", ""
     
     def add_conversation(self, user_message: str, assistant_message: str, character_name: str = None):
         """

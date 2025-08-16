@@ -1065,6 +1065,9 @@ def create_custom_character():
         # 获取头像文件
         avatar_image = request.files.get('avatarImage')
         
+        # 获取角色详细信息文件
+        detail_files = request.files.getlist('characterDetails')
+        
         # 验证必填字段
         if not all([character_id, character_name, theme_color, character_intro, character_description]):
             return jsonify({
@@ -1296,6 +1299,49 @@ def get_character_config():
             # 保存TOML格式配置文件
             with open(character_toml_path, 'w', encoding='utf-8') as f:
                 f.write(rtoml.dumps(character_config))
+        
+        # 处理角色详细信息文件
+        if detail_files:
+            from services.character_details_service import character_details_service
+            
+            # 创建临时目录保存上传的文件
+            temp_dir = Path('temp') / 'character_details' / character_id
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            
+            try:
+                saved_files = []
+                
+                # 保存上传的文件
+                for i, detail_file in enumerate(detail_files):
+                    if detail_file and detail_file.filename:
+                        # 验证文件类型
+                        if not detail_file.filename.lower().endswith('.txt'):
+                            continue
+                        
+                        # 保存文件
+                        file_path = temp_dir / f"detail_{i}_{detail_file.filename}"
+                        detail_file.save(str(file_path))
+                        saved_files.append(str(file_path))
+                
+                # 构建角色详细信息向量数据库
+                if saved_files:
+                    success = character_details_service.build_character_details(character_id, saved_files)
+                    if success:
+                        print(f"角色详细信息数据库构建成功: {character_id}")
+                    else:
+                        print(f"角色详细信息数据库构建失败: {character_id}")
+                
+            except Exception as e:
+                print(f"处理角色详细信息文件失败: {e}")
+                traceback.print_exc()
+            finally:
+                # 清理临时文件
+                try:
+                    import shutil
+                    if temp_dir.exists():
+                        shutil.rmtree(temp_dir)
+                except Exception as e:
+                    print(f"清理临时文件失败: {e}")
         
         return jsonify({
             'success': True,
