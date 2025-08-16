@@ -358,9 +358,9 @@ class ChatService:
         # 根据偏移值添加引导内容
         guidance = f"当前章节：`{current_chapter}`"
         if next_chapter:  # 只有在还有下一章节时才添加引导
-            if 20 <= offset < 50:
+            if 10 <= offset < 30:
                 guidance += f"。请暗示性地引导用户向`{next_chapter}`方向推进故事"
-            elif offset >= 50:
+            elif offset >= 30:
                 guidance += f"。请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
         
         # 在基础提示词中插入引导内容
