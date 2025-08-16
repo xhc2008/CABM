@@ -359,7 +359,7 @@ class ChatService:
         guidance = f"当前章节：`{current_chapter}`"
         if next_chapter:  # 只有在还有下一章节时才添加引导
             if 20 <= offset < 50:
-                guidance += f"。请潜移默化地引导用户向`{next_chapter}`方向推进故事"
+                guidance += f"。请暗示性地引导用户向`{next_chapter}`方向推进故事"
             elif offset >= 50:
                 guidance += f"。请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
         
@@ -367,8 +367,8 @@ class ChatService:
         if guidance:
             # 在"你正在进行角色扮演，和用户进行交互。"后面插入引导内容
             modified_prompt = base_prompt.replace(
-                "你正在进行角色扮演，和用户进行交互。",
-                f"你正在进行角色扮演，和用户进行交互。{guidance}。"
+                "你是一个视听小说中的角色。",
+                f"你是一个视听小说中的角色，你需要推动剧情发展。{guidance}。"
             )
         else:
             modified_prompt = base_prompt
