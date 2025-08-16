@@ -154,9 +154,9 @@ class OptionService:
 
 {character_setting}
 
-用户最后的问题: {user_query}
+用户最后输入: {user_query}
 
-请基于以上对话历史、角色设定和用户最后的问题，生成3个**用户**可能想要继续询问的问题选项。"""
+请基于以上对话历史、角色设定和用户最后的问题，生成3个**用户**可能想要说的选项。"""
         
         return user_prompt
 
