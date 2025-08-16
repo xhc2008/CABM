@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import logging
 import re
 import requests
@@ -74,11 +75,48 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             except Exception as e:
                 logger.error(f"获取音色列表异常: {e}")
 
+        def _get_file_hash(self, file_path):
+            """计算文件的MD5哈希值"""
+            hash_md5 = hashlib.md5()
+            try:
+                with open(file_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(4096), b""):
+                        hash_md5.update(chunk)
+                return hash_md5.hexdigest()
+            except Exception as e:
+                logger.error(f"计算文件哈希失败 {file_path}: {e}")
+                return None
+
+        def _load_voice_cache(self):
+            """加载本地音色缓存"""
+            cache_file = Path(".") / "data" / "voice_cache.json"
+            if cache_file.exists():
+                try:
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+                except Exception as e:
+                    logger.warning(f"加载音色缓存失败: {e}")
+            return {}
+
+        def _save_voice_cache(self, cache):
+            """保存本地音色缓存"""
+            cache_file = Path(".") / "data" / "voice_cache.json"
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(cache, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                logger.error(f"保存音色缓存失败: {e}")
+
         def _upload_local_voices(self):
             ref_audio_dir = Path(".") / "data" / "ref_audio"
             if not ref_audio_dir.exists():
                 logger.warning(f"参考音频目录不存在: {ref_audio_dir}")
                 return
+            
+            # 加载本地缓存
+            voice_cache = self._load_voice_cache()
+            cache_updated = False
             
             # 导入角色模块来获取角色名称映射
             try:
@@ -95,15 +133,46 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                 character_id = character_dir.name
                 wav_path = character_dir / "1.wav"
                 txt_path = character_dir / "1.txt"
-                logger.warning(f"导入角色{character_id}的参考音频")
+                
                 # 检查必要文件是否存在
                 if not wav_path.exists():
                     logger.warning(f"角色 {character_id} 的音频文件不存在: {wav_path}")
                     continue
 
-                if hashlib.md5(character_id.encode('utf-8')).hexdigest() in self.role_list:
-                    logger.debug(f"音色已存在，跳过: {character_id}")
+                # 计算音频文件哈希值
+                audio_hash = self._get_file_hash(wav_path)
+                if not audio_hash:
                     continue
+
+                # 检查缓存中是否已存在相同哈希的音色
+                cached_info = voice_cache.get(character_id)
+                if cached_info and cached_info.get('audio_hash') == audio_hash:
+                    # 使用缓存的URI
+                    uri = cached_info.get('uri')
+                    if uri:
+                        self.role_list.append(character_id)
+                        self.role_name[character_id] = uri
+                        
+                        # 添加角色名称映射
+                        if characters:
+                            try:
+                                character_config = characters.get_character_config(character_id)
+                                if character_config and 'name' in character_config:
+                                    character_name = character_config['name']
+                                    self.role_name[character_name] = uri
+                            except Exception:
+                                pass
+                        
+                        logger.info(f"🔄 使用缓存音色: {character_id} -> {uri}")
+                        continue
+
+                # 检查服务器上是否已存在（通过customName）
+                custom_name = hashlib.md5(character_id.encode('utf-8')).hexdigest()
+                if custom_name in [name for name in self.role_name.keys() if isinstance(name, str) and len(name) == 32]:
+                    logger.debug(f"音色已存在于服务器，跳过: {character_id}")
+                    continue
+
+                logger.info(f"📤 上传角色 {character_id} 的参考音频...")
 
                 # 读取参考文本
                 try:
@@ -131,7 +200,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
 
                 files = {
                     "model": (None, "FunAudioLLM/CosyVoice2-0.5B"),
-                    "customName": (None, hashlib.md5(character_id.encode('utf-8')).hexdigest()),
+                    "customName": (None, custom_name),
                     "text": (None, ref_text),
                     "audio": (None, audio_base64)
                 }
@@ -148,6 +217,15 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                         if uri:
                             self.role_list.append(character_id)
                             self.role_name[character_id] = uri
+                            
+                            # 更新缓存
+                            voice_cache[character_id] = {
+                                'audio_hash': audio_hash,
+                                'uri': uri,
+                                'custom_name': custom_name,
+                                'upload_time': str(Path(wav_path).stat().st_mtime)
+                            }
+                            cache_updated = True
                             
                             # 同时添加角色名称映射（如果能获取到的话）
                             if characters:
@@ -170,6 +248,10 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                         logger.warning(f"❌ 上传音色失败 [{character_id}]: {response.status_code}, {response.text}")
                 except Exception as e:
                     logger.error(f"上传音色异常 [{character_id}]: {e}")
+            
+            # 保存更新的缓存
+            if cache_updated:
+                self._save_voice_cache(voice_cache)
 
         def get_tts(self, text, role='default', speed=1.0, gain=0.0, response_format='wav', sample_rate=44100):
             # 过滤符号
