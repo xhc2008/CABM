@@ -1632,7 +1632,7 @@ def create_story():
         
         # 复制角色记忆文件
         memory_source = Path('data/memory') / character_id / f'{character_id}_memory.json'
-        memory_target = story_dir / f'{story_id}memory.json'
+        memory_target = story_dir / f'{story_id}_memory.json'
         if memory_source.exists():
             shutil.copy2(str(memory_source), str(memory_target))
         else:
