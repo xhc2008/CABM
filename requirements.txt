@@ -7,6 +7,7 @@ httpx
 pydub
 tenacity
 rtoml
+toml
 Pillow
 # BERT情感分析相关依赖
 # transformers>=4.30.0
