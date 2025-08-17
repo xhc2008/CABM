@@ -76,7 +76,7 @@ class OptionService:
             extra_body_list = [
                 'temperature',
                 'max_tokens',
-                'enable_thinking'
+                'enable_reasoning'
             ]
             extra_body_dict = {
                 k: option_config[k] for k in extra_body_list if k in option_config
