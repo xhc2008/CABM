@@ -58,6 +58,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+fuck-u-code.exe
 # npm缓存文件
 node_modules/
 
