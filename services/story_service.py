@@ -302,7 +302,7 @@ class StoryService:
             "extra_body":{
                 "max_tokens": 10,  # 只需要一个数字
                 "temperature": 0.1,  # 低温度确保稳定输出
-                "enable_thinking": False  
+                "enable_reasoning": False  
             },
             "stream": False
         }

@@ -497,7 +497,7 @@ class ChatService:
                     for i in range(len(messages) - 1, -1, -1):
                         if messages[i]["role"] == "user":
                             original_content = messages[i]["content"]
-                            messages[i]["content"] = full_context + "\n\n" + original_content
+                            messages[i]["content"] = full_context + "\n以下是用户说的话：\n" + original_content
                             break
                             
             except Exception as e:

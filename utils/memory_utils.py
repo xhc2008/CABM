@@ -251,10 +251,10 @@ class ChatHistoryVectorDB:
                 return ""
                     
             # 格式化为提示词
-            memory_prompt = "这是相关的记忆，可以作为参考：\n\n" + \
+            memory_prompt = "这是相关的记忆，可以作为参考：\n```\n" + \
                 '\n'.join([r['text'] for r in results])
             
-            memory_prompt += "请参考以上历史记录，保持对话的连贯性和一致性。\n\n以下是本次用户输入："
+            memory_prompt += "```\n请参考以上历史记录，保持对话的连贯性和一致性。"
             
             self.logger.info(f"生成记忆提示词: {len(memory_prompt)} 字符")
             self.logger.debug(f"生成的记忆提示词内容: {memory_prompt}")
