@@ -24,6 +24,7 @@ if not need_config:
     from services.image_service import image_service
     from services.scene_service import scene_service
     from services.option_service import option_service
+    from services.story_service import story_service
     from services.ttsapi_service import ttsService
     from utils.api_utils import APIError
 
@@ -310,12 +311,21 @@ def chat_stream():
                     chat_service.add_message("assistant", full_response)
                     # 添加到记忆数据库（存储原始响应内容）
                     try:
-                        character_id = chat_service.config_service.current_character_id or "default"
-                        chat_service.memory_service.add_conversation(
-                            user_message=message,
-                            assistant_message=full_response,
-                            character_name=character_id
-                        )
+                        if chat_service.story_mode and chat_service.current_story_id:
+                            # 剧情模式：添加到故事记忆
+                            chat_service.memory_service.add_story_conversation(
+                                user_message=message,
+                                assistant_message=full_response,
+                                story_id=chat_service.current_story_id
+                            )
+                        else:
+                            # 普通模式：添加到角色记忆
+                            character_id = chat_service.config_service.current_character_id or "default"
+                            chat_service.memory_service.add_conversation(
+                                user_message=message,
+                                assistant_message=full_response,
+                                character_name=character_id
+                            )
                     except Exception as e:
                         print(f"添加对话到记忆数据库失败: {e}")
                         traceback.print_exc()
@@ -577,6 +587,11 @@ def serve_character_image(filename):
     """提供角色图片"""
     return send_from_directory('data/images', filename)
 
+@app.route('/data/saves/<path:filename>')
+def serve_story_file(filename):
+    """提供故事文件"""
+    return send_from_directory('data/saves', filename)
+
 @app.route('/custom_character')
 def custom_character_page():
     """自定义角色页面"""
@@ -586,6 +601,449 @@ def custom_character_page():
 def story_page():
     """剧情模式页面"""
     return render_template('story.html')
+
+@app.route('/story/<story_id>')
+def story_chat_page(story_id):
+    """剧情聊天页面"""
+    # 加载故事
+    if not story_service.load_story(story_id):
+        return f"故事 {story_id} 不存在", 404
+    
+    # 设置聊天服务为剧情模式
+    if not chat_service.set_story_mode(story_id):
+        return f"无法设置剧情模式: {story_id}", 500
+    
+    # 获取当前背景图片
+    background = image_service.get_current_background()
+    # 如果没有背景图片，生成一个
+    if not background:
+        try:
+            result = image_service.generate_background()
+            if "image_path" in result:
+                background = result["image_path"]
+        except Exception as e:
+            print(f"背景图片生成失败: {str(e)}")
+            traceback.print_exc()
+    
+    # 将背景路径转换为URL
+    background_url = None
+    if background:
+        background_url = f"/static/images/cache/{os.path.basename(background)}"
+    
+    # 获取故事数据
+    story_data = story_service.get_current_story_data()
+    
+    # 获取当前角色配置（应该已经通过set_story_mode设置好了）
+    current_character = chat_service.get_character_config()
+    
+    # 获取应用配置
+    app_config = config_service.get_app_config()
+    show_scene_name = app_config.get("show_scene_name", True)
+    
+    return render_template(
+        'story_chat.html',
+        background_url=background_url,
+        story_data=story_data,
+        story_id=story_id,
+        current_character=current_character,
+        show_scene_name=show_scene_name
+    )
+
+@app.route('/api/stories', methods=['GET'])
+def list_stories():
+    """获取故事列表API"""
+    try:
+        stories = story_service.list_stories()
+        
+        return jsonify({
+            'success': True,
+            'stories': stories
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+'''
+@app.route('/api/stories/create', methods=['POST'])
+def create_story():
+    """创建新故事API"""
+    try:
+        # 获取表单数据
+        story_id = request.form.get('storyId')
+        story_title = request.form.get('storyTitle')
+        character_id = request.form.get('selectedCharacterId')
+        story_direction = request.form.get('storyDirection')
+        
+        # 验证必填字段
+        if not all([story_id, story_title, character_id, story_direction]):
+            return jsonify({
+                'success': False,
+                'error': '缺少必填字段'
+            }), 400
+        
+        # 验证故事ID格式
+        if not re.match(r'^[a-zA-Z0-9_]+$', story_id):
+            return jsonify({
+                'success': False,
+                'error': '故事ID格式不正确'
+            }), 400
+        
+        # 处理背景图片
+        background_images = []
+        uploaded_files = request.files.getlist('backgroundImages')
+        
+        if uploaded_files:
+            # 创建临时目录保存上传的图片
+            import tempfile
+            temp_dir = Path(tempfile.mkdtemp())
+            
+            for i, file in enumerate(uploaded_files):
+                if file and file.filename:
+                    # 保存到临时文件
+                    temp_path = temp_dir / f"bg_{i}.png"
+                    file.save(str(temp_path))
+                    background_images.append(str(temp_path))
+        
+        # 创建故事
+        success = story_service.create_story(
+            story_id=story_id,
+            title=story_title,
+            character_id=character_id,
+            story_direction=story_direction,
+            background_images=background_images
+        )
+        
+        # 清理临时文件
+        if background_images:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': '故事创建成功',
+                'story_id': story_id
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': '故事创建失败'
+            }), 500
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+'''
+@app.route('/api/story/chat', methods=['POST'])
+def story_chat():
+    """剧情模式聊天API（非流式）"""
+    try:
+        # 获取请求数据
+        data = request.json
+        message = data.get('message', '')
+        story_id = data.get('story_id', '')
+        
+        if not message:
+            return jsonify({
+                'success': False,
+                'error': '消息不能为空'
+            }), 400
+        
+        if not story_id:
+            return jsonify({
+                'success': False,
+                'error': '故事ID不能为空'
+            }), 400
+        
+        # 加载故事
+        if not story_service.load_story(story_id):
+            return jsonify({
+                'success': False,
+                'error': f'故事 {story_id} 不存在'
+            }), 404
+        
+        # 设置剧情模式的聊天服务
+        chat_service.set_story_mode(story_id)
+        
+        # 添加用户消息
+        chat_service.add_message("user", message)
+        
+        # 调用对话API
+        response = chat_service.chat_completion(stream=False, user_query=message)
+        
+        # 获取助手回复
+        assistant_message = None
+        if "choices" in response and len(response["choices"]) > 0:
+            message_data = response["choices"][0].get("message", {})
+            if message_data and "content" in message_data:
+                assistant_message = message_data["content"]
+        
+        # 返回响应
+        return jsonify({
+            'success': True,
+            'message': assistant_message,
+            'history': [msg.to_dict() for msg in chat_service.get_history()]
+        })
+        
+    except APIError as e:
+        return jsonify({
+            'success': False,
+            'error': e.message
+        }), 500
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/story/chat/stream', methods=['POST'])
+def story_chat_stream():
+    """剧情模式流式聊天API"""
+    try:
+        # 获取请求数据
+        data = request.json
+        message = data.get('message', '')
+        story_id = data.get('story_id', '')
+        
+        if not message:
+            return jsonify({
+                'success': False,
+                'error': '消息不能为空'
+            }), 400
+        
+        if not story_id:
+            return jsonify({
+                'success': False,
+                'error': '故事ID不能为空'
+            }), 400
+        
+        # 加载故事
+        if not story_service.load_story(story_id):
+            return jsonify({
+                'success': False,
+                'error': f'故事 {story_id} 不存在'
+            }), 404
+        
+        # 设置剧情模式的聊天服务
+        chat_service.set_story_mode(story_id)
+        
+        # 添加用户消息
+        chat_service.add_message("user", message)
+        
+        # 创建流式响应生成器
+        def generate():
+            try:
+                # 调用对话API（流式）
+                stream_gen = chat_service.chat_completion(stream=True, user_query=message)
+                full_response = ""
+                parsed_mood = None
+                parsed_content = ""
+                
+                # 逐步返回响应
+                for chunk in stream_gen:
+                    if chunk is not None:
+                        full_response += chunk
+                        
+                        # 实时解析JSON格式的响应
+                        try:
+                            # 尝试解析当前累积的响应
+                            json_start = full_response.rfind('{')
+                            if json_start != -1:
+                                potential_json = full_response[json_start:]
+                                
+                                # 检查是否有完整的JSON结构
+                                brace_count = 0
+                                json_end = -1
+                                for i, char in enumerate(potential_json):
+                                    if char == '{':
+                                        brace_count += 1
+                                    elif char == '}':
+                                        brace_count -= 1
+                                        if brace_count == 0:
+                                            json_end = i + 1
+                                            break
+                                
+                                # 如果找到完整的JSON，尝试解析
+                                if json_end != -1:
+                                    json_str = potential_json[:json_end]
+                                    try:
+                                        json_data = json.loads(json_str)
+                                        
+                                        # 处理mood字段
+                                        if 'mood' in json_data:
+                                            new_mood = json_data['mood']
+                                            if new_mood != parsed_mood:
+                                                parsed_mood = new_mood
+                                                yield f"data: {json.dumps({'mood': parsed_mood})}\n\n"
+                                        
+                                        # 处理content字段
+                                        if 'content' in json_data:
+                                            new_content = json_data['content']
+                                            if new_content != parsed_content:
+                                                if len(new_content) < len(parsed_content):
+                                                    yield f"data: {json.dumps({'content': new_content})}\n\n"
+                                                    parsed_content = new_content
+                                                else:
+                                                    content_diff = new_content[len(parsed_content):]
+                                                    if content_diff:
+                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                                    parsed_content = new_content
+                                                
+                                    except json.JSONDecodeError:
+                                        pass
+                                else:
+                                    # 尝试解析不完整的JSON
+                                    try:
+                                        content_match = re.search(r'"content":\s*"([^"]*)', potential_json)
+                                        if content_match:
+                                            current_content = content_match.group(1)
+                                            if current_content != parsed_content:
+                                                if len(current_content) < len(parsed_content):
+                                                    yield f"data: {json.dumps({'content': current_content})}\n\n"
+                                                    parsed_content = current_content
+                                                else:
+                                                    content_diff = current_content[len(parsed_content):]
+                                                    if content_diff:
+                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                                    parsed_content = current_content
+                                    except Exception:
+                                        pass
+                                        
+                        except Exception as e:
+                            print(f"解析JSON响应失败: {e}")
+                            yield f"data: {json.dumps({'content': chunk})}\n\n"
+                
+                # 将完整消息添加到历史记录
+                if full_response:
+                    chat_service.add_message("assistant", full_response)
+                    
+                    # 添加到记忆数据库
+                    try:
+                        chat_service.memory_service.add_story_conversation(
+                            user_message=message,
+                            assistant_message=full_response,
+                            story_id=story_id
+                        )
+                    except Exception as e:
+                        print(f"添加对话到故事记忆数据库失败: {e}")
+                        traceback.print_exc()
+                    
+                    # 调用导演模型和生成选项（同步执行以便发送更新给前端）
+                    try:
+                        # 获取聊天历史用于导演判断
+                        app_config = config_service.get_app_config()
+                        max_history = app_config["max_history_length"]
+                        
+                        # 格式化聊天历史
+                        history_messages = chat_service.get_history()[-max_history:]
+                        chat_history_text = ""
+                        for msg in history_messages:
+                            if msg.role == "user":
+                                chat_history_text += f"玩家：{msg.content}\n"
+                            elif msg.role == "assistant":
+                                # 解析JSON格式的回复，只取content部分
+                                try:
+                                    msg_data = json.loads(msg.content)
+                                    content = msg_data.get('content', msg.content)
+                                except:
+                                    content = msg.content
+                                
+                                # 获取角色名
+                                character_config = chat_service.get_character_config()
+                                character_name = character_config.get('name', 'AI助手')
+                                chat_history_text += f"{character_name}：{content}\n"
+                        
+                        # 调用导演模型
+                        director_result = story_service.call_director_model(chat_history_text)
+                        
+                        # 处理导演结果
+                        story_finished = False
+                        if director_result == 0:
+                            # 推进到下一章节
+                            story_service.update_progress(advance_chapter=True)
+                            
+                            # 检查是否故事结束
+                            if story_service.is_story_finished():
+                                print("故事已结束")
+                                story_finished = True
+                        else:
+                            # 增加偏移值
+                            story_service.update_progress(offset_increment=director_result)
+                        
+                        # 获取更新后的故事进度
+                        current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
+                        current_offset = story_service.get_offset()
+                        
+                        # 发送故事进度更新给前端
+                        progress_update = {
+                            'storyProgress': {
+                                'current': current_idx,
+                                'currentChapter': current_chapter,
+                                'nextChapter': next_chapter,
+                                'offset': current_offset
+                            }
+                        }
+                        
+                        if story_finished:
+                            progress_update['storyFinished'] = True
+                        
+                        yield f"data: {json.dumps(progress_update)}\n\n"
+                        
+                    except Exception as e:
+                        print(f"导演模型处理失败: {e}")
+                        traceback.print_exc()
+                    
+                    # 生成选项
+                    try:
+                        conversation_history = chat_service.format_messages()
+                        character_config = chat_service.get_character_config()
+                        options = option_service.generate_options(
+                            conversation_history=conversation_history,
+                            character_config=character_config,
+                            user_query=message
+                        )
+                        
+                        if options:
+                            yield f"data: {json.dumps({'options': options})}\n\n"
+                    except Exception as e:
+                        print(f"选项生成失败: {e}")
+                        
+                yield "data: [DONE]\n\n"
+                
+            except Exception as e:
+                error_msg = str(e)
+                print(f"流式响应错误: {error_msg}")
+                traceback.print_exc()
+                yield f"data: {json.dumps({'error': error_msg})}\n\n"
+                yield "data: [DONE]\n\n"
+        
+        # 设置响应头
+        headers = {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+        
+        return Response(generate(), mimetype='text/event-stream', headers=headers)
+        
+    except APIError as e:
+        return jsonify({
+            'success': False,
+            'error': e.message
+        }), 500
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/custom-character', methods=['POST'])
 def create_custom_character():
@@ -606,6 +1064,9 @@ def create_custom_character():
         
         # 获取头像文件
         avatar_image = request.files.get('avatarImage')
+        
+        # 获取角色详细信息文件
+        detail_files = request.files.getlist('characterDetails')
         
         # 验证必填字段
         if not all([character_id, character_name, theme_color, character_intro, character_description]):
@@ -839,6 +1300,49 @@ def get_character_config():
             with open(character_toml_path, 'w', encoding='utf-8') as f:
                 f.write(rtoml.dumps(character_config))
         
+        # 处理角色详细信息文件
+        if detail_files:
+            from services.character_details_service import character_details_service
+            
+            # 创建临时目录保存上传的文件
+            temp_dir = Path('temp') / 'character_details' / character_id
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            
+            try:
+                saved_files = []
+                
+                # 保存上传的文件
+                for i, detail_file in enumerate(detail_files):
+                    if detail_file and detail_file.filename:
+                        # 验证文件类型
+                        if not detail_file.filename.lower().endswith('.txt'):
+                            continue
+                        
+                        # 保存文件
+                        file_path = temp_dir / f"detail_{i}_{detail_file.filename}"
+                        detail_file.save(str(file_path))
+                        saved_files.append(str(file_path))
+                
+                # 构建角色详细信息向量数据库
+                if saved_files:
+                    success = character_details_service.build_character_details(character_id, saved_files)
+                    if success:
+                        print(f"角色详细信息数据库构建成功: {character_id}")
+                    else:
+                        print(f"角色详细信息数据库构建失败: {character_id}")
+                
+            except Exception as e:
+                print(f"处理角色详细信息文件失败: {e}")
+                traceback.print_exc()
+            finally:
+                # 清理临时文件
+                try:
+                    import shutil
+                    if temp_dir.exists():
+                        shutil.rmtree(temp_dir)
+                except Exception as e:
+                    print(f"清理临时文件失败: {e}")
+        
         return jsonify({
             'success': True,
             'message': f'自定义角色 {character_name} 创建成功',
@@ -1063,6 +1567,302 @@ def get_story_cover(story_id):
             'success': False,
             'error': '封面图片不存在'
         }), 404
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/stories/create', methods=['POST'])
+def create_story():
+    """创建新故事API"""
+    try:
+        import rtoml
+        from pathlib import Path
+        import datetime
+        import shutil
+        from PIL import Image
+        from utils.api_utils import make_api_request
+        from config import get_story_prompts
+        from utils.env_utils import get_env_var
+        
+        # 获取表单数据
+        story_id = request.form.get('storyId')
+        story_title = request.form.get('storyTitle')
+        character_id = request.form.get('selectedCharacterId')
+        story_direction = request.form.get('storyDirection')
+        background_images = request.files.getlist('backgroundImages')
+        
+        # 验证必填字段
+        if not all([story_id, story_title, character_id, story_direction]):
+            return jsonify({
+                'success': False,
+                'error': '缺少必填字段'
+            }), 400
+        
+        # 验证故事ID格式
+        if not re.match(r'^[a-zA-Z0-9_]+$', story_id):
+            return jsonify({
+                'success': False,
+                'error': '故事ID格式不正确，只能包含英文字母、数字和下划线'
+            }), 400
+        
+        # 检查故事ID是否已存在
+        story_dir = Path('data/saves') / story_id
+        if story_dir.exists():
+            return jsonify({
+                'success': False,
+                'error': f'故事ID "{story_id}" 已存在'
+            }), 400
+        
+        # 验证角色是否存在
+        character_config = config_service.get_character_config(character_id)
+        if not character_config:
+            return jsonify({
+                'success': False,
+                'error': f'角色 "{character_id}" 不存在'
+            }), 400
+        
+        # 创建故事目录
+        story_dir.mkdir(parents=True, exist_ok=True)
+        backgrounds_dir = story_dir / 'backgrounds'
+        backgrounds_dir.mkdir(exist_ok=True)
+        
+        # 保存背景图片
+        cover_created = False
+        for i, bg_image in enumerate(background_images, 1):
+            if bg_image and bg_image.filename:
+                # 保存背景图片
+                bg_filename = f"{i}.jpg"
+                bg_path = backgrounds_dir / bg_filename
+                
+                # 转换为JPEG格式
+                try:
+                    image = Image.open(bg_image)
+                    # 如果是RGBA模式，转换为RGB
+                    if image.mode == 'RGBA':
+                        # 创建白色背景
+                        background = Image.new('RGB', image.size, (255, 255, 255))
+                        background.paste(image, mask=image.split()[-1])  # 使用alpha通道作为mask
+                        image = background
+                    elif image.mode != 'RGB':
+                        image = image.convert('RGB')
+                    
+                    image.save(str(bg_path), 'JPEG', quality=85)
+                    
+                    # 第一张图片作为封面
+                    if i == 1 and not cover_created:
+                        cover_path = story_dir / 'cover.png'
+                        # 创建封面（裁剪为正方形）
+                        width, height = image.size
+                        size = min(width, height)
+                        left = (width - size) // 2
+                        top = (height - size) // 2
+                        right = left + size
+                        bottom = top + size
+                        
+                        cover_image = image.crop((left, top, right, bottom))
+                        cover_image = cover_image.resize((512, 512), Image.Resampling.LANCZOS)
+                        cover_image.save(str(cover_path), 'PNG')
+                        cover_created = True
+                        
+                except Exception as e:
+                    print(f"处理背景图片失败: {e}")
+                    continue
+        
+        # 创建空白的history.log
+        history_path = story_dir / 'history.log'
+        history_path.touch()
+        
+        # 复制角色记忆文件
+        memory_source = Path('data/memory') / character_id / f'{character_id}_memory.json'
+        memory_target = story_dir / f'{story_id}_memory.json'
+        if memory_source.exists():
+            shutil.copy2(str(memory_source), str(memory_target))
+        else:
+            # 如果没有记忆文件，创建空的
+            with open(memory_target, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
+        
+        # 获取角色系统提示词
+        character_prompt = character_config.get('prompt', '')
+        
+        # 调用LLM生成故事内容
+        try:
+            # 构建请求
+            api_base_url = get_env_var("CHAT_API_BASE_URL")
+            api_key = get_env_var("CHAT_API_KEY")
+            model = get_env_var("CHAT_MODEL")
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # 获取故事生成提示词
+            story_prompt = get_story_prompts(character_config.get('name', character_id), character_prompt, story_direction)
+            
+            request_data = {
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": story_prompt}
+                ],
+                "max_tokens": 2000,
+                "temperature": 0.8,
+                "stream": False
+            }
+            
+            # 保存调试信息到temp.txt
+            debug_info = {
+                'timestamp': datetime.datetime.now().isoformat(),
+                'story_id': story_id,
+                'character_id': character_id,
+                'story_direction': story_direction,
+                'request': {
+                    'url': f"{api_base_url}/chat/completions",
+                    'headers': {k: v for k, v in headers.items() if k != 'Authorization'},  # 不保存API密钥
+                    'data': request_data
+                }
+            }
+            
+            # 发送请求
+            response, data = make_api_request(
+                url=f"{api_base_url}/chat/completions",
+                method="POST",
+                headers=headers,
+                json_data=request_data,
+                timeout=60
+            )
+            
+            # 添加响应到调试信息
+            debug_info['response'] = {
+                'status_code': response.status_code if response else None,
+                'data': data
+            }
+            
+            # 保存调试信息到temp.txt
+            try:
+                with open('temp.txt', 'w', encoding='utf-8') as f:
+                    f.write("=== AI故事生成调试信息 ===\n")
+                    f.write(f"时间: {debug_info['timestamp']}\n")
+                    f.write(f"故事ID: {debug_info['story_id']}\n")
+                    f.write(f"角色ID: {debug_info['character_id']}\n")
+                    f.write(f"故事导向: {debug_info['story_direction']}\n\n")
+                    
+                    f.write("=== 原始请求 ===\n")
+                    f.write(json.dumps(debug_info['request'], ensure_ascii=False, indent=2))
+                    f.write("\n\n")
+                    
+                    f.write("=== 原始响应 ===\n")
+                    f.write(json.dumps(debug_info['response'], ensure_ascii=False, indent=2))
+                    f.write("\n\n")
+                    
+                    if data and "choices" in data and len(data["choices"]) > 0:
+                        content = data["choices"][0]["message"]["content"]
+                        f.write("=== AI生成的内容 ===\n")
+                        f.write(content)
+                        f.write("\n\n")
+            except Exception as debug_e:
+                print(f"保存调试信息失败: {debug_e}")
+            
+            # 解析响应
+            if data and "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                
+                # 解析JSON响应
+                try:
+                    # 处理被```包裹的JSON
+                    json_content = content.strip()
+                    
+                    # 移除markdown代码块标记
+                    if json_content.startswith('```json'):
+                        json_content = json_content[7:]  # 移除```json
+                    elif json_content.startswith('```'):
+                        json_content = json_content[3:]   # 移除```
+                    
+                    if json_content.endswith('```'):
+                        json_content = json_content[:-3]  # 移除结尾的```
+                    
+                    json_content = json_content.strip()
+                    
+                    # 尝试解析JSON
+                    story_data = json.loads(json_content)
+                    summary = story_data.get('summary', '暂无简介')
+                    outline = story_data.get('outline', ['开始'])
+                    #outline[0] = "故事开始"
+                    outline[-1] = "故事结束"
+                    
+                    # 在调试文件中添加解析结果
+                    try:
+                        with open('temp.txt', 'a', encoding='utf-8') as f:
+                            f.write("=== JSON解析结果 ===\n")
+                            f.write(f"提取的JSON内容: {json_content}\n")
+                            f.write(f"解析成功: True\n")
+                            f.write(f"故事梗概: {summary}\n")
+                            f.write(f"大纲条目数: {len(outline)}\n")
+                            f.write(f"大纲前5条: {outline[:5]}\n\n")
+                    except Exception:
+                        pass
+                        
+                except json.JSONDecodeError as je:
+                    # JSON解析失败，记录错误并使用默认值
+                    try:
+                        with open('temp.txt', 'a', encoding='utf-8') as f:
+                            f.write("=== JSON解析失败 ===\n")
+                            f.write(f"错误信息: {str(je)}\n")
+                            f.write(f"尝试解析的内容: {json_content if 'json_content' in locals() else content}\n\n")
+                    except Exception:
+                        pass
+                    
+                    summary = story_direction
+                    outline = ['开始', '发展', '转折', '高潮', '结局']
+            else:
+                # 如果API调用失败，使用默认值
+                summary = story_direction
+                outline = ['开始', '发展', '转折', '高潮', '结局']
+                
+        except Exception as e:
+            print(f"LLM生成故事内容失败: {e}")
+            # 使用默认值
+            summary = story_direction
+            outline = ['开始', '发展', '转折', '高潮', '结局']
+        
+        # 创建story.toml文件
+        story_toml_data = {
+            'metadata': {
+                'story_id': story_id,
+                'title': story_title,
+                'creator': '用户',
+                'create_date': datetime.datetime.now().strftime('%Y-%m-%d'),
+                'seed': story_direction
+            },
+            'progress': {
+                'current': 0,
+                'offset': 0
+            },
+            'summary': {
+                'text': summary
+            },
+            'structure': {
+                'outline': outline
+            },
+            'characters': {
+                'list': [character_id]
+            }
+        }
+        
+        # 保存story.toml
+        story_toml_path = story_dir / 'story.toml'
+        with open(story_toml_path, 'w', encoding='utf-8') as f:
+            rtoml.dump(story_toml_data, f)
+        
+        return jsonify({
+            'success': True,
+            'message': '故事创建成功',
+            'story_id': story_id
+        })
         
     except Exception as e:
         traceback.print_exc()

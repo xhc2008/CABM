@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ story_data.metadata.title }} - CABM</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <link rel="stylesheet" href="/static/css/continue-prompt.css">
+    <link rel="stylesheet" href="/static/css/media.css">
+    <style>
+        .story-info {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9em;
+            max-width: 300px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .story-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #00ff88;
+        }
+        
+        .story-progress {
+            margin-bottom: 5px;
+        }
+        
+        .story-chapter {
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+        
+        .story-offset {
+            color: #ff9800;
+            font-size: 0.8em;
+        }
+        
+        .back-to-story {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .back-to-story:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .story-finished-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .story-finished-content {
+            background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.9));
+            border: 2px solid rgba(0, 255, 136, 0.5);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        }
+        
+        .story-finished-title {
+            color: #00ff88;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .story-finished-message {
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .story-finished-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .story-finished-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .story-finished-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="chatPage" class="page active">
+            <div class="background-container">
+                {% if background_url %}
+                <div class="background-image" style="background-image: url('{{ background_url }}');"></div>
+                {% else %}
+                <div class="background-image default-background"></div>
+                {% endif %}
+                <div class="background-overlay"></div>
+            </div>
+            
+            <!-- 故事信息面板 -->
+            <div class="story-info">
+                <div class="story-title">{{ story_data.metadata.title }}</div>
+                <div class="story-progress">
+                    <span class="story-chapter" id="currentChapter">当前章节: {{ story_data.structure.outline[story_data.progress.current] }}</span>
+                </div>
+                <div class="story-offset" id="currentOffset">偏移值: {{ story_data.progress.offset }}</div>
+                <div style="margin-top: 10px;">
+                    <a href="/story" class="back-to-story">← 返回故事列表</a>
+                </div>
+            </div>
+            
+            <div class="chat-header">
+                <a href="/story" class="btn back-btn">返回</a>
+                <h2>{{ story_data.metadata.title }}</h2>
+            </div>
+            
+            <div class="character-container">
+                <div class="character-image">
+                    {% if current_character and current_character.image %}
+                    <img src="/{{ current_character.image }}/1.png" alt="{{ current_character.name }}" id="characterImage" class="character-img" 
+                         onerror="this.src='/static/images/default.svg';">
+                    {% else %}
+                    <img src="/static/images/default.svg" alt="AI角色" id="characterImage" class="character-img">
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="user-input-container">
+                <div class="input-row">
+                    <textarea id="messageInput" placeholder="输入消息..." class="chat-input" maxlength="2000"></textarea>
+                    <div class="input-buttons">
+                        <button id="micButton" class="btn mic-btn" title="语音输入">
+                            <img src="/static/images/mic.svg" alt="语音输入" width="20" height="20">
+                        </button>
+                        <button id="sendButton" class="btn send-btn" title="发送消息 (Ctrl+Enter)">发送</button>
+                    </div>
+                </div>
+                <div class="input-info">
+                    <span class="keyboard-hint">Ctrl+Enter 发送</span>
+                    <span class="char-count" id="charCount">0/2000</span>
+                </div>
+            </div>
+            
+            <div class="option-buttons-container" id="optionButtonsContainer">
+                <div class="option-buttons" id="optionButtons">
+                </div>
+            </div>
+            
+            <div class="dialog-container">
+                <div class="dialog-box" id="dialogBox">
+                    <div class="character-name" id="characterName">系统</div>
+                    <div class="dialog-content" id="currentMessage">欢迎来到《{{ story_data.metadata.title }}》！{{ story_data.summary.text }}</div>
+                    <div class="continue-prompt" id="clickToContinue">▽</div>
+                </div>
+                <div class="control-buttons">
+                    <button id="playaudioButton" class="btn secondary-btn">播放语音</button>
+                    <button id="backgroundButton" class="btn secondary-btn">更换背景</button>
+                    <button id="historyButton" class="btn secondary-btn">历史</button>
+                    <button id="characterButton" class="btn secondary-btn">角色</button>
+                    <button id="continueButton" class="btn secondary-btn">继续</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 历史记录模态框 -->
+        <div class="history-modal" id="historyModal">
+            <div class="history-content">
+                <div class="history-header">
+                    <h3>对话历史</h3>
+                    <button id="closeHistoryButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="history-messages" id="historyMessages">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 角色模态框 -->
+        <div class="modal" id="characterModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>角色信息</h3>
+                    <button id="closeCharacterButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="character-list" id="characterList">
+                        <p>剧情模式中的角色信息</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 确认模态框 -->
+        <div class="modal" id="confirmModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>确认</h3>
+                    <button id="closeConfirmButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage">确定要执行此操作吗？</p>
+                    <div class="confirm-buttons">
+                        <button id="confirmYesButton" class="btn primary-btn">确定</button>
+                        <button id="confirmNoButton" class="btn secondary-btn">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 故事结束模态框 -->
+        <div class="story-finished-modal" id="storyFinishedModal">
+            <div class="story-finished-content">
+                <div class="story-finished-title">🎉 故事完结 🎉</div>
+                <div class="story-finished-message">
+                    恭喜你完成了《{{ story_data.metadata.title }}》的冒险！<br>
+                    这段旅程充满了精彩的回忆。
+                </div>
+                <div class="story-finished-buttons">
+                    <button class="story-finished-btn btn-primary" onclick="backToStoryList()">返回故事列表</button>
+                    <button class="story-finished-btn btn-secondary" onclick="hideStoryFinishedModal()">继续对话</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载指示器 -->
+        <div class="loading-container" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <p>处理中...</p>
+        </div>
+        
+        <!-- 错误容器 -->
+        <div class="error-container" id="errorContainer">
+            <p id="errorMessage"></p>
+            <button id="errorCloseButton" class="btn">关闭</button>
+        </div>
+    </div>
+    
+    <!-- 传递故事数据给JavaScript -->
+    <script>
+        window.storyData = {{ story_data | tojson }};
+        window.storyId = "{{ story_id }}";
+        {% if current_character %}
+        window.currentCharacter = {{ current_character | tojson }};
+        {% endif %}
+        
+        // 故事结束处理函数
+        function showStoryFinishedModal() {
+            document.getElementById('storyFinishedModal').style.display = 'flex';
+        }
+        
+        function hideStoryFinishedModal() {
+            document.getElementById('storyFinishedModal').style.display = 'none';
+        }
+        
+        function backToStoryList() {
+            window.location.href = '/story';
+        }
+        
+        // 监听故事结束事件
+        window.addEventListener('storyFinished', function() {
+            showStoryFinishedModal();
+        });
+    </script>
+    
+    <script src="/static/js/logo.js"></script>
+    <script type="module" src="/static/js/story-chat-init.js"></script>
+    <script src="/static/js/stream_processor.js"></script>
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script src="/static/js/input-enhancements.js"></script>
+</body>
+</html>

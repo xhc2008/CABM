@@ -136,6 +136,67 @@ class HistoryManager:
         if character_id in self.history_cache:
             self.history_cache[character_id].append(message_record)
     
+    def save_message_to_file(self, file_path: str, role: str, content: str) -> None:
+        """
+        保存消息到指定文件
+        
+        Args:
+            file_path: 历史记录文件路径
+            role: 消息角色
+            content: 消息内容
+        """
+        # 确保目录存在
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # 获取当前时间戳
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 创建消息记录
+        message_record = {
+            "timestamp": timestamp,
+            "role": role,
+            "content": content
+        }
+        
+        # 写入历史记录文件
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(message_record, ensure_ascii=False) + "\n")
+    
+    def load_history_from_file(self, file_path: str, count: int = 10, max_cache_size: int = 100) -> List[Dict[str, Any]]:
+        """
+        从指定文件加载历史记录
+        
+        Args:
+            file_path: 历史记录文件路径
+            count: 加载的消息数量
+            max_cache_size: 缓存的最大消息数量
+            
+        Returns:
+            历史记录列表，按时间从旧到新排序
+        """
+        # 如果文件不存在，返回空列表
+        if not os.path.exists(file_path):
+            return []
+        
+        # 读取历史记录
+        messages = []
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            message = json.loads(line)
+                            messages.append(message)
+                        except json.JSONDecodeError:
+                            continue
+        except Exception as e:
+            print(f"加载历史记录失败: {e}")
+            return []
+        
+        # 返回最近的count条消息
+        return messages[-count:] if count > 0 and len(messages) > count else messages
+    
     def load_history(self, character_id: str, count: int = 10, max_cache_size: int = 100) -> List[Dict[str, Any]]:
         """
         加载历史记录

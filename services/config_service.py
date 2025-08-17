@@ -69,6 +69,29 @@ class ConfigService:
         history_dir = config.APP_CONFIG["history_dir"]
         os.makedirs(history_dir, exist_ok=True)
     
+    def _get_character_moods(self, character_id: str) -> list:
+        """
+        获取角色的心情列表
+        
+        Args:
+            character_id: 角色ID
+            
+        Returns:
+            心情列表
+        """
+        # 首先尝试从角色配置中获取心情列表（TOML格式）
+        character_config = characters.get_character_config(character_id)
+        if character_config and 'moods' in character_config:
+            return character_config['moods']
+        
+        # 如果没有找到，尝试从角色模块获取（Python格式，向后兼容）
+        character_module = characters.get_character_module(character_id)
+        if character_module and hasattr(character_module, 'MOODS') and character_module.MOODS:
+            return character_module.MOODS
+        
+        # 如果都没有找到，返回空列表
+        return []
+    
     def get_chat_config(self):
         """获取对话模型配置"""
         if not self.config_loaded:
@@ -99,10 +122,10 @@ class ConfigService:
             general_prompt = config.get_system_prompt("default")
             
             # 获取角色的心情列表并动态拼接
-            character_module = characters.get_character_module(character_config['id'])
-            if hasattr(character_module, 'MOODS') and character_module.MOODS:
+            moods = self._get_character_moods(character_config['id'])
+            if moods:
                 # 构建心情字符串，格式：1.心情1 2.心情2 3.心情3 4.心情4
-                mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(character_module.MOODS)])
+                mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(moods)])
                 # 替换通用提示词中的心情部分
                 general_prompt = general_prompt.replace("<[MOODS]>", mood_str)
             
@@ -111,9 +134,9 @@ class ConfigService:
         # 对于非角色类型的提示词，也需要处理心情拼接
         prompt = config.get_system_prompt(prompt_type)
         if self.current_character_id:
-            character_module = characters.get_character_module(self.current_character_id)
-            if hasattr(character_module, 'MOODS') and character_module.MOODS:
-                mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(character_module.MOODS)])
+            moods = self._get_character_moods(self.current_character_id)
+            if moods:
+                mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(moods)])
                 prompt = prompt.replace("<[MOODS]>", mood_str)
         
         return prompt

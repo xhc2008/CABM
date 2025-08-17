@@ -284,11 +284,17 @@ class CustomCharacterManager {
             }
         });
 
-        // 验证文件上传
-        // const detailFiles = document.getElementById('characterDetails').files;
-        // if (detailFiles.length === 0) {
-        //     errors.push('必须上传至少一个角色详细信息文件');
-        // }
+        // 验证角色详细信息文件（可选）
+        const detailFiles = document.getElementById('characterDetails').files;
+        for (let i = 0; i < detailFiles.length; i++) {
+            const file = detailFiles[i];
+            if (!file.name.toLowerCase().endsWith('.txt')) {
+                errors.push(`文件 "${file.name}" 不是txt格式，请只上传纯文本文件`);
+            }
+            if (file.size > 5 * 1024 * 1024) { // 5MB限制
+                errors.push(`文件 "${file.name}" 过大，请确保文件小于5MB`);
+            }
+        }
 
         return errors;
     }

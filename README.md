@@ -3,9 +3,11 @@
 "当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。"
 
 ~~（不就是个Gal吗）~~
-> ## **⚠️ 注意：本项目目前处于开发阶段，核心功能尚未实现，其他的功能和优化也正在进行中。欢迎贡献代码或提出建议。**
+> *此文档最近一次更新时间：2025.08.17*
 
-## [正式的文档，第一更新](https://leletxh.github.io)
+> ## **⚠️ 注意：本项目目前处于开发阶段，核心功能已经实现（可能吧？），其他的功能和优化也正在进行中。欢迎贡献代码或提出建议。**
+
+## [正式的文档](https://leletxh.github.io)
 
 ## 开发状态
 
@@ -16,27 +18,33 @@
 - 分段流式输出（灵魂所在~）
 - 记忆系统（使用向量数据库长期保存记忆）
 - AI生成选项
+- 简单的角色动作（呼吸）
 - 角色的表情（后面或许会换成3D模型）
 - 自定义角色（目前只能加，不能删改）
+- 剧情模式（根据大纲推动故事发展）
+- 角色的知识库（背景故事、人物细节等）
 - ~~语音输入~~（问题太多了，目前几乎用不了）
 - 很多的bug
 
 **正在开发：**
-- 故事模式（主线任务，根据大纲推动故事发展，区别于“闲聊模式”）
-- 角色的知识库（背景故事、人物细节等）
 - 场景切换（让AI切换场景或生成新场景）
+- 中期记忆（包括当前目标等）
 - 多个参考音频（不同心情使用对应的参考音频）
 - 更多的预设角色
-- 角色动作
+- 改进剧情模式的流程
 - 用户画像（角色对用户的印象）
 - ~~记忆权重，记忆遗忘~~（难度有点大，暂不考虑）
 - 更多的bug
 
 ## 项目简介
+CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式对话应用，用户可以与AI角色进行深度互动，体验类似视觉小说(Galgame)的情感化叙事。项目结合了大型语言模型、检索增强生成、语音合成等技术，提供：
 
-CABM是一个AI对话应用，具有动态生成的背景图片功能。用户可以与AI模型进行对话交流，同时应用会使用图像生成模型创建的图片作为动态背景，提供更丰富的视觉体验。应用支持多角色系统，可以切换不同的AI角色进行对话。
-
-（人话：AI驱动的Galgame）
+- **智能角色系统**：每个角色拥有独特人格、背景故事和情感表达
+- **动态叙事体验**：剧情模式根据用户选择推动故事发展
+- **情感驱动交互**：每个角色有多个立绘，根据情绪实时调整
+- **多模态输出**：支持文本、语音、表情立绘的同步呈现
+- **长期记忆系统**：向量数据库存储对话历史，让角色永远记得和你的故事
+- **高度可定制**：用户可创建自定义角色
 
 ## 声明
 - 本项目为个人非营利性兴趣项目，无意且不参与任何形式的同业竞争。
@@ -48,10 +56,11 @@ CABM是一个AI对话应用，具有动态生成的背景图片功能。用户�
 
 ## 功能特点
 
-- 与AI模型进行自然对话，支持流式输出（打字机效果）
+- 与AI模型进行自然对话，流式输出
 - 多角色系统，可切换不同的AI角色
 - 动态生成背景图片，提供沉浸式体验
-- 角色立绘显示，增强视觉效果
+- 角色立绘动态显示，增强视觉效果
+- 语音合成，多模态输出
 - 对话历史记录查看
 - 响应式设计，适配不同设备
 
@@ -84,7 +93,9 @@ PowerShell -ExecutionPolicy Bypass -File deploy.ps1
 # 克隆项目
 git clone https://github.com/leletxh/CABM.git
 cd CABM
-# 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
+```
+> 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key
+```bash
 # 一键部署
 ./deploy-docker.sh deploy
 ```
@@ -94,8 +105,9 @@ cd CABM
 ```bash
 # 1. 配置环境变量
 cp .env.docker .env.docker
-# 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
-
+```
+> 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key
+```bash
 # 2. 构建镜像
 ./deploy-docker.sh build
 
@@ -127,51 +139,25 @@ cp .env.docker .env.docker
 
 #### 1. 安装依赖
 
-
-
 使用 pip 安装项目依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
 
-
-### 2. 配置环境变量
+#### 2. 配置环境变量
 
 复制`.env.example`文件为`.env`，并填写API密钥和URL：
 
 ```bash
 cp .env.example .env
 ```
-编辑`.env`文件，填写API_KEY。
+编辑`.env`文件，填写API_KEY（将里面所有的`your_api_key_here`替换成你的API密钥）。
+
 需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
 如果使用其他平台或模型，需要替换对应的API_BASE_URL和MODEL
 
-编辑`.env`文件，填写以下信息：
-
-```
-# 对话API配置
-CHAT_API_BASE_URL=https://api.siliconflow.cn/v1
-CHAT_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-CHAT_MODEL=deepseek-ai/DeepSeek-V3
-
-# 图像生成API配置
-IMAGE_API_BASE_URL=https://api.siliconflow.cn/v1
-IMAGE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-IMAGE_MODEL=Kwai-Kolors/Kolors
-
-# 嵌入向量API配置
-EMBEDDING_API_BASE_URL=https://api.siliconflow.cn/v1
-EMBEDDING_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-EMBEDDING_MODEL=BAAI/bge-m3
-
-# 选项生成API配置
-OPTION_API_BASE_URL=https://api.siliconflow.cn/v1
-OPTION_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-OPTION_MODEL=Qwen/Qwen3-32B
-```
-
-#### 如果你的显卡较好推荐[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
+#### 如果你有独立显卡，推荐[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
 
 ### 🚀 Docker 优势
 
@@ -187,13 +173,12 @@ OPTION_MODEL=Qwen/Qwen3-32B
 #### Docker 环境
 - Docker 20.10+
 - Docker Compose 2.0+
-- 2GB+ 可用内存
-- 1GB+ 可用存储空间
+- 2GB以上的可用内存
+- 1GB以上的可用存储空间
 
 #### 传统环境
 - Python 3.8+
-- 硬盘空间 500MB+
-- 网络连接（用于API调用）
+- 500MB以上的可用存储空间
 
 ## 使用说明
 
@@ -201,8 +186,10 @@ OPTION_MODEL=Qwen/Qwen3-32B
 
 #### Windows
 
-双击 `start.bat` 文件或在命令行中运行：
-添加
+双击 `start.bat` 文件或在命令行中运行
+```bash
+./start.bat
+```
 
 ## Node.js 安装与启动（带UI界面）
 
@@ -282,67 +269,18 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 - **切换角色**：点击"角色"按钮选择不同的AI角色
 - **播放语音**：点击"播放语音"按钮再次播放语音
 - **更换背景**：点击"更换背景"按钮生成新的背景图片
-- **自动/手动模式**：点击"自动"按钮切换打字机效果的自动/手动模式
-- **跳过打字**：在自动模式下，点击"跳过"按钮可以立即显示完整回复
-
 
 ## 注意事项
 
-- 图像API生成的图片URL有效期为一小时，应用会自动下载并存储图片
-- 默认情况下，应用会清理超过24小时的旧图片，最多保留20张图片
-- 如果图像API调用失败，应用会使用缓存的图片作为背景
-- 角色图片需要放置在`static/images/`目录下，并在角色配置文件中指定路径
-- 默认角色设置在`characters/__init__.py`文件中的`_default_character_id`变量
+- 频繁更换背景会429，导致无法切换
+- 手机可以访问，但是排版会有问题
 
 ## 自定义角色
-
-你可以通过创建新的角色配置文件来添加自定义角色。在`characters/`目录下创建一个新的Python文件，按照以下格式定义角色：
-
-```python
-# 角色基本信息
-CHARACTER_ID = "your_character_id"
-CHARACTER_NAME = "角色名称"
-CHARACTER_NAME_EN = "Character Name"
-
-# 角色外观
-CHARACTER_IMAGE = "static/images/your_character/"  # 角色立绘目录
-CHARACTER_COLOR = "#ffeb3b"  # 角色名称颜色
-
-# 角色设定
-CHARACTER_DESCRIPTION = """
-角色的简短描述
-"""
-
-# AI系统提示词
-CHARACTER_PROMPT = """
-详细的角色设定和提示词，用于指导AI生成符合角色特点的回复
-"""
-
-# 角色欢迎语
-CHARACTER_WELCOME = "角色的欢迎语"
-
-# 角色对话示例
-CHARACTER_EXAMPLES = [
-    {"role": "user", "content": "示例问题1"},
-    {"role": "assistant", "content": "示例回答1"},
-    # 更多示例...
-]
-
-# 获取角色配置
-def get_character_config():
-    """获取角色配置"""
-    return {
-        "id": CHARACTER_ID,
-        "name": CHARACTER_NAME,
-        "name_en": CHARACTER_NAME_EN,
-        "image": CHARACTER_IMAGE,
-        "color": CHARACTER_COLOR,
-        "description": CHARACTER_DESCRIPTION,
-        "prompt": CHARACTER_PROMPT,
-        "welcome": CHARACTER_WELCOME,
-        "examples": CHARACTER_EXAMPLES
-    }
-```
+现在可以在前端UI自定义角色。你需要准备：
+- 角色的**无背景**立绘（如果有多个，尽量保持角色的大小相同）
+- 角色的简介（包括给人看的和给AI看的）
+- 角色的一句语音及其文本，3-10秒（非必须）
+- 角色的详细信息、背景故事等等，需要按要求整理好（非必须）
 
 ## 贡献
 > 注：按周结算没有并不代表没有

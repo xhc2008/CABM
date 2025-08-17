@@ -68,9 +68,13 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 20px;
-            max-height: calc(100vh - 200px);
+            max-height: calc(100vh - 180px);
             overflow-y: auto;
-            padding-right: 10px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
         }
 
         .stories-grid::-webkit-scrollbar {
@@ -309,16 +313,415 @@
 
         // 打开故事
         function openStory(storyId) {
-            // TODO: 实现打开故事功能
-            alert(`打开故事: ${storyId}`);
+            window.location.href = `/story/${storyId}`;
         }
 
         // 创建新故事
         function createNewStory() {
-            // TODO: 实现创建新故事功能
-            alert('创建新故事功能待实现');
+            showCreateStoryModal();
+        }
+
+        // 显示创建故事模态框
+        function showCreateStoryModal() {
+            document.getElementById('createStoryModal').style.display = 'flex';
+            loadCharacters();
+        }
+
+        // 隐藏创建故事模态框
+        function hideCreateStoryModal() {
+            document.getElementById('createStoryModal').style.display = 'none';
+            clearCreateStoryForm();
+        }
+
+        // 清空创建故事表单
+        function clearCreateStoryForm() {
+            document.getElementById('createStoryForm').reset();
+            document.getElementById('backgroundPreview').innerHTML = '';
+            document.getElementById('selectedCharacter').textContent = '请选择角色';
+            document.getElementById('selectedCharacterId').value = '';
+        }
+
+        // 加载角色列表
+        async function loadCharacters() {
+            try {
+                const response = await fetch('/api/characters');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCharacters(data.available_characters);
+                } else {
+                    console.error('加载角色失败:', data.error);
+                }
+            } catch (error) {
+                console.error('网络错误:', error);
+            }
+        }
+
+        // 显示角色列表
+        function displayCharacters(characters) {
+            const container = document.getElementById('characterList');
+            container.innerHTML = '';
+
+            characters.forEach(char => {
+                const item = document.createElement('div');
+                item.className = 'character-item';
+                item.onclick = () => selectCharacter(char.id, char.name, char.color);
+                
+                item.innerHTML = `
+                    <div class="character-name" style="color: ${char.color}">${char.name}</div>
+                    <div class="character-id">ID: ${char.id}</div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        // 选择角色
+        function selectCharacter(id, name, color) {
+            document.getElementById('selectedCharacter').textContent = name;
+            document.getElementById('selectedCharacter').style.color = color;
+            document.getElementById('selectedCharacterId').value = id;
+            
+            // 高亮选中的角色
+            document.querySelectorAll('.character-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.character-item').classList.add('selected');
+        }
+
+        // 处理背景图片上传
+        function handleBackgroundUpload(event) {
+            const files = event.target.files;
+            const preview = document.getElementById('backgroundPreview');
+            preview.innerHTML = '';
+
+            Array.from(files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'background-preview-img';
+                        img.alt = `背景图片 ${index + 1}`;
+                        preview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // 提交创建故事表单
+        async function submitCreateStory(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const storyId = formData.get('storyId');
+            const storyTitle = formData.get('storyTitle');
+            const characterId = formData.get('selectedCharacterId');
+            const storyDirection = formData.get('storyDirection');
+            
+            // 验证必填字段
+            if (!storyId || !storyTitle || !characterId || !storyDirection) {
+                alert('请填写所有必填字段');
+                return;
+            }
+
+            // 验证故事ID格式
+            if (!/^[a-zA-Z0-9_]+$/.test(storyId)) {
+                alert('故事ID只能包含英文字母、数字和下划线');
+                return;
+            }
+
+            try {
+                // 显示加载状态
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = '创建中...';
+                submitBtn.disabled = true;
+
+                const response = await fetch('/api/stories/create', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('故事创建成功！');
+                    hideCreateStoryModal();
+                    loadStories(); // 重新加载故事列表
+                } else {
+                    alert('创建失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('网络错误: ' + error.message);
+            } finally {
+                // 恢复按钮状态
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         }
     </script>
+
+    <!-- 创建故事模态框 -->
+    <div id="createStoryModal" class="modal">
+        <div class="modal-content create-story-modal">
+            <div class="modal-header">
+                <h3>创建新故事</h3>
+                <button onclick="hideCreateStoryModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createStoryForm" onsubmit="submitCreateStory(event)" enctype="multipart/form-data">
+                    <div class="form-group required">
+                        <label for="storyId">故事ID <span class="required-mark">*</span></label>
+                        <div class="form-description">只能包含英文字母、数字和下划线</div>
+                        <input type="text" id="storyId" name="storyId" class="form-input" pattern="[a-zA-Z0-9_]+" required>
+                    </div>
+
+                    <div class="form-group required">
+                        <label for="storyTitle">故事名 <span class="required-mark">*</span></label>
+                        <input type="text" id="storyTitle" name="storyTitle" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="backgroundImages">背景图片集</label>
+                        <div class="form-description">可上传多个图片文件，第一张将作为封面</div>
+                        <input type="file" id="backgroundImages" name="backgroundImages" class="form-file" 
+                               accept="image/*" multiple onchange="handleBackgroundUpload(event)">
+                        <div id="backgroundPreview" class="background-preview"></div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label>选择角色 <span class="required-mark">*</span></label>
+                        <div class="form-description">选择故事的主要角色（目前只支持单个角色）</div>
+                        <div id="selectedCharacter" class="selected-character">请选择角色</div>
+                        <input type="hidden" id="selectedCharacterId" name="selectedCharacterId" required>
+                        <div id="characterList" class="character-list"></div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label for="storyDirection">故事导向 <span class="required-mark">*</span></label>
+                        <div class="form-description">描述你希望的故事类型、主题或发展方向</div>
+                        <textarea id="storyDirection" name="storyDirection" class="form-textarea" 
+                                  rows="4" placeholder="例如：一个关于友情与冒险的奇幻故事..." required></textarea>
+                    </div>
+
+                    <div class="form-buttons">
+                        <button type="submit" class="btn primary-btn">创建故事</button>
+                        <button type="button" onclick="hideCreateStoryModal()" class="btn secondary-btn">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: rgba(0, 20, 40, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .create-story-modal {
+            max-width: 700px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .required-mark {
+            color: #ff6b6b;
+        }
+
+        .form-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: rgba(0, 150, 255, 0.6);
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+        }
+
+        .form-file {
+            width: 100%;
+            padding: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .background-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .background-preview-img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .selected-character {
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .character-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .character-item {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .character-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .character-item.selected {
+            background: rgba(0, 150, 255, 0.3);
+        }
+
+        .character-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .character-id {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
 </body>
 
 </html>
