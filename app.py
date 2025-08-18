@@ -114,16 +114,18 @@ def home():
 @app.route('/chat')
 def chat_page():
     """聊天页面"""
-    # 确保每次进入聊天页面时都设置当前角色
+    # 确保每次进入聊天页面时切换到当前角色（重置上下文/历史/记忆）
     try:
-        # 获取当前角色配置
+        # 若处于剧情模式，先退出
+        if getattr(chat_service, "story_mode", False):
+            chat_service.exit_story_mode()
+        # 获取并切换到当前角色（会清空内存历史、设置system、初始化记忆并加载该角色历史）
         current_character = chat_service.get_character_config()
-        if current_character:
-            # 设置当前角色的系统提示词
-            chat_service.set_system_prompt("character")
-            print(f"已设置角色系统提示词: {current_character['name']}")
+        if current_character and "id" in current_character:
+            chat_service.set_character(current_character["id"])
+            print(f"已切换到角色: {current_character['name']} ({current_character['id']})")
     except Exception as e:
-        print(f"设置角色系统提示词失败: {str(e)}")
+        print(f"进入聊天页切换角色失败: {str(e)}")
         traceback.print_exc()
     
     # 获取当前背景图片

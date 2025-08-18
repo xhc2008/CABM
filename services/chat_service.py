@@ -385,13 +385,12 @@ class ChatService:
         self.story_mode = False
         self.current_story_id = None
         
-        # 重新初始化当前角色的记忆数据库，确保使用正确的路径
+        # 清除当前故事记忆上下文指针（不在此处加载/切换历史，由进入 /chat 时统一处理）
         try:
-            character_id = self.config_service.current_character_id or "default"
-            self.memory_service.initialize_character_memory(character_id)
-            self.logger.info(f"已退出剧情模式，重新初始化角色记忆数据库: {character_id}")
+            self.memory_service.current_story = None
+            self.logger.info("已退出剧情模式，已清除故事记忆上下文指针")
         except Exception as e:
-            self.logger.error(f"重新初始化角色记忆数据库失败: {e}")
+            self.logger.error(f"清除故事记忆上下文指针失败: {e}")
         
         self.logger.info("已退出剧情模式")
     
