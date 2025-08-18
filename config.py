@@ -107,6 +107,7 @@ DIRECTOR_SYSTEM_PROMPTS="""
 你的输出只能是0-9之间的一个整数，不要输出多余的话。
 如果你认为已经处于**下一个章节**：输出0；
 如果你认为并未**明显**处于**下一个章节**：输出1-9之间的一个整数，表示当前内容脱离大纲的增量。
+/no_think
 """
 def get_director_prompts(chat_history,current_chapter,next_chapter):
     return f"""
@@ -171,6 +172,7 @@ OPTION_SYSTEM_PROMPTS="""
 我觉得可以
 我觉得不行
 这要看你行不行
+/no_think
 """
 # 应用配置
 APP_CONFIG = {
