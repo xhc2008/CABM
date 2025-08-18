@@ -1601,12 +1601,22 @@ def create_story():
         from utils.api_utils import make_api_request
         from config import get_story_prompts
         from utils.env_utils import get_env_var
+        import random
         
         # 获取表单数据
         story_id = request.form.get('storyId')
         story_title = request.form.get('storyTitle')
         character_id = request.form.get('selectedCharacterId')
         story_direction = request.form.get('storyDirection')
+        reference_info_count_raw = request.form.get('referenceInfoCount', '0')
+        try:
+            reference_info_count = int(reference_info_count_raw)
+            if reference_info_count < 0:
+                reference_info_count = 0
+            if reference_info_count > 100:
+                reference_info_count = 100
+        except Exception:
+            reference_info_count = 0
         background_images = request.files.getlist('backgroundImages')
         
         # 验证必填字段
@@ -1702,6 +1712,29 @@ def create_story():
         
         # 获取角色系统提示词
         character_prompt = character_config.get('prompt', '')
+
+        # 准备角色详细信息（随机抽取 reference_info_count 条）
+        character_details_text = ""
+        try:
+            if reference_info_count > 0:
+                details_file = Path('data') / 'details' / f"{character_id}.json"
+                if details_file.exists():
+                    with open(details_file, 'r', encoding='utf-8') as f:
+                        details_data = json.load(f)
+                    # 路径: rag -> retriever -> id_to_doc
+                    id_to_doc = (
+                        details_data.get('rag', {})
+                        .get('retriever', {})
+                        .get('id_to_doc', {})
+                    )
+                    if isinstance(id_to_doc, dict) and len(id_to_doc) > 0:
+                        docs = [str(v) for v in id_to_doc.values() if isinstance(v, str) and v.strip()]
+                        if docs:
+                            k = min(reference_info_count, len(docs))
+                            sampled = random.sample(docs, k)
+                            character_details_text = "\n\n".join(sampled)
+        except Exception as e:
+            print(f"加载角色详细信息失败: {e}")
         
         # 调用LLM生成故事内容
         try:
@@ -1716,7 +1749,12 @@ def create_story():
             }
             
             # 获取故事生成提示词
-            story_prompt = get_story_prompts(character_config.get('name', character_id), character_prompt, story_direction)
+            story_prompt = get_story_prompts(
+                character_config.get('name', character_id),
+                character_prompt,
+                character_details_text,
+                story_direction
+            )
             
             request_data = {
                 "model": model,
@@ -1803,8 +1841,10 @@ def create_story():
                     
                     # 尝试解析JSON
                     story_data = json.loads(json_content)
-                    summary = story_data.get('summary', '暂无简介')
-                    outline = story_data.get('outline', ['开始'])
+                    summary = story_data.get('summary', '')
+                    outline = story_data.get('outline', [])
+                    if not isinstance(outline, list) or len(outline) == 0:
+                        raise ValueError('无效的大纲')
                     #outline[0] = "故事开始"
                     outline[-1] = "故事结束"
                     
@@ -1821,7 +1861,7 @@ def create_story():
                         pass
                         
                 except json.JSONDecodeError as je:
-                    # JSON解析失败，记录错误并使用默认值
+                    # JSON解析失败，记录错误并返回失败
                     try:
                         with open('temp.txt', 'a', encoding='utf-8') as f:
                             f.write("=== JSON解析失败 ===\n")
@@ -1829,19 +1869,28 @@ def create_story():
                             f.write(f"尝试解析的内容: {json_content if 'json_content' in locals() else content}\n\n")
                     except Exception:
                         pass
-                    
-                    summary = story_direction
-                    outline = ['开始', '发展', '转折', '高潮', '结局']
+                    # 清理已创建目录并返回错误
+                    shutil.rmtree(story_dir, ignore_errors=True)
+                    return jsonify({
+                        'success': False,
+                        'error': '故事生成失败（解析错误），请稍后重试'
+                    }), 500
             else:
-                # 如果API调用失败，使用默认值
-                summary = story_direction
-                outline = ['开始', '发展', '转折', '高潮', '结局']
+                # 如果API调用失败，直接返回错误
+                shutil.rmtree(story_dir, ignore_errors=True)
+                return jsonify({
+                    'success': False,
+                    'error': '故事生成失败（无有效响应），请稍后重试'
+                }), 500
                 
         except Exception as e:
             print(f"LLM生成故事内容失败: {e}")
-            # 使用默认值
-            summary = story_direction
-            outline = ['开始', '发展', '转折', '高潮', '结局']
+            # 清理已创建目录并返回错误
+            shutil.rmtree(story_dir, ignore_errors=True)
+            return jsonify({
+                'success': False,
+                'error': '故事生成失败，请稍后重试'
+            }), 500
         
         # 创建story.toml文件
         story_toml_data = {
@@ -1850,7 +1899,8 @@ def create_story():
                 'title': story_title,
                 'creator': '用户',
                 'create_date': datetime.datetime.now().strftime('%Y-%m-%d'),
-                'seed': story_direction
+                'seed': story_direction,
+                'reference_info_count': reference_info_count
             },
             'progress': {
                 'current': 0,

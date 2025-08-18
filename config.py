@@ -119,7 +119,7 @@ def get_director_prompts(chat_history,current_chapter,next_chapter):
 下一个章节：{next_chapter}
 """
 
-def get_story_prompts(character_name,character_prompt,seed):
+def get_story_prompts(character_name,character_prompt,character_details,seed):
     return f"""
 你是一个专业的RPG故事生成器，你需要生成玩家和{character_name}的故事，要求内容新颖、逻辑闭环。根据以下提供的设定，严格输出一个JSON对象。该JSON对象必须且仅包含以下两个属性：
 
@@ -129,16 +129,20 @@ def get_story_prompts(character_name,character_prompt,seed):
     *   值：一个由字符串组成的数组，表示分解后的故事内容大纲。
     *   **条目数量：** 40 到 60 条。
     *   **格式：** 每条是一个简洁的短语或短句，描述一个关键情节节点、场景转换、重要决策点或角色互动。条目应按故事发生的**时间顺序**排列。
-    *   **范围：** 大纲应覆盖从故事开头（允许包含`summary`的剧情）直到最终结局。
-    *   **注意！！！：{character_name}和玩家必须从第一条开始就同时出场，严禁任何一个条目出现玩家或{character_name}的单独行动。**
+    *   **范围：** 大纲应覆盖从故事开头（允许包含`summary`的内容）直到最终结局。
+    *   **注意！！！：{character_name}和玩家必须从第一条开始就同时登场，严禁任何一个条目出现玩家或{character_name}的单独行动。**
+> 注意!字段值中的任何双引号（无论中英文）均替换为「」以防止json解析错误。
+**{character_name}的信息：**
 
-**输入设定：**
-
-*   **角色设定：**
+*   **基本设定：**
     ```markdown
     {character_prompt}
     ```
-*   **故事导向/核心主题/初始目标等补充信息：**
+*   **详细信息：**
+    ```markdown
+    {character_details}
+    ```
+**故事导向/核心主题/初始目标等补充信息：**
     ```markdown
     {seed}
     ```
