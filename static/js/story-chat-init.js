@@ -467,6 +467,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // 绑定剧情模式专用的发送消息事件
         sendButton?.addEventListener('click', sendStoryMessage);
 
+        // 绑定返回按钮事件，退出剧情模式
+        const backButtons = document.querySelectorAll('.back-btn, .back-to-story');
+        backButtons.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                
+                try {
+                    // 调用退出剧情模式API
+                    const response = await fetch('/api/story/exit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('已退出剧情模式');
+                        // 跳转到故事列表页面
+                        window.location.href = '/story';
+                    } else {
+                        console.error('退出剧情模式失败:', data.error);
+                        // 即使失败也跳转，避免卡在剧情模式
+                        window.location.href = '/story';
+                    }
+                } catch (error) {
+                    console.error('退出剧情模式时发生错误:', error);
+                    // 发生错误时也跳转
+                    window.location.href = '/story';
+                }
+            });
+        });
+
         // 绑定确认对话框事件
         const confirmYesButton = document.getElementById('confirmYesButton');
         const confirmNoButton = document.getElementById('confirmNoButton');

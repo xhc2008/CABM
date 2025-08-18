@@ -114,6 +114,18 @@ def home():
 @app.route('/chat')
 def chat_page():
     """聊天页面"""
+    # 确保每次进入聊天页面时都设置当前角色
+    try:
+        # 获取当前角色配置
+        current_character = chat_service.get_character_config()
+        if current_character:
+            # 设置当前角色的系统提示词
+            chat_service.set_system_prompt("character")
+            print(f"已设置角色系统提示词: {current_character['name']}")
+    except Exception as e:
+        print(f"设置角色系统提示词失败: {str(e)}")
+        traceback.print_exc()
+    
     # 获取当前背景图片
     background = image_service.get_current_background()
     # 如果没有背景图片，生成一个
@@ -1862,6 +1874,25 @@ def create_story():
             'success': True,
             'message': '故事创建成功',
             'story_id': story_id
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/story/exit', methods=['POST'])
+def exit_story_mode():
+    """退出剧情模式API"""
+    try:
+        # 退出剧情模式
+        chat_service.exit_story_mode()
+        
+        return jsonify({
+            'success': True,
+            'message': '已退出剧情模式'
         })
         
     except Exception as e:
