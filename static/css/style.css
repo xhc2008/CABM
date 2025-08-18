@@ -742,8 +742,8 @@ body {
 /* 角色选择样式 */
 .character-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 30px;
 }
 
 .character-card {
@@ -766,8 +766,8 @@ body {
 }
 
 .character-card-image {
-    width: 100px;
-    height: 100px;
+    width: 200px;
+    height: 200px;
     margin: 0 auto 0.8rem;
     border-radius: 50%;
     overflow: hidden;

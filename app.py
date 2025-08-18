@@ -101,6 +101,60 @@ def convert_to_16k_wav(input_path, output_path):
     audio_16k.export(output_path, format="wav")
     return output_path
 
+import re as _re
+def _parse_assistant_text(raw: str) -> str:
+    """尽可能从历史中解析出助手回复的纯文本内容。支持JSON对象格式。"""
+    if not raw:
+        return ""
+    # 尝试解析为JSON对象，提取其中的content字段
+    try:
+        obj = json.loads(raw)
+        if isinstance(obj, dict):
+            text = obj.get('content')
+            if isinstance(text, str):
+                return text
+        if isinstance(obj, str):
+            return obj
+    except Exception:
+        pass
+    return str(raw)
+
+def _extract_last_sentence(text: str) -> str:
+    """根据标点字符数组提取最后一句，正确处理连续标点。"""
+    if not text:
+        return ""
+    # 统一空白
+    text = _re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return ""
+
+    # 句末标点字符数组（可扩展）
+    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪']
+    # 构建字符类，转义正则特殊字符
+    escaped = ''.join(_re.escape(ch) for ch in sentence_endings)
+    # 匹配：最后一段 非标点+可选的连续标点（全部保留）
+    pattern = rf"([^ {escaped}]+(?:[{escaped}]+)?)$"
+
+    m = _re.search(pattern, text)
+    if m:
+        return m.group(1).strip()
+    # 没匹配到则原样返回
+    return text
+
+def _get_last_assistant_sentence_for_character(character_id: str) -> str:
+    """从持久化历史中读取指定角色最后一条assistant消息，并提取最后一句。"""
+    try:
+        # 使用历史管理器加载最近若干条记录，确保能找到上一条assistant
+        history_messages = chat_service.history_manager.load_history(character_id, count=200, max_cache_size=500)
+        for msg in reversed(history_messages):
+            if msg.get('role') == 'assistant':
+                raw = msg.get('content', '')
+                text = _parse_assistant_text(raw)
+                return _extract_last_sentence(text)
+    except Exception as e:
+        print(f"提取最后一句失败: {e}")
+    return ""
+
 @app.route('/')
 def home():
     """
@@ -110,6 +164,75 @@ def home():
     if need_config:
         return render_template('config.html')
     return render_template('index.html')
+
+@app.route('/select-character')
+def select_character_page():
+    """
+    角色选择页面：按历史日志修改时间排序展示可用角色
+    """
+    # 配置模式下，直接进入配置页
+    if need_config:
+        return render_template('config.html')
+
+    try:
+        # 获取应用与历史目录
+        app_conf = config_service.get_app_config()
+        history_dir = app_conf.get("history_dir", os.path.join("data", "history"))
+
+        # 获取所有可用角色
+        characters = config_service.list_available_characters()
+
+        # 计算每个角色的历史文件修改时间
+        character_items = []
+        for ch in characters:
+            ch_id = ch.get("id")
+            ch_name = ch.get("name", ch_id)
+            image_dir = ch.get("image", f"static/images/{ch_id}")  # 形如 static/images/<id>
+
+            # 历史文件路径
+            history_file = os.path.join(history_dir, f"{ch_id}_history.log")
+            if os.path.exists(history_file):
+                mtime = os.path.getmtime(history_file)
+            else:
+                # 无历史文件则置为0，排在最后
+                mtime = 0
+
+            # 头像绝对路径与URL
+            # 角色配置中的 image 是相对项目根目录的路径（含 static/ 前缀）
+            full_image_dir = os.path.join(app.static_folder.replace('static', ''), image_dir)
+            avatar_abs = os.path.join(full_image_dir, 'avatar.png')
+            if os.path.exists(avatar_abs):
+                avatar_url = f"/{image_dir}/avatar.png"
+            else:
+                avatar_url = "/static/images/default.svg"
+
+            last_sentence = _get_last_assistant_sentence_for_character(ch_id)
+            # 过长裁剪
+            short = last_sentence
+            max_len = 100
+            if short and len(short) > max_len:
+                short = short[:max_len] + ".."
+
+            character_items.append({
+                "id": ch_id,
+                "name": ch_name,
+                "color": ch.get("color", "#ffffff"),
+                "avatar_url": avatar_url,
+                "mtime": mtime,
+                "last_modified": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime)) if mtime else "无历史",
+                "last_sentence": last_sentence,
+                "last_sentence_short": short
+            })
+
+        # 按修改时间从新到旧排序
+        character_items.sort(key=lambda x: x["mtime"], reverse=True)
+
+        return render_template('select_character.html', characters=character_items)
+    except Exception as e:
+        print(f"加载角色选择页面失败: {e}")
+        traceback.print_exc()
+        # 失败时仍返回页面，但带空列表
+        return render_template('select_character.html', characters=[])
 
 @app.route('/chat')
 def chat_page():
@@ -154,11 +277,21 @@ def chat_page():
     # 获取应用配置
     app_config = config_service.get_app_config()
     show_scene_name = app_config.get("show_scene_name", True)
+    # 取当前角色最后一句，供前端初始显示
+    last_sentence = ""
+    try:
+        current_character = chat_service.get_character_config()
+        if current_character and "id" in current_character:
+            last_sentence = _get_last_assistant_sentence_for_character(current_character["id"]) or ""
+    except Exception:
+        pass
+
     return render_template(
         'chat.html',
         background_url=background_url,
         current_scene=scene_data,
-        show_scene_name=show_scene_name
+        show_scene_name=show_scene_name,
+        last_sentence=last_sentence
     )
 
 @app.route('/api/chat', methods=['POST'])
