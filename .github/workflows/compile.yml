@@ -6,11 +6,11 @@ on:
       version:
         description: '构建版本号 (e.g. v1.0.0)'
         required: true
-        default: 'v1.0.0'
+        default: 'v0.0.0'
       release_name:
         description: '构建名称 (optional)'
         required: true
-        default: 'v1.0.0'
+        default: 'v0.0.0'
       release_text:
         description: '构建描述 (optional)'
         required: true
@@ -71,11 +71,13 @@ jobs:
           # 构建 EXE (直接使用python命令)
           python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
 
-          # 保留 characters 目录（DLC 插件）
+          # 保留 数据目录
           if (Test-Path "characters") {
             Copy-Item -Path "characters" -Destination "dist\start.dist\characters" -Recurse -Force
           }
-          
+          if (Test-Path "data") {
+            Copy-Item -Path "data" -Destination "dist\start.dist\data" -Recurse -Force
+          }
           # 复制静态资源和模板
           if (Test-Path "static") {
             Copy-Item -Path "static" -Destination "dist\start.dist\static" -Recurse -Force
