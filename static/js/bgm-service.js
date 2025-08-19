@@ -1,209 +1,117 @@
 /**
- * BGM (Background Music) Service
- * Provides global background music functionality with random selection, volume control, and toggle features
+ * BGM Service (Web Audio 版)
+ * 支持与其它 <audio>/<video> 同时播放
  */
-
 class BGMService {
     constructor() {
-        this.audio = null;
+        this.ctx = null;          // AudioContext
+        this.source = null;       // AudioBufferSourceNode
+        this.gainNode = null;     // GainNode（音量）
+        this.buffer = null;       // 解码后的音频数据
         this.isPlaying = false;
-        this.volume = 0.5; // Default volume (0-1)
+        this.volume = 0.5;
         this.bgmFolder = '/static/bgm/';
         this.currentTrack = null;
         this.tracks = [];
-        
         this.init();
     }
 
     async init() {
-        try {
-            await this.loadTracks();
-            console.log('BGM Service initialized with tracks:', this.tracks);
-        } catch (error) {
-            console.error('Failed to initialize BGM Service:', error);
-        }
+        // 1. 创建 AudioContext（需要在用户手势后 resume）
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // 2. 加载歌单
+        await this.loadTracks();
+        console.log('BGM Service (Web Audio) ready:', this.tracks);
     }
 
     async loadTracks() {
         try {
-            // Get list of audio files from the bgm folder
-            const response = await fetch('/api/bgm-tracks');
-            if (response.ok) {
-                this.tracks = await response.json();
-            } else {
-                // Fallback: use known tracks if API fails
-                this.tracks = ['bgm01.aac']; // Add more as needed
-            }
-        } catch (error) {
-            console.warn('Could not load BGM tracks from API, using fallback:', error);
+            const res = await fetch('/api/bgm-tracks');
+            this.tracks = res.ok ? await res.json() : ['bgm01.aac'];
+        } catch {
             this.tracks = ['bgm01.aac'];
         }
     }
 
-    /**
-     * Play a random BGM track
-     */
-    async playRandom() {
-        if (this.tracks.length === 0) {
-            console.warn('No BGM tracks available');
-            return;
-        }
-
-        const randomIndex = Math.floor(Math.random() * this.tracks.length);
-        const track = this.tracks[randomIndex];
-        
-        await this.playTrack(track);
+    async fetchAndDecode(trackName) {
+        const url = `${this.bgmFolder}${trackName}`;
+        const res = await fetch(url);
+        const arrayBuf = await res.arrayBuffer();
+        return await this.ctx.decodeAudioData(arrayBuf);
     }
 
-    /**
-     * Play a specific track
-     * @param {string} trackName - Name of the track to play
-     */
     async playTrack(trackName) {
-        try {
-            if (this.audio) {
-                this.audio.pause();
-                this.audio.currentTime = 0;
-            }
+        if (this.source) this.source.stop();   // 停掉上一首
+        this.buffer = await this.fetchAndDecode(trackName);
+        this.source = this.ctx.createBufferSource();
+        this.source.buffer = this.buffer;
+        this.source.loop = true;
 
-            this.audio = new Audio(`${this.bgmFolder}${trackName}`);
-            this.audio.volume = this.volume;
-            this.audio.loop = true;
-            
-            await this.audio.play();
-            this.isPlaying = true;
-            this.currentTrack = trackName;
-            
-            console.log(`Playing BGM: ${trackName}`);
-        } catch (error) {
-            console.error('Error playing BGM:', error);
-            this.isPlaying = false;
-        }
+        this.gainNode = this.ctx.createGain();
+        this.gainNode.gain.value = this.volume;
+
+        this.source.connect(this.gainNode).connect(this.ctx.destination);
+        this.source.start();
+        this.isPlaying = true;
+        this.currentTrack = trackName;
+        console.log(`Playing BGM: ${trackName}`);
     }
 
-    /**
-     * Pause the current BGM
-     */
+    async playRandom() {
+        if (!this.tracks.length) return;
+        const r = Math.floor(Math.random() * this.tracks.length);
+        await this.playTrack(this.tracks[r]);
+    }
+
     pause() {
-        if (this.audio && this.isPlaying) {
-            this.audio.pause();
-            this.isPlaying = false;
-            console.log('BGM paused');
-        }
+        if (!this.ctx || this.ctx.state === 'suspended') return;
+        this.ctx.suspend();
+        this.isPlaying = false;
     }
 
-    /**
-     * Resume the current BGM
-     */
     resume() {
-        if (this.audio && !this.isPlaying) {
-            this.audio.play().then(() => {
-                this.isPlaying = true;
-                console.log('BGM resumed');
-            }).catch(error => {
-                console.error('Error resuming BGM:', error);
-            });
-        }
+        if (!this.ctx) return;
+        this.ctx.resume().then(() => {
+            this.isPlaying = true;
+        });
     }
 
-    /**
-     * Stop the current BGM
-     */
     stop() {
-        if (this.audio) {
-            this.audio.pause();
-            this.audio.currentTime = 0;
+        if (this.source) {
+            this.source.stop();
+            this.source = null;
             this.isPlaying = false;
-            console.log('BGM stopped');
         }
     }
 
-    /**
-     * Toggle BGM on/off
-     * @returns {boolean} - New playing state
-     */
     toggle() {
-        if (this.isPlaying) {
-            this.pause();
-        } else {
-            if (this.currentTrack) {
-                this.resume();
-            } else {
-                this.playRandom();
-            }
-        }
+        if (this.isPlaying) this.pause();
+        else this.currentTrack ? this.resume() : this.playRandom();
         return this.isPlaying;
     }
 
-    /**
-     * Set BGM volume
-     * @param {number} volume - Volume level (0-1)
-     */
-    setVolume(volume) {
-        this.volume = Math.max(0, Math.min(1, volume));
-        if (this.audio) {
-            this.audio.volume = this.volume;
-        }
-        console.log(`BGM volume set to: ${Math.round(this.volume * 100)}%`);
+    setVolume(v) {
+        this.volume = Math.max(0, Math.min(1, v));
+        if (this.gainNode) this.gainNode.gain.value = this.volume;
     }
 
-    /**
-     * Get current volume
-     * @returns {number} - Current volume level (0-1)
-     */
-    getVolume() {
-        return this.volume;
-    }
-
-    /**
-     * Get current playing state
-     * @returns {boolean} - Whether BGM is currently playing
-     */
-    getPlayingState() {
-        return this.isPlaying;
-    }
-
-    /**
-     * Get current track name
-     * @returns {string|null} - Name of current track or null if none
-     */
-    getCurrentTrack() {
-        return this.currentTrack;
-    }
-
-    /**
-     * Get available tracks
-     * @returns {Array<string>} - List of available BGM tracks
-     */
-    getAvailableTracks() {
-        return [...this.tracks];
-    }
-
-    /**
-     * Refresh the track list
-     */
-    async refreshTracks() {
-        await this.loadTracks();
-    }
+    getVolume() { return this.volume; }
+    getPlayingState() { return this.isPlaying; }
+    getCurrentTrack() { return this.currentTrack; }
+    getAvailableTracks() { return [...this.tracks]; }
+    async refreshTracks() { await this.loadTracks(); }
 }
 
-// Create global BGM service instance
+// 全局实例
 window.bgmService = new BGMService();
 
-// Auto-play BGM when page loads (respect browser autoplay policies)
-document.addEventListener('DOMContentLoaded', () => {
-    // Attempt to play BGM after user interaction
-    const playBGMOnInteraction = () => {
-        if (!window.bgmService.isPlaying && window.bgmService.tracks.length > 0) {
+// 用户第一次交互后启动 AudioContext
+const unlock = () => {
+    window.bgmService.ctx.resume().then(() => {
+        if (!window.bgmService.isPlaying && window.bgmService.tracks.length) {
             window.bgmService.playRandom();
         }
-        // Remove listeners after first interaction
-        document.removeEventListener('click', playBGMOnInteraction);
-        document.removeEventListener('keydown', playBGMOnInteraction);
-        document.removeEventListener('touchstart', playBGMOnInteraction);
-    };
-
-    document.addEventListener('click', playBGMOnInteraction);
-    document.removeEventListener('keydown', playBGMOnInteraction);
-    document.removeEventListener('touchstart', playBGMOnInteraction);
-});
+    });
+    ['click', 'keydown', 'touchstart'].forEach(e => document.removeEventListener(e, unlock));
+};
+['click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unlock));
