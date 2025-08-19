@@ -24,12 +24,14 @@ current_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
 from data.logo import *
+import colorama
 
+colorama.init()
 
 # 设置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format=f'{colorama.Fore.BLUE}%(asctime)s{colorama.Style.RESET_ALL} - {colorama.Fore.GREEN}%(name)s{colorama.Style.RESET_ALL} - {colorama.Fore.YELLOW}%(levelname)s{colorama.Style.RESET_ALL} - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
     ]
@@ -210,7 +212,6 @@ def start_server(host, port, debug=False, open_browser_flag=True):
     except Exception as e:
         logger.error(f"服务器启动失败: {str(e)}")
         return False
-
 def main():
     """主函数"""
     # 解析命令行参数

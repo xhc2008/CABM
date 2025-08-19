@@ -109,6 +109,12 @@
             <button id="errorCloseButton" class="btn">关闭</button>
         </div>
     </div>
+{% if plugin_inject_scripts %}
+    {# 自动注入所有插件inject.js #}
+    {% for js in plugin_inject_scripts %}
+    <script src="{{ js }}"></script>
+    {% endfor %}
+{% endif %}
     <script src="/static/js/logo.js"></script>
     <script type="module" src="/static/js/chat-init.js"></script>
     <script src="/static/js/stream_processor.js"></script>

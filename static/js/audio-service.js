@@ -393,6 +393,7 @@ let recognition;
 let firstMic = 0;
 
 export function toggleRecording(messageInput, micButton, showError) {
+    console.log('🔴 toggleRecording 被调用！');
     if (firstMic === 0) {
         firstMic = 1;
         alert('请确保你访问的地址为本地地址或https协议地址，否则浏览器可能会阻止调用麦克风！！！');
@@ -422,6 +423,10 @@ export function toggleRecording(messageInput, micButton, showError) {
                 const transcript = event.results[0][0].transcript.trim();
                 if (transcript) {
                     messageInput.value += transcript;
+                    // 语音识别后更新字数统计
+                    if (window.inputEnhancements && typeof window.inputEnhancements.updateCharCount === 'function') {
+                        window.inputEnhancements.updateCharCount();
+                    }
                 }
             };
             

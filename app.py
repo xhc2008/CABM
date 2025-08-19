@@ -44,12 +44,21 @@ else:
 # 设置语音服务
 if not need_config:
     tts = ttsService()
+
 # 创建Flask应用
 app = Flask(
     __name__,
     static_folder=static_folder,
     template_folder=template_folder
 )
+
+# 加载并注册插件后端路由和前端资源
+from utils.plugin import load_plugins, apply_backend_hooks, apply_frontend_hooks
+plugin_folder = str(Path(__file__).resolve().parent / 'utils' / 'plugin')
+load_plugins(plugin_folder)
+apply_backend_hooks(app)
+# 主动触发前端资源复制，确保静态可用
+apply_frontend_hooks(lambda route, path: None)
 
 # 配置页面提交路由
 @app.route('/config', methods=['POST'])
@@ -286,12 +295,22 @@ def chat_page():
     except Exception:
         pass
 
+    # 收集所有插件inject.js路径
+    from utils.plugin import FRONTEND_HOOKS
+    plugin_inject_scripts = []
+    def collect_inject(route, path):
+        if route.endswith('/inject.js'):
+            plugin_inject_scripts.append(route)
+    for hook in FRONTEND_HOOKS:
+        hook(collect_inject)
+
     return render_template(
         'chat.html',
         background_url=background_url,
         current_scene=scene_data,
         show_scene_name=show_scene_name,
-        last_sentence=last_sentence
+        last_sentence=last_sentence,
+        plugin_inject_scripts=plugin_inject_scripts
     )
 
 @app.route('/api/chat', methods=['POST'])

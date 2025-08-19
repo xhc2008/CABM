@@ -37,7 +37,6 @@ jobs:
       
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-      
     
     - name: Log in to GitHub Container Registry
       if: ${{ inputs.push_to_registry }}
@@ -46,7 +45,11 @@ jobs:
         registry: ${{ env.GHCR_REGISTRY }}
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    
+
+    - name: move some file
+      run: |
+        mv ./some-file ./
+
     - name: Set image name with lowercase
       id: image-name
       run: |
