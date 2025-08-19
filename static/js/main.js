@@ -75,10 +75,41 @@ window.addEventListener('unhandledrejection', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log('开始初始化CABM应用...');
-        
+        [
+            startButton,
+            backButton,
+            exitButton,
+            sendButton,
+            playaudioButton,
+            backgroundButton,
+            historyButton,
+            closeHistoryButton,
+            characterButton,
+            closeCharacterButton,
+            continueButton,
+            micButton,
+            errorCloseButton,
+            confirmYesButton,
+            confirmNoButton,
+            closeConfirmButton,
+            currentMessage,
+            clickToContinue
+          ].forEach((el, i) => {
+            if (!el) {
+              console.warn(`元素未找到：索引 ${i}`);
+            }
+          });
         // 加载角色数据
-        loadCharacters();
+        //loadCharacters();
+        let charactersLoaded = false;
 
+        characterButton.addEventListener('click', () => {
+            if (!charactersLoaded) {
+                loadCharacters();
+                charactersLoaded = true;
+            }
+            toggleCharacterModal();
+        });
         // 绑定页面切换事件
         startButton.addEventListener('click', showChatPage);
         backButton.addEventListener('click', confirmBackToHome);
