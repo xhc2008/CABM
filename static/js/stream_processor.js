@@ -6,7 +6,7 @@
 // 常量配置
 const OUTPUT_DELAY = 30; // 每个字符的输出间隔（毫秒）
 const END_MARKER = "<END>"; // 结束标记符号
-const PAUSE_MARKERS = ['。', '？', '！', '…', '~', ' ', '♪']; // 暂停输出的分隔符号
+const PAUSE_MARKERS = ['。', '？', '！', '…', '~', ' ', '♪','...']; // 暂停输出的分隔符号
 
 class StreamProcessor {
     constructor() {

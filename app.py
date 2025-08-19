@@ -129,7 +129,7 @@ def _extract_last_sentence(text: str) -> str:
         return ""
 
     # 句末标点字符数组（可扩展）
-    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪']
+    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪','...']
     # 构建字符类，转义正则特殊字符
     escaped = ''.join(_re.escape(ch) for ch in sentence_endings)
     # 匹配：最后一段 非标点+可选的连续标点（全部保留）
