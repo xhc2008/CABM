@@ -101,6 +101,60 @@ def convert_to_16k_wav(input_path, output_path):
     audio_16k.export(output_path, format="wav")
     return output_path
 
+import re as _re
+def _parse_assistant_text(raw: str) -> str:
+    """尽可能从历史中解析出助手回复的纯文本内容。支持JSON对象格式。"""
+    if not raw:
+        return ""
+    # 尝试解析为JSON对象，提取其中的content字段
+    try:
+        obj = json.loads(raw)
+        if isinstance(obj, dict):
+            text = obj.get('content')
+            if isinstance(text, str):
+                return text
+        if isinstance(obj, str):
+            return obj
+    except Exception:
+        pass
+    return str(raw)
+
+def _extract_last_sentence(text: str) -> str:
+    """根据标点字符数组提取最后一句，正确处理连续标点。"""
+    if not text:
+        return ""
+    # 统一空白
+    text = _re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return ""
+
+    # 句末标点字符数组（可扩展）
+    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪','...']
+    # 构建字符类，转义正则特殊字符
+    escaped = ''.join(_re.escape(ch) for ch in sentence_endings)
+    # 匹配：最后一段 非标点+可选的连续标点（全部保留）
+    pattern = rf"([^ {escaped}]+(?:[{escaped}]+)?)$"
+
+    m = _re.search(pattern, text)
+    if m:
+        return m.group(1).strip()
+    # 没匹配到则原样返回
+    return text
+
+def _get_last_assistant_sentence_for_character(character_id: str) -> str:
+    """从持久化历史中读取指定角色最后一条assistant消息，并提取最后一句。"""
+    try:
+        # 使用历史管理器加载最近若干条记录，确保能找到上一条assistant
+        history_messages = chat_service.history_manager.load_history(character_id, count=200, max_cache_size=500)
+        for msg in reversed(history_messages):
+            if msg.get('role') == 'assistant':
+                raw = msg.get('content', '')
+                text = _parse_assistant_text(raw)
+                return _extract_last_sentence(text)
+    except Exception as e:
+        print(f"提取最后一句失败: {e}")
+    return ""
+
 @app.route('/')
 def home():
     """
@@ -111,9 +165,92 @@ def home():
         return render_template('config.html')
     return render_template('index.html')
 
+@app.route('/select-character')
+def select_character_page():
+    """
+    角色选择页面：按历史日志修改时间排序展示可用角色
+    """
+    # 配置模式下，直接进入配置页
+    if need_config:
+        return render_template('config.html')
+
+    try:
+        # 获取应用与历史目录
+        app_conf = config_service.get_app_config()
+        history_dir = app_conf.get("history_dir", os.path.join("data", "history"))
+
+        # 获取所有可用角色
+        characters = config_service.list_available_characters()
+
+        # 计算每个角色的历史文件修改时间
+        character_items = []
+        for ch in characters:
+            ch_id = ch.get("id")
+            ch_name = ch.get("name", ch_id)
+            image_dir = ch.get("image", f"static/images/{ch_id}")  # 形如 static/images/<id>
+
+            # 历史文件路径
+            history_file = os.path.join(history_dir, f"{ch_id}_history.log")
+            if os.path.exists(history_file):
+                mtime = os.path.getmtime(history_file)
+            else:
+                # 无历史文件则置为0，排在最后
+                mtime = 0
+
+            # 头像绝对路径与URL
+            # 角色配置中的 image 是相对项目根目录的路径（含 static/ 前缀）
+            full_image_dir = os.path.join(app.static_folder.replace('static', ''), image_dir)
+            avatar_abs = os.path.join(full_image_dir, 'avatar.png')
+            if os.path.exists(avatar_abs):
+                avatar_url = f"/{image_dir}/avatar.png"
+            else:
+                avatar_url = "/static/images/default.svg"
+
+            last_sentence = _get_last_assistant_sentence_for_character(ch_id)
+            # 过长裁剪
+            short = last_sentence
+            max_len = 100
+            if short and len(short) > max_len:
+                short = short[:max_len] + ".."
+
+            character_items.append({
+                "id": ch_id,
+                "name": ch_name,
+                "color": ch.get("color", "#ffffff"),
+                "avatar_url": avatar_url,
+                "mtime": mtime,
+                "last_modified": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime)) if mtime else "无历史",
+                "last_sentence": last_sentence,
+                "last_sentence_short": short
+            })
+
+        # 按修改时间从新到旧排序
+        character_items.sort(key=lambda x: x["mtime"], reverse=True)
+
+        return render_template('select_character.html', characters=character_items)
+    except Exception as e:
+        print(f"加载角色选择页面失败: {e}")
+        traceback.print_exc()
+        # 失败时仍返回页面，但带空列表
+        return render_template('select_character.html', characters=[])
+
 @app.route('/chat')
 def chat_page():
     """聊天页面"""
+    # 确保每次进入聊天页面时切换到当前角色（重置上下文/历史/记忆）
+    try:
+        # 若处于剧情模式，先退出
+        if getattr(chat_service, "story_mode", False):
+            chat_service.exit_story_mode()
+        # 获取并切换到当前角色（会清空内存历史、设置system、初始化记忆并加载该角色历史）
+        current_character = chat_service.get_character_config()
+        if current_character and "id" in current_character:
+            chat_service.set_character(current_character["id"])
+            print(f"已切换到角色: {current_character['name']} ({current_character['id']})")
+    except Exception as e:
+        print(f"进入聊天页切换角色失败: {str(e)}")
+        traceback.print_exc()
+    
     # 获取当前背景图片
     background = image_service.get_current_background()
     # 如果没有背景图片，生成一个
@@ -140,11 +277,21 @@ def chat_page():
     # 获取应用配置
     app_config = config_service.get_app_config()
     show_scene_name = app_config.get("show_scene_name", True)
+    # 取当前角色最后一句，供前端初始显示
+    last_sentence = ""
+    try:
+        current_character = chat_service.get_character_config()
+        if current_character and "id" in current_character:
+            last_sentence = _get_last_assistant_sentence_for_character(current_character["id"]) or ""
+    except Exception:
+        pass
+
     return render_template(
         'chat.html',
         background_url=background_url,
         current_scene=scene_data,
-        show_scene_name=show_scene_name
+        show_scene_name=show_scene_name,
+        last_sentence=last_sentence
     )
 
 @app.route('/api/chat', methods=['POST'])
@@ -1587,12 +1734,22 @@ def create_story():
         from utils.api_utils import make_api_request
         from config import get_story_prompts
         from utils.env_utils import get_env_var
+        import random
         
         # 获取表单数据
         story_id = request.form.get('storyId')
         story_title = request.form.get('storyTitle')
         character_id = request.form.get('selectedCharacterId')
         story_direction = request.form.get('storyDirection')
+        reference_info_count_raw = request.form.get('referenceInfoCount', '0')
+        try:
+            reference_info_count = int(reference_info_count_raw)
+            if reference_info_count < 0:
+                reference_info_count = 0
+            if reference_info_count > 100:
+                reference_info_count = 100
+        except Exception:
+            reference_info_count = 0
         background_images = request.files.getlist('backgroundImages')
         
         # 验证必填字段
@@ -1688,6 +1845,29 @@ def create_story():
         
         # 获取角色系统提示词
         character_prompt = character_config.get('prompt', '')
+
+        # 准备角色详细信息（随机抽取 reference_info_count 条）
+        character_details_text = ""
+        try:
+            if reference_info_count > 0:
+                details_file = Path('data') / 'details' / f"{character_id}.json"
+                if details_file.exists():
+                    with open(details_file, 'r', encoding='utf-8') as f:
+                        details_data = json.load(f)
+                    # 路径: rag -> retriever -> id_to_doc
+                    id_to_doc = (
+                        details_data.get('rag', {})
+                        .get('retriever', {})
+                        .get('id_to_doc', {})
+                    )
+                    if isinstance(id_to_doc, dict) and len(id_to_doc) > 0:
+                        docs = [str(v) for v in id_to_doc.values() if isinstance(v, str) and v.strip()]
+                        if docs:
+                            k = min(reference_info_count, len(docs))
+                            sampled = random.sample(docs, k)
+                            character_details_text = "\n\n".join(sampled)
+        except Exception as e:
+            print(f"加载角色详细信息失败: {e}")
         
         # 调用LLM生成故事内容
         try:
@@ -1702,7 +1882,12 @@ def create_story():
             }
             
             # 获取故事生成提示词
-            story_prompt = get_story_prompts(character_config.get('name', character_id), character_prompt, story_direction)
+            story_prompt = get_story_prompts(
+                character_config.get('name', character_id),
+                character_prompt,
+                character_details_text,
+                story_direction
+            )
             
             request_data = {
                 "model": model,
@@ -1789,8 +1974,10 @@ def create_story():
                     
                     # 尝试解析JSON
                     story_data = json.loads(json_content)
-                    summary = story_data.get('summary', '暂无简介')
-                    outline = story_data.get('outline', ['开始'])
+                    summary = story_data.get('summary', '')
+                    outline = story_data.get('outline', [])
+                    if not isinstance(outline, list) or len(outline) == 0:
+                        raise ValueError('无效的大纲')
                     #outline[0] = "故事开始"
                     outline[-1] = "故事结束"
                     
@@ -1807,7 +1994,7 @@ def create_story():
                         pass
                         
                 except json.JSONDecodeError as je:
-                    # JSON解析失败，记录错误并使用默认值
+                    # JSON解析失败，记录错误并返回失败
                     try:
                         with open('temp.txt', 'a', encoding='utf-8') as f:
                             f.write("=== JSON解析失败 ===\n")
@@ -1815,19 +2002,28 @@ def create_story():
                             f.write(f"尝试解析的内容: {json_content if 'json_content' in locals() else content}\n\n")
                     except Exception:
                         pass
-                    
-                    summary = story_direction
-                    outline = ['开始', '发展', '转折', '高潮', '结局']
+                    # 清理已创建目录并返回错误
+                    shutil.rmtree(story_dir, ignore_errors=True)
+                    return jsonify({
+                        'success': False,
+                        'error': '故事生成失败（解析错误），请稍后重试'
+                    }), 500
             else:
-                # 如果API调用失败，使用默认值
-                summary = story_direction
-                outline = ['开始', '发展', '转折', '高潮', '结局']
+                # 如果API调用失败，直接返回错误
+                shutil.rmtree(story_dir, ignore_errors=True)
+                return jsonify({
+                    'success': False,
+                    'error': '故事生成失败（无有效响应），请稍后重试'
+                }), 500
                 
         except Exception as e:
             print(f"LLM生成故事内容失败: {e}")
-            # 使用默认值
-            summary = story_direction
-            outline = ['开始', '发展', '转折', '高潮', '结局']
+            # 清理已创建目录并返回错误
+            shutil.rmtree(story_dir, ignore_errors=True)
+            return jsonify({
+                'success': False,
+                'error': '故事生成失败，请稍后重试'
+            }), 500
         
         # 创建story.toml文件
         story_toml_data = {
@@ -1836,7 +2032,8 @@ def create_story():
                 'title': story_title,
                 'creator': '用户',
                 'create_date': datetime.datetime.now().strftime('%Y-%m-%d'),
-                'seed': story_direction
+                'seed': story_direction,
+                'reference_info_count': reference_info_count
             },
             'progress': {
                 'current': 0,
@@ -1862,6 +2059,25 @@ def create_story():
             'success': True,
             'message': '故事创建成功',
             'story_id': story_id
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/story/exit', methods=['POST'])
+def exit_story_mode():
+    """退出剧情模式API"""
+    try:
+        # 退出剧情模式
+        chat_service.exit_story_mode()
+        
+        return jsonify({
+            'success': True,
+            'message': '已退出剧情模式'
         })
         
     except Exception as e:

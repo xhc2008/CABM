@@ -89,11 +89,18 @@ export async function loadCharacters() {
         // 更新角色图片
         updateCharacterImage();
 
-        // 更新当前消息
-        if (currentCharacter && currentCharacter.welcome) {
-            updateCurrentMessage('assistant', currentCharacter.welcome);
+        // 更新当前消息：若服务端已渲染了最后一句，则不要覆盖
+        const defaultText = '欢迎使用CABM！我是您的AI助手，请输入消息开始对话。';
+        const currentText = (currentMessage?.textContent || '').trim();
+        if (!currentText || currentText === defaultText) {
+            if (currentCharacter && currentCharacter.welcome) {
+                updateCurrentMessage('assistant', currentCharacter.welcome);
+            } else {
+                updateCurrentMessage('assistant', defaultText);
+            }
         } else {
-            updateCurrentMessage('assistant', '欢迎使用CABM！我是您的AI助手，请输入消息开始对话。');
+            // 服务端已渲染最后一句，这里仅同步角色名与颜色
+            updateCurrentMessage('assistant', currentText);
         }
 
     } catch (error) {

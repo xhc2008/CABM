@@ -21,7 +21,7 @@
                 <div class="background-overlay"></div>
             </div>
             <div class="chat-header">
-                <a href="/" class="btn back-btn">返回</a>
+                <a href="/select-character" class="btn back-btn">返回</a>
                 <h2>CABM</h2>
             </div>
             <div class="character-container">
@@ -51,14 +51,14 @@
             <div class="dialog-container">
                 <div class="dialog-box" id="dialogBox">
                     <div class="character-name" id="characterName">系统</div>
-                    <div class="dialog-content" id="currentMessage">欢迎使用CABM！我是您的AI助手，请输入消息开始对话。</div>
+                    <div class="dialog-content" id="currentMessage">{% if last_sentence and last_sentence.strip() %}{{ last_sentence }}{% else %}欢迎使用CABM！我是您的AI助手，请输入消息开始对话。{% endif %}</div>
                     <div class="continue-prompt" id="clickToContinue">▽</div>
                 </div>
                 <div class="control-buttons">
                     <button id="playaudioButton" class="btn secondary-btn">播放语音</button>
                     <button id="backgroundButton" class="btn secondary-btn">更换背景</button>
                     <button id="historyButton" class="btn secondary-btn">历史</button>
-                    <button id="characterButton" class="btn secondary-btn">角色</button>
+                    <!--<button id="characterButton" class="btn secondary-btn">角色</button>-->
                     <button id="continueButton" class="btn secondary-btn">继续</button>
                 </div>
             </div>

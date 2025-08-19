@@ -384,6 +384,14 @@ class ChatService:
         """退出剧情模式"""
         self.story_mode = False
         self.current_story_id = None
+        
+        # 清除当前故事记忆上下文指针（不在此处加载/切换历史，由进入 /chat 时统一处理）
+        try:
+            self.memory_service.current_story = None
+            self.logger.info("已退出剧情模式，已清除故事记忆上下文指针")
+        except Exception as e:
+            self.logger.error(f"清除故事记忆上下文指针失败: {e}")
+        
         self.logger.info("已退出剧情模式")
     
     def get_character_config(self):
