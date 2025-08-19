@@ -46,9 +46,9 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: move some file
+    - name: Move all Docker files
       run: |
-        mv ./some-file ./
+        mv ./all_docker_files ./
 
     - name: Set image name with lowercase
       id: image-name
