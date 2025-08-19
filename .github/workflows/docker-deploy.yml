@@ -48,7 +48,8 @@ jobs:
 
     - name: Move all Docker files
       run: |
-        mv ./all_docker_files ./
+        shopt -s dotglob
+        mv ./all_docker_files/* ./
 
     - name: Set image name with lowercase
       id: image-name
