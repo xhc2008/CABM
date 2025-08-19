@@ -20,7 +20,7 @@ class SciFiEffects {
 
         // 检查设备性能（简单的启发式检查）
         if (this.isLowPerformanceDevice()) {
-            this.maxParticles = 8;
+            this.maxParticles = 10;
         }
 
         this.createParticleContainer();
@@ -102,7 +102,7 @@ class SciFiEffects {
         
         const size = Math.random() * 3 + 1;
         const startX = Math.random() * window.innerWidth;
-        const duration = Math.random() * 8 + 6; // 6-14秒
+        const duration = Math.random() * 10 + 6; // 6-16秒
         const delay = Math.random() * 2;
         
         // 随机颜色（青色系）
@@ -154,7 +154,7 @@ class SciFiEffects {
                 this.particleContainer = this.customParticleContainer;
                 this.createParticle();
             }
-        }, 2000); // 每2秒创建一个粒子
+        }, 1000); // 每1秒创建一个粒子
     }
 
     stopParticleSystem() {
