@@ -197,7 +197,7 @@ def select_character_page():
             ch_id = ch.get("id")
             ch_name = ch.get("name", ch_id)
             image_dir = ch.get("image", f"static/images/{ch_id}")  # 形如 static/images/<id>
-
+            description= ch.get("description")
             # 历史文件路径
             history_file = os.path.join(history_dir, f"{ch_id}_history.log")
             if os.path.exists(history_file):
@@ -225,6 +225,7 @@ def select_character_page():
             character_items.append({
                 "id": ch_id,
                 "name": ch_name,
+                "description": description,
                 "color": ch.get("color", "#ffffff"),
                 "avatar_url": avatar_url,
                 "mtime": mtime,

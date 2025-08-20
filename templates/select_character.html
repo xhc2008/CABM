@@ -24,7 +24,8 @@
 							<img src="{{ ch.avatar_url }}" alt="{{ ch.name }}" style="width:150px;height:150px;border-radius:12px;object-fit:cover;border:1px solid rgba(255,255,255,0.25);flex:0 0 auto;">
 							<div style="display:flex;flex-direction:column;min-width:0;flex-grow:1;align-items:flex-start;text-align:left;">
 								<span style="font-size:20px;font-weight:700;color: {{ ch.color }};">{{ ch.name }}</span>
-								<span style="font-size:14px;opacity:.85;margin-top:4px;">最近聊天：{{ ch.last_modified }}</span>
+								<span style="font-size:14px;opacity:.75;margin-top:4px;color:rgba(255,255,255,0.8);font-style:italic;">{{ ch.description }}</span>
+								<span style="font-size:12px;opacity:.65;margin-top:4px;">最近聊天：{{ ch.last_modified }}</span>
 								{% if ch.last_sentence_short %}
 									<span style="font-size:15px;opacity:.95;margin-top:8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;color:#fff;">"{{ ch.last_sentence_short }}"</span>
 								{% endif %}
