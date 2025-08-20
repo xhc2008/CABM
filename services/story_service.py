@@ -7,7 +7,7 @@ import sys
 import json
 import time
 import re
-import toml
+import rtoml
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
@@ -80,7 +80,7 @@ class StoryService:
         
         try:
             with open(story_path, 'r', encoding='utf-8') as f:
-                data = toml.load(f)
+                data = rtoml.load(f)
             
             # 获取角色信息
             characters = []
@@ -150,7 +150,7 @@ class StoryService:
         
         try:
             with open(story_path, 'r', encoding='utf-8') as f:
-                self.story_data = toml.load(f)
+                self.story_data = rtoml.load(f)
             
             self.current_story = story_id
             self.logger.info(f"成功加载故事: {story_id}")
@@ -243,7 +243,7 @@ class StoryService:
         
         try:
             with open(story_path, 'w', encoding='utf-8') as f:
-                toml.dump(self.story_data, f)
+                f.write(rtoml.dumps(self.story_data))
         except Exception as e:
             self.logger.error(f"保存故事数据失败: {e}")
     
@@ -401,7 +401,7 @@ class StoryService:
             # 保存故事文件
             story_file = story_dir / "story.toml"
             with open(story_file, 'w', encoding='utf-8') as f:
-                toml.dump(story_data, f)
+                f.write(rtoml.dumps(story_data))
             
             # 处理背景图片
             if background_images:
