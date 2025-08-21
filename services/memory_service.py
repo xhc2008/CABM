@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from utils.memory_utils import ChatHistoryVectorDB
+from utils.peewee_memory_utils import PeeweeChatHistoryVectorDB as ChatHistoryVectorDB
 from services.config_service import config_service
 from services.character_details_service import character_details_service
 from config import get_memory_config,  get_RAG_config
@@ -396,11 +396,7 @@ class MemoryService:
             return {"error": "角色记忆数据库未初始化"}
         
         memory_db = self.memory_databases[character_name]
-        return {
-            "character_name": character_name,
-            "model": memory_db.model,
-            "database_file": memory_db.db_file_path
-        }
+        return memory_db.get_stats()
 
 # 创建全局记忆服务实例
 memory_service = MemoryService()
