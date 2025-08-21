@@ -4,7 +4,7 @@ import { loadingIndicator, currentMessage, errorMessage, errorContainer } from '
 // 音频缓存对象和首次播放标记
 const audioCache = {};
 let firstAudioPlay = true;
-let audioEnabled = false; // 音频是否已被用户启用
+let audioEnabled = true; // 音频是否已被用户启用
 
 // 当前播放的音频对象
 window.currentAudio = null;
@@ -25,18 +25,159 @@ function showError(message) {
     errorContainer.style.display = 'block';
 }
 
-// 播放音频
-export async function playAudio(currentCharacter, autoPlay = false) {
+// 播放指定文本的音频
+export async function playTextAudio(text, currentCharacter, autoPlay = true) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频播放');
+        if (!autoPlay) {
+            showError('TTS功能已关闭');
+        }
+        return;
+    }
+
+    if (!text || !text.trim()) {
+        if (!autoPlay) showError('无法朗读空内容');
+        return;
+    }
+
+    const textToPlay = text.trim();
+
+    // 如果是自动播放但用户还没有启用音频，尝试播放（浏览器可能会阻止）
+    if (autoPlay && !audioEnabled) {
+        console.log('尝试自动播放（可能被浏览器阻止）');
+        // 不直接返回，而是尝试播放，让浏览器决定是否允许
+    }
+
+    // 停止当前正在播放的音频，防止多个音频同时播放
+    stopCurrentAudio();
+
+    // 判断缓存
+    let audioBlob = audioCache[textToPlay];
+    if (audioBlob) {
+        console.log('[playTextAudio] 命中缓存:', textToPlay);
+        try {
+            const audio = new Audio();
+            const url = URL.createObjectURL(audioBlob);
+            audio.src = url;
+            audio.onended = () => { URL.revokeObjectURL(url); };
+            audio.onerror = () => { 
+                if (!autoPlay) showError('音频播放失败'); 
+                URL.revokeObjectURL(url); 
+            };
+            window.currentAudio = audio;
+            
+            // 尝试播放
+            await audio.play();
+            
+            // 如果是用户首次主动播放，标记音频已启用
+            if (!autoPlay) {
+                audioEnabled = true;
+            }
+            
+        } catch (error) {
+            console.error('播放音频失败:', error);
+            if (!autoPlay) {
+                showError(`播放失败: ${error.message}`);
+            } else {
+                console.log('自动播放被阻止，这是正常的浏览器行为');
+            }
+        }
+        return;
+    } else {
+        console.log('[playTextAudio] 未命中缓存，重新合成:', textToPlay);
+        if (!autoPlay) {
+            showLoading(); // 只有用户主动播放时才显示加载
+        }
+    }
+
+    // 首次播放需要等待和弹窗
+    if (firstAudioPlay && !autoPlay) {
+        firstAudioPlay = false;
+        alert('首次合成可能需要较长时间，请耐心等待。');
+    }
+
+    try {
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: textToPlay,
+                role: currentCharacter ? currentCharacter.name : 'AI助手'
+            })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || '获取音频失败');
+        }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+            throw new Error('收到的音频数据为空');
+        }
+        
+        // 缓存音频
+        audioCache[textToPlay] = blob;
+
+        const audio = new Audio();
+        const url = URL.createObjectURL(blob);
+        audio.src = url;
+        audio.onended = () => { URL.revokeObjectURL(url); };
+        audio.onerror = () => { 
+            if (!autoPlay) showError('音频播放失败'); 
+            URL.revokeObjectURL(url); 
+        };
+        window.currentAudio = audio;
+        
+        // 根据播放类型决定是否播放
+        try {
+            await audio.play();
+            
+            // 如果是用户首次主动播放，标记音频已启用
+            if (!autoPlay) {
+                audioEnabled = true;
+            }
+        } catch (error) {
+            if (!autoPlay) {
+                throw error; // 用户主动播放时抛出错误
+            } else {
+                console.log('自动播放被阻止，这是正常的浏览器行为');
+            }
+        }
+    } catch (error) {
+        console.error('播放音频失败:', error);
+        if (!autoPlay) {
+            showError(`播放失败: ${error.message}`);
+        }
+    } finally {
+        if (!autoPlay) {
+            hideLoading();
+        }
+    }
+}
+
+// 播放音频（使用当前消息内容）
+export async function playAudio(currentCharacter, autoPlay = true) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频播放');
+        if (!autoPlay) {
+            showError('TTS功能已关闭');
+        }
+        return;
+    }
+
     const text = currentMessage.textContent.trim();
     if (!text) {
         if (!autoPlay) showError('无法朗读空内容');
         return;
     }
 
-    // 如果是自动播放但用户还没有启用音频，就不播放
+    // 如果是自动播放但用户还没有启用音频，尝试播放（浏览器可能会阻止）
     if (autoPlay && !audioEnabled) {
-        console.log('自动播放跳过：用户尚未启用音频');
-        return;
+        console.log('尝试自动播放（可能被浏览器阻止）');
+        // 不直接返回，而是尝试播放，让浏览器决定是否允许
     }
 
     // 停止当前正在播放的音频，防止多个音频同时播放
@@ -147,8 +288,63 @@ export async function playAudio(currentCharacter, autoPlay = false) {
     }
 }
 
-// 预加载音频
+// 预加载并播放音频
+export function prefetchAndPlayAudio(text, roleName, currentCharacter) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频预加载和播放');
+        return;
+    }
+
+    if (!text || !text.trim()) {
+        return;
+    }
+    
+    const textToProcess = text.trim();
+    
+    if (audioCache[textToProcess]) {
+        // 命中缓存时，直接播放
+        console.log('[prefetchAndPlayAudio] 命中缓存，直接播放:', textToProcess);
+        playTextAudio(textToProcess, currentCharacter, true);
+        return;
+    }
+    
+    // 开始预加载
+    console.log('[prefetchAndPlayAudio] 开始预加载:', textToProcess);
+    fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            text: textToProcess,
+            role: roleName || 'AI助手'
+        })
+    })
+    .then(response => {
+        if (!response.ok) return Promise.reject();
+        return response.blob();
+    })
+    .then(blob => {
+        if (blob && blob.size > 0) {
+            audioCache[textToProcess] = blob;
+            // 预加载完成后立即播放
+            console.log('[prefetchAndPlayAudio] 预加载完成，开始播放:', textToProcess);
+            playTextAudio(textToProcess, currentCharacter, true);
+        }
+    })
+    .catch((error) => {
+        console.error('预加载音频失败:', error);
+    });
+}
+
+// 预加载音频（原有函数，保持兼容性）
 export function prefetchAudio(text, roleName, callback) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频预加载');
+        if (callback) callback();
+        return;
+    }
+
     if (!text) {
         if (callback) callback();
         return;
@@ -197,6 +393,7 @@ let recognition;
 let firstMic = 0;
 
 export function toggleRecording(messageInput, micButton, showError) {
+    console.log('🔴 toggleRecording 被调用！');
     if (firstMic === 0) {
         firstMic = 1;
         alert('请确保你访问的地址为本地地址或https协议地址，否则浏览器可能会阻止调用麦克风！！！');
@@ -226,6 +423,10 @@ export function toggleRecording(messageInput, micButton, showError) {
                 const transcript = event.results[0][0].transcript.trim();
                 if (transcript) {
                     messageInput.value += transcript;
+                    // 语音识别后更新字数统计
+                    if (window.inputEnhancements && typeof window.inputEnhancements.updateCharCount === 'function') {
+                        window.inputEnhancements.updateCharCount();
+                    }
                 }
             };
             

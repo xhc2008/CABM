@@ -19,7 +19,7 @@ import {
     setIsPaused
 } from './ui-service.js';
 import { getCurrentCharacter, handleMoodChange } from './character-service.js';
-import { prefetchAudio } from './audio-service.js';
+import { prefetchAudio, prefetchAndPlayAudio } from './audio-service.js';
 
 // 流式处理器实例
 let streamProcessor = null;
@@ -44,12 +44,43 @@ export async function sendMessage() {
     // 跟踪已添加到历史记录的内容长度
     let addedToHistoryLength = 0;
 
+    // 跟踪当前正在处理的句子和已播放的内容
+    let currentSentence = '';
+    let lastPlayedLength = 0;
+    let isFirstSentence = true;
+
     // 设置回调函数
     streamProcessor.setCallbacks(
         // 字符回调
         (fullContent) => {
             const newContent = fullContent.substring(addedToHistoryLength);
             updateCurrentMessage('assistant', newContent, true);
+            
+            // 检查是否有新的完整句子需要处理
+            const sentences = newContent.split(/([。？！…~])/);
+            let completeSentences = '';
+            
+            // 找到所有完整的句子（包含标点符号）
+            for (let i = 0; i < sentences.length - 1; i += 2) {
+                if (i + 1 < sentences.length) {
+                    completeSentences += sentences[i] + sentences[i + 1];
+                }
+            }
+            
+            // 如果有新的完整句子且还没有播放过
+            if (completeSentences.length > lastPlayedLength) {
+                const newSentenceContent = completeSentences.substring(lastPlayedLength);
+                if (newSentenceContent.trim()) {
+                    const currentCharacter = getCurrentCharacter();
+                    const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                    
+                    // 立即开始预加载并播放音频
+                    prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
+                    
+                    lastPlayedLength = completeSentences.length;
+                    isFirstSentence = false;
+                }
+            }
         },
         // 暂停回调
         (fullContent) => {
@@ -58,19 +89,26 @@ export async function sendMessage() {
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                prefetchAudio(newContent, characterName, () => {
-                    addToHistory('assistant', newContent, characterName);
-                    updateCurrentMessage('assistant', newContent);
-                    addedToHistoryLength = fullContent.length;
-                    showContinuePrompt();
-                    // 自动播放，不显示错误
-                    if (window.playAudio) window.playAudio(true);
-                });
+                
+                // 检查是否有未播放的内容
+                const unplayedContent = newContent.substring(lastPlayedLength);
+                if (unplayedContent.trim()) {
+                    prefetchAudio(unplayedContent, characterName, () => {
+                        if (window.playAudio) window.playAudio(true);
+                    });
+                }
+                
+                addToHistory('assistant', newContent, characterName);
+                updateCurrentMessage('assistant', newContent);
+                addedToHistoryLength = fullContent.length;
+                showContinuePrompt();
             } else {
                 showContinuePrompt();
-                // 自动播放，不显示错误
-                if (window.playAudio) window.playAudio(true);
             }
+            
+            // 重置句子跟踪变量
+            lastPlayedLength = 0;
+            isFirstSentence = true;
         },
         // 完成回调
         (fullContent) => {
@@ -78,21 +116,26 @@ export async function sendMessage() {
             const remainingContent = fullContent.substring(addedToHistoryLength);
             if (remainingContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                prefetchAudio(remainingContent, characterName, () => {
-                    addToHistory('assistant', remainingContent, characterName);
-                    updateCurrentMessage('assistant', remainingContent);
-                    hideContinuePrompt();
-                    enableUserInput();
-                    setIsPaused(false);
-                    if (window.pendingOptions && window.pendingOptions.length > 0) {
-                        if (window.showOptionButtons) {
-                            window.showOptionButtons(window.pendingOptions);
-                        }
-                        window.pendingOptions = null;
+                
+                // 检查是否有未播放的内容
+                const unplayedContent = remainingContent.substring(lastPlayedLength);
+                if (unplayedContent.trim()) {
+                    prefetchAudio(unplayedContent, characterName, () => {
+                        if (window.playAudio) window.playAudio(true);
+                    });
+                }
+                
+                addToHistory('assistant', remainingContent, characterName);
+                updateCurrentMessage('assistant', remainingContent);
+                hideContinuePrompt();
+                enableUserInput();
+                setIsPaused(false);
+                if (window.pendingOptions && window.pendingOptions.length > 0) {
+                    if (window.showOptionButtons) {
+                        window.showOptionButtons(window.pendingOptions);
                     }
-                    // 自动播放，不显示错误
-                    if (window.playAudio) window.playAudio(true);
-                });
+                    window.pendingOptions = null;
+                }
             } else {
                 hideContinuePrompt();
                 enableUserInput();
@@ -103,9 +146,11 @@ export async function sendMessage() {
                     }
                     window.pendingOptions = null;
                 }
-                // 自动播放，不显示错误
-                if (window.playAudio) window.playAudio(true);
             }
+            
+            // 重置句子跟踪变量
+            lastPlayedLength = 0;
+            isFirstSentence = true;
         }
     );
 
@@ -120,8 +165,15 @@ export async function sendMessage() {
         window.hideOptionButtons();
     }
 
-    // 清空输入框
+    // 清空输入框并更新状态
     messageInput.value = '';
+    
+    // 如果有输入框增强功能，更新其状态
+    if (window.inputEnhancements) {
+        window.inputEnhancements.updateCharCount();
+        window.inputEnhancements.updateSendButtonState();
+        window.inputEnhancements.autoResize();
+    }
 
     // 禁用用户输入
     disableUserInput();

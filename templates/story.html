@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剧情模式 - CABM</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <style>
+        .creating-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .creating-message {
+            color: #fff;
+            font-size: 1.2em;
+            padding: 16px 24px;
+            background: rgba(0, 20, 40, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+        }
+        .story-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 40, 80, 0.8));
+        }
+
+        .story-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .story-title {
+            color: white;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 20px rgba(0, 150, 255, 0.5);
+        }
+
+        .new-story-button {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .new-story-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+        }
+
+        .stories-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .stories-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .stories-grid::-webkit-scrollbar-thumb {
+            background: rgba(0, 150, 255, 0.6);
+            border-radius: 4px;
+        }
+
+        .story-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .story-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 150, 255, 0.3);
+            border-color: rgba(0, 150, 255, 0.5);
+        }
+
+        .story-cover {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .story-info h3 {
+            color: white;
+            margin: 0 0 8px 0;
+            font-size: 1.4em;
+        }
+
+        .story-id {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-bottom: 12px;
+        }
+
+        .story-characters {
+            margin-bottom: 12px;
+        }
+
+        .character-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-right: 6px;
+            margin-bottom: 4px;
+            border: 1px solid currentColor;
+        }
+
+        .story-summary {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .story-progress {
+            color: rgba(0, 255, 136, 0.9);
+            font-size: 0.9em;
+            font-weight: bold;
+            padding: 8px 12px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            margin-bottom: 8px;
+        }
+
+        .story-last-played {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            text-align: right;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 40px;
+        }
+
+        .error {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 1.1em;
+            padding: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="story-container">
+        <div class="story-header">
+            <a href="/" class="back-button">← 返回主页</a>
+            <h1 class="story-title">剧情模式</h1>
+            <button class="new-story-button" onclick="createNewStory()">+ 新建故事</button>
+        </div>
+
+        <div id="storiesContainer">
+            <div class="loading">正在加载存档...</div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取存档列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStories();
+            initReferenceInfoControls();
+        });
+
+        // 加载存档列表
+        async function loadStories() {
+            try {
+                const response = await fetch('/api/stories');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStories(data.stories);
+                } else {
+                    showError('加载存档失败: ' + data.error);
+                }
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            }
+        }
+
+        // 显示存档列表
+        function displayStories(stories) {
+            const container = document.getElementById('storiesContainer');
+            
+            if (stories.length === 0) {
+                container.innerHTML = '<div class="loading">暂无存档，点击"新建故事"开始创建</div>';
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'stories-grid';
+
+            stories.forEach(story => {
+                const card = createStoryCard(story);
+                grid.appendChild(card);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(grid);
+        }
+
+        // 创建存档卡片
+        function createStoryCard(story) {
+            const card = document.createElement('div');
+            card.className = 'story-card';
+            card.onclick = () => openStory(story.id);
+
+            const coverImg = document.createElement('img');
+            coverImg.className = 'story-cover';
+            coverImg.src = story.cover_url || '/static/images/default-story-cover.png';
+            coverImg.alt = story.title;
+            coverImg.onerror = () => {
+                coverImg.src = '/static/images/default.svg';
+            };
+
+            const info = document.createElement('div');
+            info.className = 'story-info';
+
+            const title = document.createElement('h3');
+            title.textContent = story.title;
+
+            const id = document.createElement('div');
+            id.className = 'story-id';
+            id.textContent = `ID: ${story.id}`;
+
+            const characters = document.createElement('div');
+            characters.className = 'story-characters';
+            story.characters.forEach(char => {
+                const tag = document.createElement('span');
+                tag.className = 'character-tag';
+                tag.textContent = char.name;
+                tag.style.color = char.color;
+                characters.appendChild(tag);
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'story-summary';
+            summary.textContent = story.summary;
+
+            const progress = document.createElement('div');
+            progress.className = 'story-progress';
+            progress.textContent = `当前进度: ${story.current_progress}`;
+
+            const lastPlayed = document.createElement('div');
+            lastPlayed.className = 'story-last-played';
+            if (story.last_played) {
+                lastPlayed.textContent = `上次游玩: ${story.last_played}`;
+            } else {
+                lastPlayed.textContent = '上次游玩: 未知';
+            }
+
+            info.appendChild(title);
+            info.appendChild(id);
+            info.appendChild(characters);
+            info.appendChild(summary);
+            info.appendChild(progress);
+            info.appendChild(lastPlayed);
+
+            card.appendChild(coverImg);
+            card.appendChild(info);
+
+            return card;
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const container = document.getElementById('storiesContainer');
+            container.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // 打开故事
+        function openStory(storyId) {
+            window.location.href = `/story/${storyId}`;
+        }
+
+        // 创建新故事
+        function createNewStory() {
+            showCreateStoryModal();
+        }
+
+        // 显示创建故事模态框
+        function showCreateStoryModal() {
+            document.getElementById('createStoryModal').style.display = 'flex';
+            loadCharacters();
+        }
+
+        // 隐藏创建故事模态框
+        function hideCreateStoryModal() {
+            document.getElementById('createStoryModal').style.display = 'none';
+            clearCreateStoryForm();
+        }
+
+        // 清空创建故事表单
+        function clearCreateStoryForm() {
+            document.getElementById('createStoryForm').reset();
+            document.getElementById('backgroundPreview').innerHTML = '';
+            document.getElementById('selectedCharacter').textContent = '请选择角色';
+            document.getElementById('selectedCharacterId').value = '';
+        }
+
+        // 加载角色列表
+        async function loadCharacters() {
+            try {
+                const response = await fetch('/api/characters');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCharacters(data.available_characters);
+                } else {
+                    console.error('加载角色失败:', data.error);
+                }
+            } catch (error) {
+                console.error('网络错误:', error);
+            }
+        }
+
+        // 显示角色列表
+        function displayCharacters(characters) {
+            const container = document.getElementById('characterList');
+            container.innerHTML = '';
+
+            characters.forEach(char => {
+                const item = document.createElement('div');
+                item.className = 'character-item';
+                item.onclick = () => selectCharacter(char.id, char.name, char.color);
+                
+                item.innerHTML = `
+                    <div class="character-name" style="color: ${char.color}">${char.name}</div>
+                    <div class="character-id">ID: ${char.id}</div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        // 选择角色
+        function selectCharacter(id, name, color) {
+            document.getElementById('selectedCharacter').textContent = name;
+            document.getElementById('selectedCharacter').style.color = color;
+            document.getElementById('selectedCharacterId').value = id;
+            
+            // 高亮选中的角色
+            document.querySelectorAll('.character-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.character-item').classList.add('selected');
+        }
+
+        // 处理背景图片上传
+        function handleBackgroundUpload(event) {
+            const files = event.target.files;
+            const preview = document.getElementById('backgroundPreview');
+            preview.innerHTML = '';
+
+            Array.from(files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'background-preview-img';
+                        img.alt = `背景图片 ${index + 1}`;
+                        preview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // 初始化“参考信息数量”控件（数字输入与滑杆同步）
+        function initReferenceInfoControls() {
+            const numInput = document.getElementById('referenceInfoCount');
+            const rangeInput = document.getElementById('referenceInfoCountRange');
+            if (!numInput || !rangeInput) return;
+
+            if (numInput.value === '') numInput.value = 0;
+            const initial = parseInt(numInput.value || '0', 10);
+            rangeInput.value = isNaN(initial) ? 0 : Math.min(initial, 20);
+
+            numInput.addEventListener('input', function() {
+                let val = parseInt(numInput.value || '0', 10);
+                if (isNaN(val)) val = 0;
+                if (val < 0) val = 0;
+                if (val > 100) val = 100;
+                numInput.value = val;
+                rangeInput.value = Math.min(val, 20);
+            });
+
+            rangeInput.addEventListener('input', function() {
+                const val = parseInt(rangeInput.value || '0', 10);
+                numInput.value = isNaN(val) ? 0 : val;
+            });
+        }
+
+        // 提交创建故事表单
+        async function submitCreateStory(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const storyId = formData.get('storyId');
+            const storyTitle = formData.get('storyTitle');
+            const characterId = formData.get('selectedCharacterId');
+            const storyDirection = formData.get('storyDirection');
+            
+            // 验证必填字段
+            if (!storyId || !storyTitle || !characterId || !storyDirection) {
+                alert('请填写所有必填字段');
+                return;
+            }
+
+            // 验证故事ID格式
+            if (!/^[a-zA-Z0-9_]+$/.test(storyId)) {
+                alert('故事ID只能包含英文字母、数字和下划线');
+                return;
+            }
+
+            // 通过校验后再展示加载遮罩并禁用按钮
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) {
+                submitBtn.textContent = '创建中...';
+                submitBtn.disabled = true;
+            }
+            showCreatingOverlay();
+
+            try {
+                const response = await fetch('/api/stories/create', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('故事创建成功！');
+                    hideCreateStoryModal();
+                    loadStories(); // 重新加载故事列表
+                } else {
+                    alert('创建失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('网络错误: ' + error.message);
+            } finally {
+                // 恢复按钮状态并隐藏遮罩
+                if (submitBtn) {
+                    submitBtn.textContent = originalText || '创建故事';
+                    submitBtn.disabled = false;
+                }
+                hideCreatingOverlay();
+            }
+        }
+
+        function showCreatingOverlay() {
+            const overlay = document.getElementById('creatingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+        function hideCreatingOverlay() {
+            const overlay = document.getElementById('creatingOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+    </script>
+
+    <!-- 创建故事模态框 -->
+    <div id="createStoryModal" class="modal">
+        <div class="modal-content create-story-modal">
+            <div class="modal-header">
+                <h3>创建新故事</h3>
+                <button onclick="hideCreateStoryModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createStoryForm" onsubmit="submitCreateStory(event)" enctype="multipart/form-data">
+                    <div class="form-group required">
+                        <label for="storyId">故事ID <span class="required-mark">*</span></label>
+                        <div class="form-description">只能包含英文字母、数字和下划线</div>
+                        <input type="text" id="storyId" name="storyId" class="form-input" pattern="[a-zA-Z0-9_]+" required>
+                    </div>
+
+                    <div class="form-group required">
+                        <label for="storyTitle">故事名 <span class="required-mark">*</span></label>
+                        <input type="text" id="storyTitle" name="storyTitle" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="backgroundImages">背景图片集</label>
+                        <div class="form-description">可上传多个图片文件，第一张将作为封面</div>
+                        <input type="file" id="backgroundImages" name="backgroundImages" class="form-file" 
+                               accept="image/*" multiple onchange="handleBackgroundUpload(event)">
+                        <div id="backgroundPreview" class="background-preview"></div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label>选择角色 <span class="required-mark">*</span></label>
+                        <div class="form-description">选择故事的主要角色（目前只支持单个角色）</div>
+                        <div id="selectedCharacter" class="selected-character">请选择角色</div>
+                        <input type="hidden" id="selectedCharacterId" name="selectedCharacterId" required>
+                        <div id="characterList" class="character-list"></div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label for="storyDirection">故事导向 <span class="required-mark">*</span></label>
+                        <div class="form-description">描述你希望的故事类型、主题或发展方向</div>
+                        <textarea id="storyDirection" name="storyDirection" class="form-textarea" 
+                                  rows="4" placeholder="例如：一个关于友情与冒险的奇幻故事..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="referenceInfoCount">参考信息数量</label>
+                        <div class="form-description">从角色详细信息获取的信息块的数量（如果你有这么多的话）。可在输入框中填写，或通过滑杆调节。滑杆范围：0-20；输入框最大值：100。</div>
+                        <input type="number" id="referenceInfoCount" name="referenceInfoCount" class="form-input" min="0" max="100" step="1" value="0">
+                        <input type="range" id="referenceInfoCountRange" min="0" max="20" step="1" value="0" style="width: 100%; margin-top: 8px;">
+                    </div>
+
+                    <div class="form-buttons">
+                        <button type="submit" class="btn primary-btn">创建故事</button>
+                        <button type="button" onclick="hideCreateStoryModal()" class="btn secondary-btn">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: rgba(0, 20, 40, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .create-story-modal {
+            max-width: 700px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .required-mark {
+            color: #ff6b6b;
+        }
+
+        .form-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: rgba(0, 150, 255, 0.6);
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+        }
+
+        .form-file {
+            width: 100%;
+            padding: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .background-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .background-preview-img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .selected-character {
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .character-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .character-item {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .character-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .character-item.selected {
+            background: rgba(0, 150, 255, 0.3);
+        }
+
+        .character-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .character-id {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+    <!-- 创建中全屏遮罩 -->
+    <div id="creatingOverlay" class="creating-overlay">
+        <div class="creating-message">创建中，这需要一些时间，请耐心等待...</div>
+    </div>
+
+</body>
+
+</html>

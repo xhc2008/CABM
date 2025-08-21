@@ -5,13 +5,57 @@
     box-sizing: border-box;
 }
 
+/* 去除所有链接的下划线 */
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
 body {
     font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
     line-height: 1.6;
     overflow-x: hidden;
     position: relative;
     min-height: 100vh;
-    background-color: #fff;
+    background: #ffffff;
+    color: #333333;
+}
+
+/* 科幻背景层 - 只在主页和自定义角色页面显示 */
+#homePage,
+#customCharacterPage {
+    background: linear-gradient(135deg, #0a0a0f 0%, #050508 100%);
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+#homePage::before,
+#customCharacterPage::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(128, 0, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(0, 128, 255, 0.05) 0%, transparent 50%);
+    animation: backgroundPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundPulse {
+    0% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* 容器样式 */
@@ -41,12 +85,13 @@ body {
 
 /* 主页面样式 */
 #homePage {
-    color: #333;
-    background-color: #fff;
+    color: #ffffff;
+    background: transparent;
     justify-content: center;
     align-items: center;
     text-align: center;
     z-index: 10;
+    position: relative;
 }
 
 .home-background {
@@ -55,45 +100,168 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #fff;
+    background:
+        linear-gradient(rgba(0, 255, 255, 0.03), rgba(128, 0, 255, 0.03)),
+        radial-gradient(circle at center, rgba(0, 128, 255, 0.1) 0%, transparent 70%);
     z-index: -1;
+}
+
+/* 科幻网格背景 */
+#homePage::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 25s linear infinite;
+    opacity: 0.2;
+    z-index: -1;
+}
+
+@keyframes gridMove {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(60px, 60px);
+    }
 }
 
 .home-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
 }
 
 .home-header h1 {
-    font-size: 3.5rem;
-    margin-bottom: 0.5rem;
-    letter-spacing: 2px;
-    color: #333;
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    background: linear-gradient(45deg, #00ffff, #0080ff, #8000ff);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease-in-out infinite;
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    position: relative;
+}
+
+.home-header h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ffff, transparent);
+    animation: underlineGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes gradientShift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes underlineGlow {
+    0% {
+        opacity: 0.5;
+        width: 50px;
+    }
+
+    100% {
+        opacity: 1;
+        width: 150px;
+    }
 }
 
 .home-header p {
-    font-size: 1.2rem;
-    color: #666;
+    font-size: 1.3rem;
+    color: #b0b0b0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.9;
+    margin-top: 1.5rem;
 }
 
 .home-buttons {
-    margin-top: 3rem;
+    margin-top: 4rem;
     display: flex;
-    gap: 1.5rem;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .home-buttons .btn {
-    padding: 0.8rem 2rem;
-    font-size: 1.2rem;
-    min-width: 120px;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    min-width: 140px;
+    position: relative;
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
 }
 
-/* 对话页面样式 */
+.home-buttons .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.home-buttons .btn:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 0 25px rgba(0, 255, 255, 0.4),
+        0 10px 25px rgba(0, 0, 0, 0.3);
+    border-color: #00ffff;
+}
+
+.home-buttons .btn:hover::before {
+    left: 100%;
+}
+
+.home-buttons .btn:active {
+    transform: translateY(-1px);
+}
+
+/* 对话页面样式 - 保持传统样式 */
 #chatPage {
     color: #fff;
     position: relative;
     z-index: 5;
     padding-top: 60px;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 恢复传统字体 */
 }
 
 /* 背景样式 (仅用于对话页面) */
@@ -148,19 +316,39 @@ body {
     margin: 0 auto;
     font-size: 1.5rem;
     color: #fff;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    text-transform: none;
+    /* 移除大写转换 */
+    letter-spacing: normal;
+    /* 恢复正常字间距 */
+    text-shadow: none;
+    /* 移除发光效果 */
 }
 
-.back-btn {
+.chat-header .back-btn {
     background: none;
     border: none;
     color: #fff;
     font-size: 1.2rem;
     cursor: pointer;
     padding: 0.5rem;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    backdrop-filter: none;
+    /* 移除模糊效果 */
+    border-radius: 0;
+    /* 移除圆角 */
+    transition: color 0.2s ease;
+    /* 简化过渡效果 */
 }
 
-.back-btn:hover {
+.chat-header .back-btn:hover {
     color: #90caf9;
+    transform: none;
+    /* 移除变换效果 */
+    box-shadow: none;
+    /* 移除阴影 */
 }
 
 /* 角色区域样式 - 居中显示 */
@@ -184,45 +372,115 @@ body {
     justify-content: center;
     align-items: center;
 }
-
+@media (max-width: 600px) {
+    .character-img {
+        max-width: 220%;
+    }
+}
 .character-image img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    transform-origin: center center; /* 确保缩放以图片中心为原点 */
 }
 
-/* 用户输入区域样式 - 右上角 */
+/* 用户输入区域样式 - 右上角 - 优化布局 */
 .user-input-container {
     position: absolute;
-    top: 120px;
+    top: 80px;
     right: 20px;
-    width: 300px;
+    width: 380px;
     display: flex;
-    gap: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 0.8rem;
-    border-radius: 8px;
+    flex-direction: column;
+    gap: 0.8rem;
+    background-color: rgba(0, 0, 0, 0.75);
+    padding: 1rem;
+    border-radius: 12px;
     z-index: 10;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 输入框和按钮的容器 */
+.input-row {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-end;
 }
 
 .chat-input {
     flex: 1;
-    padding: 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(0, 0, 0, 0.3);
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
-    font-size: 0.9rem;
-    resize: none;
-    height: 40px;
+    font-size: 0.95rem;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    resize: vertical;
+    min-height: 80px;
+    max-height: 200px;
+    line-height: 1.4;
+    transition: all 0.2s ease;
 }
 
 .chat-input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
-/* 对话区域样式 - 底部窄条 */
+.chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* 按钮组容器 */
+.input-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* 麦克风和发送按钮样式 */
+.mic-btn,
+.send-btn {
+    padding: 0.8rem;
+    min-width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.mic-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.mic-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.send-btn {
+    background-color: #2979ff;
+    border: 1px solid #2979ff;
+    color: #fff;
+    min-width: 60px;
+}
+
+.send-btn:hover {
+    background-color: #1565c0;
+    border-color: #1565c0;
+}
+
+/* 对话区域样式 - 底部窄条 - 传统样式 */
 .dialog-container {
     position: fixed;
     bottom: 0;
@@ -244,11 +502,19 @@ body {
     border-top-right-radius: 8px;
     animation: fadeIn 0.3s ease;
     max-height: 120px;
-    /* 限制最大高度 */
     overflow: hidden;
-    /* 防止内容溢出 */
     position: relative;
-    /* 为继续提示提供定位上下文 */
+    backdrop-filter: none;
+    /* 移除模糊效果 */
+    border: none;
+    /* 移除边框 */
+    box-shadow: none;
+    /* 移除阴影 */
+}
+
+/* 移除科幻边框动画 */
+.dialog-box::before {
+    display: none;
 }
 
 .character-name {
@@ -256,6 +522,14 @@ body {
     font-weight: bold;
     margin-bottom: 0.3rem;
     font-size: 1rem;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    text-shadow: none;
+    /* 移除发光效果 */
+    letter-spacing: normal;
+    /* 恢复正常字间距 */
+    text-transform: none;
+    /* 移除大写转换 */
 }
 
 .dialog-content {
@@ -263,17 +537,19 @@ body {
     line-height: 1.4;
     white-space: pre-wrap;
     max-height: 4.2em;
-    /* 约3行文字高度 */
     overflow-y: auto;
     overflow-x: hidden;
     direction: ltr;
-    /* 确保文本从左到右显示 */
     display: flex;
     flex-direction: column-reverse;
-    /* 内容溢出时向上移动 */
+    color: #ffffff;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    text-shadow: none;
+    /* 移除发光效果 */
 }
 
-/* 控制按钮样式 */
+/* 控制按钮样式 - 传统样式 */
 .control-buttons {
     display: flex;
     justify-content: center;
@@ -283,9 +559,11 @@ body {
     padding: 0.5rem;
     background-color: rgba(0, 0, 0, 0.5);
     position: relative;
-    /* 确保按钮区域不会被对话框内容顶掉 */
     z-index: 21;
-    /* 比对话框高一级 */
+    backdrop-filter: none;
+    /* 移除模糊效果 */
+    border-top: none;
+    /* 移除边框 */
 }
 
 /* 按钮样式 */
@@ -294,10 +572,62 @@ body {
     border: none;
     border-radius: 6px;
     font-size: 0.9rem;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
 
+/* 主页和自定义角色页面的科幻按钮样式 */
+#homePage .btn,
+#customCharacterPage .btn {
+    font-family: 'Consolas', 'Monaco', monospace;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    backdrop-filter: blur(5px);
+}
+
+#homePage .btn::before,
+#customCharacterPage .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+#homePage .btn:hover::before,
+#customCharacterPage .btn:hover::before {
+    left: 100%;
+}
+
+/* 聊天页面的传统按钮样式 */
+#chatPage .btn {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: none;
+    backdrop-filter: none;
+}
+
+#chatPage .btn::before {
+    display: none;
+    /* 移除扫描效果 */
+}
+
+#chatPage .btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: none;
+    /* 移除变换效果 */
+    box-shadow: none;
+    /* 移除阴影 */
+}
+
+/* 主按钮样式 */
 .primary-btn {
     background-color: #2979ff;
     color: #fff;
@@ -307,6 +637,22 @@ body {
     background-color: #1565c0;
 }
 
+/* 主页和自定义角色页面的主按钮科幻样式 */
+#homePage .primary-btn,
+#customCharacterPage .primary-btn {
+    background: linear-gradient(45deg, #0080ff, #00ffff);
+    border-color: #00ffff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+#homePage .primary-btn:hover,
+#customCharacterPage .primary-btn:hover {
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+/* 次要按钮样式 */
 .secondary-btn {
     background-color: rgba(255, 255, 255, 0.2);
     color: #fff;
@@ -316,14 +662,21 @@ body {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* 主页面按钮特殊样式 */
-#homePage .secondary-btn {
-    background-color: rgba(0, 0, 0, 0.1);
-    color: #333;
+/* 主页和自定义角色页面的次要按钮科幻样式 */
+#homePage .secondary-btn,
+#customCharacterPage .secondary-btn {
+    background: rgba(128, 0, 255, 0.1);
+    border-color: rgba(128, 0, 255, 0.4);
+    color: #b0b0b0;
 }
 
-#homePage .secondary-btn:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+#homePage .secondary-btn:hover,
+#customCharacterPage .secondary-btn:hover {
+    background: rgba(128, 0, 255, 0.2);
+    border-color: #8000ff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(128, 0, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 /* 弹窗通用样式 */
@@ -359,7 +712,7 @@ body {
     align-items: center;
     padding: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff; 
+    color: #fff;
 }
 
 .modal-body,
@@ -389,8 +742,8 @@ body {
 /* 角色选择样式 */
 .character-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 30px;
 }
 
 .character-card {
@@ -413,8 +766,8 @@ body {
 }
 
 .character-card-image {
-    width: 100px;
-    height: 100px;
+    width: 200px;
+    height: 200px;
     margin: 0 auto 0.8rem;
     border-radius: 50%;
     overflow: hidden;
@@ -554,35 +907,282 @@ body {
     }
 }
 
+/* 立绘跳跃动画 - 2D立绘常见的轻快跳跃效果 */
+/* 使用JavaScript动态计算的跳跃距离，已考虑缩放率 */
+@keyframes characterJump {
+    0% {
+        transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+    }
+    
+    25% {
+        transform: translateY(var(--jump-distance-25, -12px)) scale(calc(var(--base-scale, 1) * 1.03)) scaleY(0.98);
+    }
+    
+    50% {
+        transform: translateY(var(--jump-distance-50, -20px)) scale(calc(var(--base-scale, 1) * 1.01)) scaleY(1.02);
+    }
+    
+    75% {
+        transform: translateY(var(--jump-distance-75, -5px)) scale(calc(var(--base-scale, 1) * 0.99)) scaleY(0.99);
+    }
+    
+    100% {
+        transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+    }
+}
+
+.character-jump {
+    animation: characterJump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 立绘呼吸动画 - 模拟角色呼吸的Y轴拉伸收缩 */
+@keyframes characterBreathe {
+    0% {
+        transform: scale(var(--base-scale, 1)) scaleY(1);
+    }
+    
+    50% {
+        transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.02));
+    }
+    
+    100% {
+        transform: scale(var(--base-scale, 1)) scaleY(1);
+    }
+}
+
+.character-breathing {
+    animation: characterBreathe 4s ease-in-out infinite;
+    transform-origin: center center; /* 使用中心原点，与容器缩放保持一致 */
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .home-header h1 {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
+        letter-spacing: 2px;
     }
 
     .home-buttons {
         flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .home-buttons .btn {
+        min-width: 200px;
+        padding: 1.2rem 2rem;
     }
 
     .user-input-container {
-        width: 90%;
-        right: 5%;
+        width: 95%;
+        right: 2.5%;
         top: 70px;
+        padding: 0.8rem;
+        max-width: none;
+    }
+
+    .input-row {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .chat-input {
+        min-height: 60px;
+        max-height: 120px;
+        font-size: 0.9rem;
+    }
+
+    .input-buttons {
+        justify-content: flex-end;
+        gap: 0.6rem;
+    }
+
+    .mic-btn,
+    .send-btn {
+        padding: 0.6rem;
+        min-width: 40px;
+        height: 40px;
+        font-size: 0.85rem;
     }
 
     .dialog-box {
-        width: 95%;
+        width: 98%;
+        padding: 1rem;
     }
 
     .control-buttons {
-        padding: 0.3rem;
+        padding: 0.6rem;
+        gap: 0.6rem;
     }
 
     .btn {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        padding: 0.5rem 1rem;
     }
-}/* 
+
+    /* 移动端性能优化 - 减少动画 */
+    #homePage::after,
+    #customCharacterPage::after {
+        animation: none;
+    }
+
+    .home-header h1 {
+        animation-duration: 6s;
+        /* 减慢动画速度 */
+    }
+
+    /* 简化移动端的玻璃效果 */
+    .glass-panel,
+    .dialog-box,
+    .custom-character-form {
+        backdrop-filter: blur(5px);
+        /* 减少模糊强度 */
+    }
+
+    /* 移动端立绘跳跃动画优化 - 使用JavaScript动态计算的距离 */
+    @keyframes characterJump {
+        0% {
+            transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+        }
+        
+        25% {
+            transform: translateY(var(--jump-distance-25, -8px)) scale(calc(var(--base-scale, 1) * 1.02)) scaleY(0.99);
+        }
+        
+        50% {
+            transform: translateY(var(--jump-distance-50, -12px)) scale(calc(var(--base-scale, 1) * 1.01)) scaleY(1.01);
+        }
+        
+        75% {
+            transform: translateY(var(--jump-distance-75, -3px)) scale(calc(var(--base-scale, 1) * 0.995)) scaleY(0.995);
+        }
+        
+        100% {
+            transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
+        }
+    }
+
+    .character-jump {
+        animation: characterJump 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* 移动端呼吸动画优化 - 使用相同的CSS变量但可以调整基础值 */
+    @keyframes characterBreathe {
+        0% {
+            transform: scale(var(--base-scale, 1)) scaleY(1);
+        }
+        
+        50% {
+            transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.015));
+        }
+        
+        100% {
+            transform: scale(var(--base-scale, 1)) scaleY(1);
+        }
+    }
+
+    .character-breathing {
+        animation: characterBreathe 3.5s ease-in-out infinite;
+        transform-origin: center center; /* 使用中心原点，与容器缩放保持一致 */
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+    .home-header h1 {
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+    }
+
+    .home-header p {
+        font-size: 1rem;
+        letter-spacing: 1px;
+    }
+
+    .home-buttons .btn {
+        min-width: 180px;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .user-input-container {
+        width: 98%;
+        right: 1%;
+        top: 70px;
+        padding: 0.6rem;
+    }
+
+    .chat-input {
+        font-size: 0.9rem;
+        min-height: 50px;
+        max-height: 100px;
+        padding: 0.6rem;
+    }
+
+    .input-buttons {
+        gap: 0.4rem;
+    }
+
+    .mic-btn,
+    .send-btn {
+        padding: 0.5rem;
+        min-width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
+    }
+}
+
+/* 高分辨率屏幕优化 */
+@media (min-width: 1920px) {
+    .home-header h1 {
+        font-size: 5rem;
+        letter-spacing: 6px;
+    }
+
+    .home-header p {
+        font-size: 1.5rem;
+        letter-spacing: 3px;
+    }
+
+    .dialog-box {
+        max-width: 1200px;
+    }
+
+    .user-input-container {
+        width: 450px;
+        top: 90px;
+        right: 30px;
+    }
+
+    .chat-input {
+        min-height: 100px;
+        max-height: 250px;
+        font-size: 1rem;
+    }
+
+    .mic-btn,
+    .send-btn {
+        padding: 1rem;
+        min-width: 50px;
+        height: 50px;
+    }
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    /* 立绘动画也遵循减少动画偏好 */
+    .character-jump,
+    .character-breathing {
+        animation: none !important;
+    }
+}
+
+/* 
 选项按钮容器样式 */
 .option-buttons-container {
     position: absolute;
@@ -590,7 +1190,8 @@ body {
     top: 50%;
     transform: translateY(-50%);
     z-index: 15;
-    display: none; /* 默认隐藏 */
+    display: none;
+    /* 默认隐藏 */
     flex-direction: column;
     gap: 10px;
     max-width: 300px;
@@ -637,10 +1238,1503 @@ body {
         left: 10px;
         max-width: 250px;
     }
-    
+
     .option-button {
         max-width: 230px;
         font-size: 13px;
         padding: 10px 12px;
     }
+}
+
+/* 自定义角色页面样式 */
+#customCharacterPage {
+    color: #ffffff;
+    background: transparent;
+    overflow-y: auto;
+    padding-top: 60px;
+    position: relative;
+}
+
+.custom-character-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(128, 0, 255, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #0a0a0f 0%, #050508 100%);
+    z-index: -1;
+}
+
+/* 为自定义角色页面添加网格背景 */
+#customCharacterPage::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 30s linear infinite;
+    opacity: 0.3;
+    z-index: -1;
+}
+
+.custom-character-header {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    z-index: 50;
+    padding: 0 1rem;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+}
+
+.custom-character-header h2 {
+    margin: 0 auto;
+    font-size: 1.6rem;
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.custom-character-header .back-btn {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.6rem 1rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.custom-character-header .back-btn:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.custom-character-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem 2rem;
+}
+
+.custom-character-form {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(0, 128, 255, 0.08));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow:
+        0 0 40px rgba(0, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.custom-character-form::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00ffff, #0080ff, #8000ff);
+    background-size: 200% 100%;
+    animation: borderGlow 3s linear infinite;
+    border-radius: 16px 16px 0 0;
+}
+
+/* 表单组样式 */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.required-mark {
+    color: #ff6b6b;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 0.9rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    transition: all 0.3s ease;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    backdrop-filter: blur(5px);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-description {
+    font-size: 0.875rem;
+    color: #b0b0b0;
+    margin-top: 0.4rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.form-description.error {
+    color: #ff6b6b;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+}
+
+/* 颜色输入组样式 */
+.color-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.color-text {
+    flex: 1;
+}
+
+.color-picker {
+    width: 50px;
+    height: 42px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: none;
+    padding: 0;
+}
+
+.color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+
+/* 心情表格样式 */
+/* .mood-table {
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #162A47;
+}
+
+.mood-table-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 80px;
+    background: #a1c0ec;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.mood-header-cell {
+    padding: 0.75rem;
+    font-weight: 600;
+    color: #333;
+    border-right: 1px solid #e2e8f0;
+}
+
+.mood-header-cell:last-child {
+    border-right: none;
+}
+
+.mood-table-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.mood-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 80px;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: center;
+}
+
+.mood-row:last-child {
+    border-bottom: none;
+}
+
+.mood-cell {
+    padding: 0.75rem;
+    border-right: 1px solid #e2e8f0;
+}
+
+.mood-cell:last-child {
+    border-right: none;
+    text-align: center;
+}
+
+.mood-cell input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.mood-cell input[type="file"] {
+    width: 100%;
+    font-size: 0.875rem;
+}
+
+.remove-mood-btn {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.remove-mood-btn:hover {
+    background: #c53030;
+}
+
+.add-mood-btn {
+    margin-top: 0.5rem;
+    width: 100%;
+    display: block !important;
+    visibility: visible !important;
+} */
+
+/* 文件选择样式 */
+.form-file {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    background: #f7fafc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.form-file:hover {
+    border-color: #667eea;
+    background: #edf2f7;
+}
+
+.selected-files {
+    margin-top: 0.5rem;
+}
+
+.selected-file {
+    display: inline-flex;
+    align-items: center;
+    background: #667eea;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    margin: 0.25rem 0.25rem 0 0;
+    font-size: 0.875rem;
+    gap: 0.5rem;
+}
+
+.remove-file-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+}
+
+.remove-file-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 按钮组样式 */
+.form-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.form-buttons .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    min-width: 100px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .custom-character-container {
+        margin: 1rem;
+        padding: 0;
+    }
+
+    .custom-character-form {
+        padding: 1.5rem;
+        margin: 0;
+    }
+
+    .mood-table-header,
+    .mood-row {
+        grid-template-columns: 1fr 1fr 1fr 60px;
+        font-size: 0.875rem;
+    }
+
+    .mood-header-cell,
+    .mood-cell {
+        padding: 0.5rem;
+    }
+
+    .form-buttons {
+        flex-direction: column;
+    }
+
+    .color-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .color-picker {
+        width: 100%;
+        height: 50px;
+    }
+}
+
+/* 性能优化 */
+/* 启用硬件加速 */
+.home-header h1,
+.btn,
+.dialog-box,
+.character-image img,
+.sci-fi-particles {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* 优化重绘性能 */
+.btn::before,
+.dialog-box::before,
+.custom-character-form::before {
+    will-change: background-position;
+}
+
+/* 减少重排 */
+.particle {
+    contain: layout style paint;
+}
+
+/* 预加载关键资源 */
+.home-header h1::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    background: linear-gradient(90deg, #00ffff, #0080ff, #8000ff);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 暗色主题适配 */
+@media (prefers-color-scheme: dark) {
+    /* 已经是暗色主题，无需额外调整 */
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    :root {
+        --primary-cyan: #ffffff;
+        --primary-blue: #ffffff;
+        --primary-purple: #ffffff;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --glass-border: #ffffff;
+    }
+
+    .btn {
+        border-width: 2px;
+    }
+
+    .form-input,
+    .form-textarea,
+    .chat-input {
+        border-width: 2px;
+    }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .home-header h1 {
+        background: #00ffff;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+}
+
+/* 打印样式 */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    .sci-fi-particles,
+    .home-background,
+    .custom-character-background,
+    .background-container {
+        display: none !important;
+    }
+
+    .btn {
+        border: 1px solid black !important;
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* 无障碍优化 */
+@media (prefers-reduced-transparency: reduce) {
+
+    .glass-panel,
+    .dialog-box,
+    .custom-character-form,
+    .user-input-container {
+        backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
+
+/* 焦点可见性增强 */
+.btn:focus-visible,
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.chat-input:focus-visible {
+    outline: 2px solid #00ffff;
+    outline-offset: 2px;
+}
+
+/* 跳过链接（无障碍） */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #00ffff;
+    color: #000;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.skip-link:focus {
+    top: 6px;
+}
+
+/* 
+聊天页面传统样式覆盖 */
+#chatPage * {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif !important;
+}
+
+/* 确保聊天页面不受科幻背景影响 */
+#chatPage {
+    background: transparent;
+}
+
+/* 聊天页面的模态框保持传统样式 */
+#chatPage .modal-content,
+#chatPage .history-content {
+    background-color: rgba(30, 30, 50, 0.9);
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+}
+
+#chatPage .modal-header,
+#chatPage .history-header {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+/* 聊天页面的角色卡片保持传统样式 */
+#chatPage .character-card {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+}
+
+#chatPage .character-card:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    transform: translateY(-5px);
+    box-shadow: none;
+}
+
+#chatPage .character-card.active {
+    border-color: #ffeb3b;
+}
+
+/* 聊天页面的加载和错误提示保持传统样式 */
+#chatPage .loading-container {
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: none;
+    border: none;
+}
+
+#chatPage .error-container {
+    background-color: rgba(183, 28, 28, 0.9);
+    backdrop-filter: none;
+    border: none;
+}
+
+/* 确保选项按钮保持传统样式 */
+.option-button {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    backdrop-filter: blur(10px);
+}
+
+.option-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateX(5px);
+    box-shadow: none;
+}
+
+/* 用户输入框
+增强样式 */
+.user-input-container {
+    transition: all 0.3s ease;
+}
+
+.user-input-container:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* 输入框字符计数和提示 */
+.input-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.3rem;
+}
+
+.char-count {
+    font-family: monospace;
+}
+
+.keyboard-hint {
+    font-style: italic;
+}
+
+/* 发送按钮状态 */
+.send-btn:disabled {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+}
+
+.send-btn.ready {
+    background-color: #4caf50;
+    border-color: #4caf50;
+    animation: pulse-ready 2s ease-in-out infinite;
+}
+
+@keyframes pulse-ready {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(76, 175, 80, 0);
+    }
+}
+
+/* 输入框焦点状态增强 */
+.chat-input:focus {
+    transform: scale(1.02);
+}
+
+/* 录音状态样式 */
+.mic-btn.recording {
+    background-color: #f44336;
+    border-color: #f44336;
+    animation: pulse-recording 1s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
+    }
+
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 6px rgba(244, 67, 54, 0);
+    }
+}
+
+/* 输入框拖拽调整大小的样式 */
+.chat-input {
+    resize: vertical;
+}
+
+.chat-input::-webkit-resizer {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 0 0 8px 0;
+}
+
+/* 平板设备优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .user-input-container {
+        width: 350px;
+        top: 75px;
+        right: 25px;
+    }
+
+    .chat-input {
+        min-height: 70px;
+        max-height: 150px;
+    }
+}
+
+/* 横屏手机优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .user-input-container {
+        top: 60px;
+        width: 50%;
+        right: 2%;
+    }
+
+    .chat-input {
+        min-height: 50px;
+        max-height: 80px;
+    }
+
+    .input-row {
+        flex-direction: row;
+        align-items: flex-end;
+    }
+
+    .input-buttons {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+
+    .mic-btn,
+    .send-btn {
+        min-width: 44px;
+        height: 44px;
+        padding: 0.8rem;
+    }
+
+    .user-input-container:hover {
+        background-color: rgba(0, 0, 0, 0.75);
+        /* 移除悬停效果 */
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+    .mic-btn img {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* 无障碍增强 */
+.user-input-container:focus-within {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+    .chat-input {
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .chat-input:focus {
+        background-color: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+}
+
+/* 输入框聚焦状态 
+*/
+.user-input-container.focused {
+    background-color: rgba(0, 0, 0, 0.85);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+}
+
+.user-input-container.focused .chat-input {
+    border-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 输入提示动画 */
+.input-info {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.user-input-container.focused .input-info {
+    opacity: 1;
+}
+
+/* 按钮悬停效果增强 */
+.mic-btn:hover:not(.recording) {
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.send-btn:hover:not(:disabled) {
+    background-color: #1565c0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+}
+
+.send-btn.ready:hover {
+    background-color: #388e3c;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* 输入框滚动条样式 */
+.chat-input::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-input::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.chat-input::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.chat-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Firefox滚动条样式 */
+.chat-input {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
+
+/*
+ 心情表格样式 */
+.mood-table {
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+}
+
+.mood-table-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr 80px;
+    background: rgba(0, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.mood-header-cell {
+    padding: 0.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    border-right: 1px solid rgba(0, 255, 255, 0.3);
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.mood-header-cell:last-child {
+    border-right: none;
+}
+
+.mood-table-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.mood-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr 80px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    align-items: center;
+}
+
+.mood-row:last-child {
+    border-bottom: none;
+}
+
+.mood-cell {
+    padding: 0.75rem;
+    border-right: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.mood-cell:last-child {
+    border-right: none;
+    text-align: center;
+}
+
+.mood-cell input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.mood-cell input[type="text"]:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.mood-cell input[type="file"] {
+    width: 100%;
+    font-size: 0.875rem;
+    color: #ffffff;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 0.25rem;
+}
+
+.remove-mood-btn {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.remove-mood-btn:hover {
+    background: #c53030;
+    transform: scale(1.05);
+}
+
+.add-mood-btn {
+    margin-top: 0.5rem;
+    width: 100%;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* 响应式设计 - 心情表格 */
+@media (max-width: 768px) {
+
+    .mood-table-header,
+    .mood-row {
+        grid-template-columns: 80px 1fr 1fr 1fr 60px;
+    }
+
+    .mood-header-cell,
+    .mood-cell {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+}/* 
+头像上传相关样式 */
+.avatar-upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.avatar-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.avatar-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+/* 裁剪模态框样式 */
+.crop-modal-content {
+    width: 90vw;
+    max-width: 800px;
+    height: 90vh;
+    max-height: 600px;
+}
+
+.crop-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 1rem;
+}
+
+#cropCanvas {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    cursor: crosshair;
+    max-height: 400px;
+}
+
+.crop-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.crop-info {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.crop-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .crop-modal-content {
+        width: 95vw;
+        height: 95vh;
+    }
+    
+    .avatar-preview img {
+        max-width: 150px;
+        max-height: 150px;
+    }
+}
+/* 
+Cropper.js 自定义样式 */
+.crop-modal-content {
+    max-width: 90vw;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+}
+
+.crop-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.crop-image-container {
+    max-height: 60vh;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.crop-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.crop-info {
+    color: #b0b0b0;
+    font-size: 0.9rem;
+    text-align: center;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.crop-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+/* 头像预览样式优化 */
+.avatar-upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.avatar-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.avatar-preview img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+/* Cropper.js 主题定制 */
+.cropper-container {
+    background: rgba(0, 0, 0, 0.8) !important;
+}
+
+.cropper-view-box {
+    outline: 2px solid #00ffff !important;
+    outline-color: rgba(0, 255, 255, 0.8) !important;
+}
+
+.cropper-dashed {
+    border-color: rgba(0, 255, 255, 0.5) !important;
+}
+
+.cropper-center::before,
+.cropper-center::after {
+    background-color: #00ffff !important;
+}
+
+.cropper-point {
+    background-color: #00ffff !important;
+    border: 2px solid #ffffff !important;
+    border-radius: 50% !important;
+    width: 8px !important;
+    height: 8px !important;
+}
+
+.cropper-line {
+    background-color: rgba(0, 255, 255, 0.6) !important;
+}
+
+/* 心情表格样式 - 科幻主题 */
+.mood-table {
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(0, 128, 255, 0.05));
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+}
+
+.mood-table-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr 80px;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 128, 255, 0.2));
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.mood-header-cell {
+    padding: 1rem 0.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    border-right: 1px solid rgba(0, 255, 255, 0.2);
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.mood-header-cell:last-child {
+    border-right: none;
+}
+
+.mood-table-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.mood-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr 80px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.mood-row:hover {
+    background: rgba(0, 255, 255, 0.05);
+}
+
+.mood-row:last-child {
+    border-bottom: none;
+}
+
+.mood-cell {
+    padding: 0.75rem;
+    border-right: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.mood-cell:last-child {
+    border-right: none;
+    text-align: center;
+}
+
+.mood-cell input[type="text"] {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    transition: all 0.2s ease;
+}
+
+.mood-cell input[type="text"]:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.mood-cell input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.mood-cell input[type="file"] {
+    width: 100%;
+    font-size: 0.85rem;
+    color: #ffffff;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mood-cell input[type="file"]:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.5);
+}
+
+.remove-mood-btn {
+    background: linear-gradient(45deg, #ff4757, #ff3742);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
+}
+
+.remove-mood-btn:hover {
+    background: linear-gradient(45deg, #ff3742, #ff2f3a);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.5);
+}
+
+.add-mood-btn {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 0.8rem;
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    border: 2px dashed rgba(0, 255, 255, 0.4);
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.add-mood-btn:hover {
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(0, 128, 255, 0.2));
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* 文件选择样式 - 科幻主题 */
+.form-file {
+    width: 100%;
+    padding: 1rem;
+    border: 2px dashed rgba(0, 255, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(0, 255, 255, 0.05);
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Consolas', 'Monaco', monospace;
+    backdrop-filter: blur(5px);
+}
+
+.form-file:hover {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+.selected-files {
+    margin-top: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.selected-file {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(0, 128, 255, 0.2));
+    color: #ffffff;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
+}
+
+.selected-file:hover {
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.3), rgba(0, 128, 255, 0.3));
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.remove-file-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.remove-file-btn:hover {
+    background: rgba(255, 107, 107, 0.8);
+    transform: scale(1.1);
+}
+
+/* 表单按钮组样式 */
+.form-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.form-buttons .btn {
+    min-width: 120px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* 响应式设计 - 自定义角色页面 */
+@media (max-width: 768px) {
+    .custom-character-container {
+        padding: 0 0.5rem 1rem;
+        margin: 1rem auto;
+    }
+
+    .custom-character-form {
+        padding: 1.5rem;
+    }
+
+    .mood-table-header,
+    .mood-row {
+        grid-template-columns: 80px 1fr 1fr 1fr 60px;
+        font-size: 0.8rem;
+    }
+
+    .mood-header-cell,
+    .mood-cell {
+        padding: 0.5rem 0.4rem;
+    }
+
+    .form-buttons {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .form-buttons .btn {
+        width: 100%;
+    }
+
+    .crop-modal-content {
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+
+    .crop-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .crop-buttons .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .mood-table-header,
+    .mood-row {
+        grid-template-columns: 70px 1fr 1fr 50px;
+        font-size: 0.75rem;
+    }
+
+    /* 在小屏幕上隐藏参考文本列 */
+    .mood-header-cell:nth-child(4),
+    .mood-cell:nth-child(4) {
+        display: none;
+    }
+
+    .mood-header-cell,
+    .mood-cell {
+        padding: 0.4rem 0.3rem;
+    }
+
+    .custom-character-form {
+        padding: 1rem;
+    }
+}
+
+/* 动画效果 */
+@keyframes borderGlow {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 200% 50%;
+    }
+}
+
+/* 加载和错误提示的科幻样式 */
+#customCharacterPage .loading-container {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    color: #ffffff;
+}
+
+#customCharacterPage .loading-spinner {
+    border-color: rgba(0, 255, 255, 0.3);
+    border-top-color: #00ffff;
+}
+
+#customCharacterPage .error-container {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 71, 87, 0.2));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    color: #ffffff;
 }

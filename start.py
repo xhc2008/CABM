@@ -24,55 +24,19 @@ current_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
 from data.logo import *
+import colorama
 
+colorama.init()
 
 # 设置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format=f'{colorama.Fore.BLUE}%(asctime)s{colorama.Style.RESET_ALL} - {colorama.Fore.GREEN}%(name)s{colorama.Style.RESET_ALL} - {colorama.Fore.YELLOW}%(levelname)s{colorama.Style.RESET_ALL} - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger("CABM")
-
-#获得终端长与宽
-try:
-    height = int(os.get_terminal_size().lines)
-    width = int(os.get_terminal_size().columns)
-except OSError:
-    # Docker容器环境下的默认值
-    height = 24
-    width = 80
-def findLen(str): 
-    counter = 0
-    while str[counter:]: 
-        counter += 1
-    return counter 
-def get_logo(height, width, logo):
-    result = ""
-    if height < len(logo)+1:
-        if logo == LITTLE_LOGO:
-            return  get_logo(height, width, MINI_LOGO)
-        if logo == MINI_LOGO:
-            return "CABM"
-        return get_logo(height, width, LITTLE_LOGO)
-    for line in logo:
-        if int(findLen(line)) > int(width):
-            if logo == LITTLE_LOGO:
-                return  get_logo(height, width, MINI_LOGO)
-            if logo == MINI_LOGO:
-                return "CABM"
-            return get_logo(height, width, LITTLE_LOGO)
-        if int(len(line) - width) % 2 != 0:
-            air = int(((width - len(line)) - 1) / 2) * " "
-            air2 = int(((width - len(line)) + 1) / 2) * " "
-            result += air + line + air2 + "\n"
-        else:
-            air = int((width - len(line)) / 2) * " "
-            result += air + line + air + "\n"
-    return result
-print(get_logo(int(height),int(width), random_logo()))
 
 #获得终端长与宽
 try:
@@ -248,7 +212,6 @@ def start_server(host, port, debug=False, open_browser_flag=True):
     except Exception as e:
         logger.error(f"服务器启动失败: {str(e)}")
         return False
-
 def main():
     """主函数"""
     # 解析命令行参数
@@ -262,22 +225,25 @@ def main():
     logger.info("正在启动CABM应用...")
     
     # 设置环境
-    if not setup_environment():
-        logger.error("环境设置失败，应用无法启动")
-        sys.exit(1)
+    env_ok = setup_environment()
+    if not env_ok:
+        logger.warning("环境设置失败，将进入配置模式。请在网页填写环境变量。")
     
-    # 导入配置服务
-    from services.config_service import config_service
-    
-    # 获取应用配置
-    app_config = config_service.get_app_config()
-    
-    # 设置主机和端口
-    host = args.host or app_config["host"]
-    port = args.port or app_config["port"]
-    debug = args.debug or app_config["debug"]
-    open_browser_flag = not args.no_browser and app_config.get("auto_open_browser", True)
-    
+    # 如果环境已配置，正常获取参数
+    if env_ok:
+        from services.config_service import config_service
+        app_config = config_service.get_app_config()
+        host = args.host or app_config["host"]
+        port = args.port or app_config["port"]
+        debug = args.debug or app_config["debug"]
+        open_browser_flag = not args.no_browser and app_config.get("auto_open_browser", True)
+    else:
+        # 环境未配置时，使用默认参数
+        host = args.host or "127.0.0.1"
+        port = args.port or 5000
+        debug = args.debug or False
+        open_browser_flag = not args.no_browser
+
     # 启动服务器
     if not start_server(host, port, debug, open_browser_flag):
         logger.error("服务器启动失败")

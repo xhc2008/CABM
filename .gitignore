@@ -13,9 +13,12 @@ test/
 data/history/
 data/memory/
 data/images/
+data/saves/
 plan.txt
+todo.txt
 backups/
 log.txt
+temp.txt
 
 .history/
 static/images/default/
@@ -55,6 +58,9 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+fuck-u-code.exe
+# npm缓存文件
+node_modules/
 
 # 虚拟环境
 venv/

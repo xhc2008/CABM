@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CABM - 对话</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <link rel="stylesheet" href="/static/css/continue-prompt.css">
+    <link rel="stylesheet" href="/static/css/media.css">
+</head>
+<body>
+    <div class="container">
+        <div id="chatPage" class="page active">
+            <div class="background-container">
+                {% if background_url %}
+                <div class="background-image" style="background-image: url('{{ background_url }}');"></div>
+                {% else %}
+                <div class="background-image default-background"></div>
+                {% endif %}
+                <div class="background-overlay"></div>
+            </div>
+            <div class="chat-header">
+                <a href="/select-character" class="btn back-btn">返回</a>
+                <h2>CABM</h2>
+            </div>
+            <div class="character-container">
+                <div class="character-image">
+                    <img src="/static/images/default.svg" alt="AI角色" id="characterImage" class="character-img">
+                </div>
+            </div>
+            <div class="user-input-container">
+                <div class="input-row">
+                    <textarea id="messageInput" placeholder="输入消息..." class="chat-input" maxlength="2000"></textarea>
+                    <div class="input-buttons">
+                        <button id="micButton" class="btn mic-btn" title="语音输入">
+                            <img src="/static/images/mic.svg" alt="语音输入" width="20" height="20">
+                        </button>
+                        <button id="sendButton" class="btn send-btn" title="发送消息 (Ctrl+Enter)">发送</button>
+                    </div>
+                </div>
+                <div class="input-info">
+                    <span class="keyboard-hint">Shift+Enter 换行</span>
+                    <span class="char-count" id="charCount">0/2000</span>
+                </div>
+            </div>
+            <div class="option-buttons-container" id="optionButtonsContainer">
+                <div class="option-buttons" id="optionButtons">
+                </div>
+            </div>
+            <div class="dialog-container">
+                <div class="dialog-box" id="dialogBox">
+                    <div class="character-name" id="characterName">系统</div>
+                    <div class="dialog-content" id="currentMessage">{% if last_sentence and last_sentence.strip() %}{{ last_sentence }}{% else %}欢迎使用CABM！我是您的AI助手，请输入消息开始对话。{% endif %}</div>
+                    <div class="continue-prompt" id="clickToContinue">▽</div>
+                </div>
+                <div class="control-buttons">
+                    <button id="playaudioButton" class="btn secondary-btn">播放语音</button>
+                    <button id="backgroundButton" class="btn secondary-btn">更换背景</button>
+                    <button id="historyButton" class="btn secondary-btn">历史</button>
+                    <!--<button id="characterButton" class="btn secondary-btn">角色</button>-->
+                    <button id="continueButton" class="btn secondary-btn">继续</button>
+                </div>
+            </div>
+        </div>
+        <div class="history-modal" id="historyModal">
+            <div class="history-content">
+                <div class="history-header">
+                    <h3>对话历史</h3>
+                    <button id="closeHistoryButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="history-messages" id="historyMessages">
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="characterModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>选择角色</h3>
+                    <button id="closeCharacterButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="character-list" id="characterList">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="confirmModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>确认</h3>
+                    <button id="closeConfirmButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage">确定要执行此操作吗？</p>
+                    <div class="confirm-buttons">
+                        <button id="confirmYesButton" class="btn primary-btn">确定</button>
+                        <button id="confirmNoButton" class="btn secondary-btn">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="loading-container" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <p>处理中...</p>
+        </div>
+        <div class="error-container" id="errorContainer">
+            <p id="errorMessage"></p>
+            <button id="errorCloseButton" class="btn">关闭</button>
+        </div>
+    </div>
+{% if plugin_inject_scripts %}
+    {# 自动注入所有插件inject.js #}
+    {% for js in plugin_inject_scripts %}
+    <script src="{{ js }}"></script>
+    {% endfor %}
+{% endif %}
+    <script src="/static/js/logo.js"></script>
+    <script type="module" src="/static/js/chat-init.js"></script>
+    <script src="/static/js/stream_processor.js"></script>
+    <script src="/static/js/chat-service.js"></script>
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script src="/static/js/input-enhancements.js"></script>
+</body>
+</html>

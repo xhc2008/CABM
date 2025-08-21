@@ -1,158 +1,105 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CABM - Code Afflatus & Beyond Matter</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
     <link rel="stylesheet" href="/static/css/continue-prompt.css">
 </head>
+
 <body>
-    <!-- 主容器 -->
     <div class="container">
-        <!-- 主页面 -->
+        <div id="logoSplash"
+            style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:#fff;display:flex;align-items:center;justify-content:center;">
+            <img src="/static/images/logo.svg" alt="CABM Logo" style="max-width:40vw;max-height:40vh;">
+        </div>
         <div id="homePage" class="page active">
-            <!-- 主页背景 -->
             <div class="home-background"></div>
-            
-            <!-- 标题 -->
+            <div class="settings-toggle" style="position: absolute; top: 20px; right: 20px;">
+                <button id="settingsBtn" class="btn"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 4px;">设置</button>
+            </div>
+            <div id="settingsPanel" class="settings-panel"
+                style="display: none; position: absolute; top: 60px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);">
+                <div style="color: white; margin-bottom: 10px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="showLogoToggle" checked style="margin-right: 8px;">
+                        <span>显示启动Logo</span>
+                    </label>
+                </div>
+            </div>
             <header class="home-header">
                 <h1>CABM</h1>
                 <p>Code Afflatus & Beyond Matter</p>
             </header>
-            
-            <!-- 主页按钮 -->
             <div class="home-buttons">
-                <button id="startButton" class="btn primary-btn">开始</button>
+                <a href="/select-character" class="btn primary-btn">开始聊天</a>
+                <a href="/story" class="btn primary-btn">剧情模式</a>
+                <a href="/custom_character" class="btn secondary-btn">自定义角色</a>
                 <button id="exitButton" class="btn secondary-btn">退出</button>
             </div>
         </div>
-        
-        <!-- 对话页面 -->
-        <div id="chatPage" class="page">
-            <!-- 背景图片 (仅在对话页面显示) -->
-            <div class="background-container">
-                {% if background_url %}
-                <div class="background-image" style="background-image: url('{{ background_url }}');"></div>
-                {% else %}
-                <div class="background-image default-background"></div>
-                {% endif %}
-                <div class="background-overlay"></div>
-            </div>
-            
-            <!-- 标题栏 -->
-            <div class="chat-header">
-                <button id="backButton" class="btn back-btn">返回</button>
-                <h2>CABM</h2>
-            </div>
-            
-            <!-- 角色区域 - 居中显示 -->
-            <div class="character-container">
-                <div class="character-image">
-                    <img src="/static/images/default.svg" alt="AI角色" id="characterImage">
-                </div>
-            </div>
-            
-            <!-- 用户输入区域 - 右上角 -->
-            <div class="user-input-container">
-                <textarea id="messageInput" placeholder="输入消息..." class="chat-input"></textarea>
-                <button id="micButton" class="btn mic-btn">
-                    <img src="/static/images/mic.svg" alt="语音输入" width="24" height="24">
-                </button>
-                <button id="sendButton" class="btn primary-btn">发送</button>
-            </div>
-            
-            <!-- 选项按钮区域 - 左侧 -->
-            <div class="option-buttons-container" id="optionButtonsContainer">
-                <div class="option-buttons" id="optionButtons">
-                    <!-- 选项按钮将通过JavaScript动态添加 -->
-                </div>
-            </div>
-            
-            <!-- 对话区域 - 底部窄条 -->
-            <div class="dialog-container">
-                <div class="dialog-box" id="dialogBox">
-                    <!-- 当前消息 -->
-                    <div class="character-name" id="characterName">系统</div>
-                    <div class="dialog-content" id="currentMessage">欢迎使用CABM！我是您的AI助手，请输入消息开始对话。</div>
-                    
-                    <!-- 点击继续提示 - 移动到对话框内部 -->
-                    <div class="continue-prompt" id="clickToContinue">▽</div>
-                </div>
-                
-                <!-- 控制按钮 -->
-                <div class="control-buttons">
-                    <!-- <button id="clearButton" class="btn secondary-btn">清空对话</button> -->
-                    <button id="playaudioButton" class="btn secondary-btn">播放语音</button>
-                    <button id="backgroundButton" class="btn secondary-btn">更换背景</button>
-                    <button id="historyButton" class="btn secondary-btn">历史</button>
-                    <button id="characterButton" class="btn secondary-btn">角色</button>
-                    <button id="continueButton" class="btn secondary-btn">继续</button>
-                    <button id="skipButton" class="btn secondary-btn">跳过</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 历史对话弹窗 -->
-        <div class="history-modal" id="historyModal">
-            <div class="history-content">
-                <div class="history-header">
-                    <h3>对话历史</h3>
-                    <button id="closeHistoryButton" class="btn close-btn">&times;</button>
-                </div>
-                <div class="history-messages" id="historyMessages">
-                    <!-- 历史消息将通过JavaScript动态添加 -->
-                </div>
-            </div>
-        </div>
-        
-        <!-- 角色选择弹窗 -->
-        <div class="modal" id="characterModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>选择角色</h3>
-                    <button id="closeCharacterButton" class="btn close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="character-list" id="characterList">
-                        <!-- 角色列表将通过JavaScript动态添加 -->
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 确认对话框 -->
-        <div class="modal" id="confirmModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>确认</h3>
-                    <button id="closeConfirmButton" class="btn close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p id="confirmMessage">确定要执行此操作吗？</p>
-                    <div class="confirm-buttons">
-                        <button id="confirmYesButton" class="btn primary-btn">确定</button>
-                        <button id="confirmNoButton" class="btn secondary-btn">取消</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 加载指示器 -->
-        <div class="loading-container" id="loadingIndicator">
-            <div class="loading-spinner"></div>
-            <p>处理中...</p>
-        </div>
-        
-        <!-- 错误提示 -->
-        <div class="error-container" id="errorContainer">
-            <p id="errorMessage"></p>
-            <button id="errorCloseButton" class="btn">关闭</button>
-        </div>
     </div>
-    
-    <!-- JavaScript -->
-    <script src="/static/js/stream_processor.js"></script>
-    <script type="module" src="/static/js/main.js"></script>
+    </div>
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            // 获取设置
+            const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
+            const showLogoToggle = document.getElementById('showLogoToggle');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+
+            // 设置复选框状态
+            showLogoToggle.checked = showLogo;
+
+            // 设置面板切换
+            settingsBtn.addEventListener('click', function () {
+                settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // 点击其他地方关闭设置面板
+            document.addEventListener('click', function (e) {
+                if (!settingsBtn.contains(e.target) && !settingsPanel.contains(e.target)) {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+
+            // 保存设置
+            showLogoToggle.addEventListener('change', function () {
+                localStorage.setItem('showLogoSplash', this.checked);
+            });
+
+            // Logo显示逻辑
+            const splash = document.getElementById('logoSplash');
+            const homePage = document.getElementById('homePage');
+
+            if (splash && homePage) {
+                if (showLogo) {
+                    // 显示Logo动画
+                    homePage.style.display = 'none';
+                    setTimeout(() => {
+                        splash.style.display = 'none';
+                        homePage.style.display = '';
+                    }, 1000);
+                } else {
+                    // 直接显示主页，隐藏Logo
+                    splash.style.display = 'none';
+                    homePage.style.display = '';
+                }
+            }
+        });
+    </script>
+    <script src="/static/js/logo.js"></script>
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script type="module" src="/static/js/bgm-service.js"></script>
+{% if plugin_inject_scripts %}
+    {# 自动注入所有插件inject.js #}
+    {% for js in plugin_inject_scripts %}
+    <script src="{{ js }}"></script>
+    {% endfor %}
+{% endif %}
 </body>
 </html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>环境变量配置</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5 mb-5">
+	<h2 class="mb-4">环境变量配置表单</h2>
+	<form action="/config" method="post">
+		<!-- 对话API配置 -->
+		<fieldset class="border p-3 mb-4 rounded">
+			<legend class="float-none w-auto px-2">对话API配置</legend>
+			<div class="mb-3">
+				<label for="chat_api_base_url" class="form-label">CHAT_API_BASE_URL</label>
+				<input type="text" class="form-control" id="chat_api_base_url" name="chat_api_base_url" placeholder="https://api.siliconflow.cn/v1" value="https://api.siliconflow.cn/v1">
+			</div>
+			<div class="mb-3">
+				<label for="chat_api_key" class="form-label">CHAT_API_KEY</label>
+				<input type="text" class="form-control" id="chat_api_key" name="chat_api_key" placeholder="your_api_key_here">
+			</div>
+			<div class="mb-3">
+				<label for="chat_model" class="form-label">CHAT_MODEL</label>
+				<input type="text" class="form-control" id="chat_model" name="chat_model" placeholder="deepseek-ai/DeepSeek-V3" value="deepseek-ai/DeepSeek-V3">
+			</div>
+		</fieldset>
+
+		<!-- 图像生成API配置 -->
+		<fieldset class="border p-3 mb-4 rounded">
+			<legend class="float-none w-auto px-2">图像生成API配置</legend>
+			<div class="mb-3">
+				<label for="image_api_base_url" class="form-label">IMAGE_API_BASE_URL</label>
+				<input type="text" class="form-control" id="image_api_base_url" name="image_api_base_url" placeholder="https://api.siliconflow.cn/v1" value="https://api.siliconflow.cn/v1">
+			</div>
+			<div class="mb-3">
+				<label for="image_api_key" class="form-label">IMAGE_API_KEY</label>
+				<input type="text" class="form-control" id="image_api_key" name="image_api_key" placeholder="your_api_key_here">
+			</div>
+			<div class="mb-3">
+				<label for="image_model" class="form-label">IMAGE_MODEL</label>
+				<input type="text" class="form-control" id="image_model" name="image_model" placeholder="Kwai-Kolors/Kolors" value="Kwai-Kolors/Kolors">
+			</div>
+		</fieldset>
+
+		<!-- 选项生成API配置 -->
+		<fieldset class="border p-3 mb-4 rounded">
+			<legend class="float-none w-auto px-2">选项生成API配置</legend>
+			<div class="mb-3">
+				<label for="option_api_base_url" class="form-label">OPTION_API_BASE_URL</label>
+				<input type="text" class="form-control" id="option_api_base_url" name="option_api_base_url" placeholder="https://api.siliconflow.cn/v1" value="https://api.siliconflow.cn/v1">
+			</div>
+			<div class="mb-3">
+				<label for="option_api_key" class="form-label">OPTION_API_KEY</label>
+				<input type="text" class="form-control" id="option_api_key" name="option_api_key" placeholder="your_api_key_here">
+			</div>
+			<div class="mb-3">
+				<label for="option_model" class="form-label">OPTION_MODEL</label>
+				<input type="text" class="form-control" id="option_model" name="option_model" placeholder="Qwen/Qwen3-8B" value="Qwen/Qwen3-8B">
+			</div>
+		</fieldset>
+
+		<!-- 记忆模块API配置 -->
+		<fieldset class="border p-3 mb-4 rounded">
+			<legend class="float-none w-auto px-2">记忆模块API配置</legend>
+			<div class="mb-3">
+				<label for="memory_api_base_url" class="form-label">MEMORY_API_BASE_URL</label>
+				<input type="text" class="form-control" id="memory_api_base_url" name="memory_api_base_url" placeholder="https://api.siliconflow.cn/v1" value="https://api.siliconflow.cn/v1">
+			</div>
+			<div class="mb-3">
+				<label for="memory_api_key" class="form-label">MEMORY_API_KEY</label>
+				<input type="text" class="form-control" id="memory_api_key" name="memory_api_key" placeholder="your_api_key_here">
+			</div>
+			<div class="mb-3">
+				<label for="embedding_model" class="form-label">EMBEDDING_MODEL</label>
+				<input type="text" class="form-control" id="embedding_model" name="embedding_model" placeholder="BAAI/bge-m3" value="BAAI/bge-m3">
+			</div>
+			<div class="mb-3">
+				<label for="reranker_model" class="form-label">RERANKER_MODEL</label>
+				<input type="text" class="form-control" id="reranker_model" name="reranker_model" placeholder="BAAI/bge-reranker-v2-m3" value="BAAI/bge-reranker-v2-m3">
+			</div>
+		</fieldset>
+
+		<!-- TTS服务配置 -->
+		<fieldset class="border p-3 mb-4 rounded">
+			<legend class="float-none w-auto px-2">TTS服务配置</legend>
+			<div class="mb-3">
+				<label for="tts_service_url_gptsovits" class="form-label">TTS_SERVICE_URL_GPTSoVITS</label>
+				<input type="text" class="form-control" id="tts_service_url_gptsovits" name="tts_service_url_gptsovits" placeholder="http://127.0.0.1:9880" value="http://127.0.0.1:9880">
+			</div>
+			<div class="mb-3">
+				<label for="tts_service_url_siliconflow" class="form-label">TTS_SERVICE_URL_SiliconFlow</label>
+				<input type="text" class="form-control" id="tts_service_url_siliconflow" name="tts_service_url_siliconflow" placeholder="https://api.siliconflow.cn/v1" value="https://api.siliconflow.cn/v1">
+			</div>
+			<div class="mb-3">
+				<label for="tts_service_api_key" class="form-label">TTS_SERVICE_API_KEY</label>
+				<input type="text" class="form-control" id="tts_service_api_key" name="tts_service_api_key" placeholder="your_api_key_here">
+			</div>
+			<div class="mb-3">
+				<label for="tts_service_method" class="form-label">TTS_SERVICE_METHOD</label>
+				<select class="form-select" id="tts_service_method" name="tts_service_method">
+					<option value="siliconflow">siliconflow</option>
+					<option value="GPT-SoVITS">GPT-SoVITS</option>
+				</select>
+			</div>
+		</fieldset>
+
+		<!-- 应用配置 -->
+		<fieldset class="border p-3 mb-4 rounded">
+			<legend class="float-none w-auto px-2">应用配置</legend>
+			<div class="mb-3">
+				<label for="debug" class="form-label">DEBUG</label>
+				<select class="form-select" id="debug" name="debug">
+					<option value="False">False</option>
+					<option value="True">True</option>
+				</select>
+			</div>
+			<div class="mb-3">
+				<label for="port" class="form-label">PORT</label>
+				<input type="number" class="form-control" id="port" name="port" placeholder="5000" value="5000">
+			</div>
+			<div class="mb-3">
+				<label for="host" class="form-label">HOST</label>
+				<input type="text" class="form-control" id="host" name="host" placeholder="localhost" value="localhost">
+			</div>
+		</fieldset>
+
+		<button type="submit" class="btn btn-primary">保存配置</button>
+	</form>
+</div>
+<script src="/static/js/logo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
