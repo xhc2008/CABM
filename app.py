@@ -1308,22 +1308,22 @@ def create_custom_character():
         # 清理现有目录和文件
         if is_overwriting:
             # 清理角色详细信息目录
-            detail_dir = Path('data') / 'rawdata' / character_id
-            if detail_dir.exists():
-                import shutil
-                shutil.rmtree(detail_dir)
+            # detail_dir = Path('data') / 'rawdata' / character_id
+            # if detail_dir.exists():
+            #     import shutil
+            #     shutil.rmtree(detail_dir)
             
             # 清理角色图片目录
-            image_dir = Path('static') / 'images' / character_id
-            if image_dir.exists():
-                import shutil
-                shutil.rmtree(image_dir)
+            # image_dir = Path('static') / 'images' / character_id
+            # if image_dir.exists():
+            #     import shutil
+            #     shutil.rmtree(image_dir)
             
             # 清理参考音频目录
-            ref_audio_dir = Path('data') / 'ref_audio' / character_id
-            if ref_audio_dir.exists():
-                import shutil
-                shutil.rmtree(ref_audio_dir)
+            # ref_audio_dir = Path('data') / 'ref_audio' / character_id
+            # if ref_audio_dir.exists():
+            #     import shutil
+            #     shutil.rmtree(ref_audio_dir)
         
         # 创建角色图片目录
         image_dir = Path('static') / 'images' / character_id

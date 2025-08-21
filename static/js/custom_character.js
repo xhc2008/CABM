@@ -164,7 +164,7 @@ class CustomCharacterManager {
             
             if (result.success) {
                 this.fillFormWithCharacterData(result.character);
-                alert(`角色 "${result.character.name}" 加载成功！`);
+                alert(`角色 "${result.character.name}" 已加载！\n文件需要重新手动上传\n请注意，角色详细信息是追加写入`);
             } else {
                 alert('加载角色失败：' + result.error);
             }
@@ -209,6 +209,9 @@ class CustomCharacterManager {
         // 显示已加载的详细信息文件
         if (character.detail_files && character.detail_files.length > 0) {
             this.displayLoadedDetailFiles(character.detail_files);
+            this.markFileInputAsFilled();
+        } else {
+           this.clearFileDisplay();
         }
     }
 
@@ -222,6 +225,25 @@ class CustomCharacterManager {
             fileTag.textContent = file;
             container.appendChild(fileTag);
         });
+    }
+
+    markFileInputAsFilled() {
+        // 标记文件输入为已填写状态
+        const fileInput = document.getElementById('characterDetails');
+        if (fileInput) {
+            fileInput.setAttribute('data-has-files', 'true');
+            fileInput.setAttribute('data-existing-files', 'true');
+        }
+    }
+
+    clearFileDisplay() {
+        const container = document.getElementById('selectedFiles');
+        container.innerHTML = '';
+        const fileInput = document.getElementById('characterDetails');
+        if (fileInput) {
+            fileInput.removeAttribute('data-has-files');
+            fileInput.removeAttribute('data-existing-files');
+        }
     }
 
     addInitialMoodRow() {
@@ -385,14 +407,21 @@ class CustomCharacterManager {
         });
 
         // 验证角色详细信息文件（可选）
-        const detailFiles = document.getElementById('characterDetails').files;
-        for (let i = 0; i < detailFiles.length; i++) {
-            const file = detailFiles[i];
-            if (!file.name.toLowerCase().endsWith('.txt')) {
-                errors.push(`文件 "${file.name}" 不是txt格式，请只上传纯文本文件`);
-            }
-            if (file.size > 5 * 1024 * 1024) { // 5MB限制
-                errors.push(`文件 "${file.name}" 过大，请确保文件小于5MB`);
+        // 检查是否有现有文件或新上传的文件
+        const fileInput = document.getElementById('characterDetails');
+        const hasExistingFiles = fileInput.getAttribute('data-existing-files') === 'true';
+        const detailFiles = fileInput.files;
+        
+        // 如果有新上传的文件，验证文件格式和大小
+        if (detailFiles.length > 0) {
+            for (let i = 0; i < detailFiles.length; i++) {
+                const file = detailFiles[i];
+                if (!file.name.toLowerCase().endsWith('.txt')) {
+                    errors.push(`文件 "${file.name}" 不是txt格式，请只上传纯文本文件`);
+                }
+                if (file.size > 5 * 1024 * 1024) { // 5MB限制
+                    errors.push(`文件 "${file.name}" 过大，请确保文件小于5MB`);
+                }
             }
         }
 
@@ -430,7 +459,7 @@ class CustomCharacterManager {
             const result = await response.json();
 
             if (result.success) {
-                alert(`自定义角色创建成功！\n角色ID: ${result.character_id}\n需重启程序生效`);
+                alert(`自定义角色创建成功！\n角色ID: ${result.character_id}\n如未成功加载请重启程序`);
                 // 清除草稿
                 localStorage.removeItem('customCharacterDraft');
                 // 清空表单

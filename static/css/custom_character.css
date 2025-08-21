@@ -34,18 +34,53 @@
     transform: translateY(0);
 }
 
-/* 已加载文件提示样式 */
-.loaded-files-info {
-    color: #00ffff;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    font-family: 'Consolas', 'Monaco', monospace;
+.selected-files {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-file {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .loaded-file {
-    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1)) !important;
-    border-color: rgba(0, 255, 255, 0.4) !important;
-    color: #ffffff !important;
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: #00ff00;
+}
+
+.loaded-files-info {
+    width: 100%;
+    color: #00ff00;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.remove-file-btn {
+    background: none;
+    border: none;
+    color: #ff4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-file-btn:hover {
+    color: #ff6666;
 }
 
 /* 响应式调整 */
