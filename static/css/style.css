@@ -327,7 +327,7 @@ body {
 }
 
 .chat-header .back-btn {
-    background: none;
+    background-color: transparent;
     border: none;
     color: #fff;
     font-size: 1.2rem;
@@ -335,16 +335,32 @@ body {
     padding: 0.5rem;
     font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
     /* 传统字体 */
-    backdrop-filter: none;
-    /* 移除模糊效果 */
-    border-radius: 0;
-    /* 移除圆角 */
-    transition: color 0.2s ease;
-    /* 简化过渡效果 */
+    border-radius: 2;
+}
+
+#chatPage .chat-header .back-btn {
+    background-color: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    /* 传统字体 */
+    border-radius: 2;
 }
 
 .chat-header .back-btn:hover {
-    color: #90caf9;
+    background-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.3);
+    transform: none;
+    /* 移除变换效果 */
+    box-shadow: none;
+    /* 移除阴影 */
+}
+
+#chatPage .chat-header .back-btn:hover {
+    color: rgba(255, 255, 255, 0.1);
     transform: none;
     /* 移除变换效果 */
     box-shadow: none;
