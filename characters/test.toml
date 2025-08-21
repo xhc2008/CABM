@@ -1,0 +1,21 @@
+id = "test"
+name = "测试"
+name_en = ""
+image = "static/images/test"
+calib = 0
+scale_rate = 100
+color = "#000040"
+description = "1"
+prompt = "1"
+welcome = "你好！我是测试，很高兴认识你！"
+
+[[moods]]
+name = "开心"
+
+[[examples]]
+role = "user"
+content = "你好，请介绍一下自己"
+
+[[examples]]
+role = "assistant"
+content = "你好！我是测试，很高兴认识你！"

@@ -1472,22 +1472,26 @@ def get_character_config():
         if detail_files:
             from services.character_details_service import character_details_service
             
-            # 创建临时目录保存上传的文件
-            temp_dir = Path('temp') / 'character_details' / character_id
-            temp_dir.mkdir(parents=True, exist_ok=True)
+            # 创建永久保存目录
+            permanent_dir = Path('data') / 'rawdata' / character_id
+            permanent_dir.mkdir(parents=True, exist_ok=True)
             
             try:
                 saved_files = []
                 
-                # 保存上传的文件
+                # 保存上传的文件到永久目录
                 for i, detail_file in enumerate(detail_files):
                     if detail_file and detail_file.filename:
                         # 验证文件类型
                         if not detail_file.filename.lower().endswith('.txt'):
                             continue
                         
+                        # 生成更规范的文件名
+                        original_name = Path(detail_file.filename).stem  # 去掉扩展名
+                        file_name = f"{original_name}_{i}.txt"
+                        file_path = permanent_dir / file_name
+                        
                         # 保存文件
-                        file_path = temp_dir / f"detail_{i}_{detail_file.filename}"
                         detail_file.save(str(file_path))
                         saved_files.append(str(file_path))
                 
@@ -1498,24 +1502,17 @@ def get_character_config():
                         print(f"角色详细信息数据库构建成功: {character_id}")
                     else:
                         print(f"角色详细信息数据库构建失败: {character_id}")
-                
+            
             except Exception as e:
                 print(f"处理角色详细信息文件失败: {e}")
                 traceback.print_exc()
-            finally:
-                # 清理临时文件
-                try:
-                    import shutil
-                    if temp_dir.exists():
-                        shutil.rmtree(temp_dir)
-                except Exception as e:
-                    print(f"清理临时文件失败: {e}")
-        
-        return jsonify({
-            'success': True,
-            'message': f'自定义角色 {character_name} 创建成功',
-            'character_id': character_id
-        })
+            # 注意：移除了 finally 中的清理代码，因为现在是永久保存
+
+            return jsonify({
+                'success': True,
+                'message': f'自定义角色 {character_name} 创建成功',
+                'character_id': character_id
+            })
         
     except Exception as e:
         print(f"创建自定义角色失败: {str(e)}")
