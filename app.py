@@ -663,11 +663,24 @@ def set_character(character_id):
 def exit_app():
     """退出应用API"""
     try:
-        os._exit(0)
-        return jsonify({
+        # 先返回成功响应
+        response = jsonify({
             'success': True,
-            'message': '应用已退出'
+            'message': '应用正在退出'
         })
+        
+        # 使用线程延迟退出，确保响应能发送给客户端
+        import threading
+        def delayed_exit():
+            import time
+            time.sleep(0.1)  # 等待100ms确保响应发送
+            os._exit(0)
+        
+        exit_thread = threading.Thread(target=delayed_exit)
+        exit_thread.daemon = True
+        exit_thread.start()
+        
+        return response
         
     except Exception as e:
         traceback.print_exc()
