@@ -1,0 +1,62 @@
+/* 角色ID容器样式 */
+.character-id-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.character-id-container .form-input {
+    flex: 1;
+}
+
+#loadCharacterButton {
+    white-space: nowrap;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1));
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+#loadCharacterButton:hover {
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(0, 128, 255, 0.2));
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+#loadCharacterButton:active {
+    transform: translateY(0);
+}
+
+/* 已加载文件提示样式 */
+.loaded-files-info {
+    color: #00ffff;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.loaded-file {
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1)) !important;
+    border-color: rgba(0, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .character-id-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    #loadCharacterButton {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}

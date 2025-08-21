@@ -1301,11 +1301,29 @@ def create_custom_character():
         # 检查角色是否已存在（同时检查.py和.toml）
         character_py_path = Path('characters') / f"{character_id}.py"
         character_toml_path = Path('characters') / f"{character_id}.toml"
-        if character_py_path.exists() or character_toml_path.exists():
-            return jsonify({
-                'success': False,
-                'error': f'角色ID "{character_id}" 已存在'
-            }), 400
+        
+        # 如果角色已存在，允许覆盖
+        is_overwriting = character_py_path.exists() or character_toml_path.exists()
+        
+        # 清理现有目录和文件
+        if is_overwriting:
+            # 清理角色详细信息目录
+            detail_dir = Path('data') / 'rawdata' / character_id
+            if detail_dir.exists():
+                import shutil
+                shutil.rmtree(detail_dir)
+            
+            # 清理角色图片目录
+            image_dir = Path('static') / 'images' / character_id
+            if image_dir.exists():
+                import shutil
+                shutil.rmtree(image_dir)
+            
+            # 清理参考音频目录
+            ref_audio_dir = Path('data') / 'ref_audio' / character_id
+            if ref_audio_dir.exists():
+                import shutil
+                shutil.rmtree(ref_audio_dir)
         
         # 创建角色图片目录
         image_dir = Path('static') / 'images' / character_id
@@ -1544,6 +1562,103 @@ def reload_characters():
         return jsonify({
             'success': False,
             'error': f'重新加载失败: {str(e)}'
+        }), 500
+
+@app.route('/api/check-character/<character_id>', methods=['GET'])
+def check_character_exists(character_id):
+    """检查角色是否存在API"""
+    try:
+        character_py_path = Path('characters') / f"{character_id}.py"
+        character_toml_path = Path('characters') / f"{character_id}.toml"
+        
+        exists = character_py_path.exists() or character_toml_path.exists()
+        
+        return jsonify({
+            'success': True,
+            'exists': exists
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/load-character/<character_id>', methods=['GET'])
+def load_character(character_id):
+    """加载角色数据API"""
+    try:
+        import rtoml
+        
+        character_py_path = Path('characters') / f"{character_id}.py"
+        character_toml_path = Path('characters') / f"{character_id}.toml"
+        
+        character_config = None
+        
+        # 优先读取TOML格式
+        if character_toml_path.exists():
+            with open(character_toml_path, 'r', encoding='utf-8') as f:
+                character_config = rtoml.load(f)
+        elif character_py_path.exists():
+            # 如果是Python格式，需要特殊处理
+            # 这里简化处理，实际应该解析Python文件
+            character_config = {
+                'id': character_id,
+                'name': character_id,
+                'name_en': '',
+                'color': '#ffffff',
+                'calib': 0,
+                'scale_rate': 100,
+                'description': '',
+                'prompt': '',
+                'moods': []
+            }
+        
+        if not character_config:
+            return jsonify({
+                'success': False,
+                'error': f'角色 {character_id} 不存在'
+            }), 404
+        
+        # 获取头像URL
+        avatar_url = f"/static/images/{character_id}/avatar.png"
+        avatar_path = Path('static') / 'images' / character_id / 'avatar.png'
+        if not avatar_path.exists():
+            avatar_url = "/static/images/default.svg"
+        
+        # 获取详细信息文件列表
+        detail_files = []
+        detail_dir = Path('data') / 'rawdata' / character_id
+        if detail_dir.exists():
+            for file in detail_dir.glob('*.txt'):
+                detail_files.append(file.name)
+        
+        # 构建返回数据
+        character_data = {
+            'id': character_config.get('id', character_id),
+            'name': character_config.get('name', character_id),
+            'name_en': character_config.get('name_en', ''),
+            'color': character_config.get('color', '#ffffff'),
+            'calib': character_config.get('calib', 0),
+            'scale_rate': character_config.get('scale_rate', 100),
+            'description': character_config.get('description', ''),
+            'prompt': character_config.get('prompt', ''),
+            'moods': character_config.get('moods', []),
+            'avatar_url': avatar_url,
+            'detail_files': detail_files
+        }
+        
+        return jsonify({
+            'success': True,
+            'character': character_data
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 @app.route('/api/tts', methods=['POST'])

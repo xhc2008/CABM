@@ -31,6 +31,12 @@ class CustomCharacterManager {
         // 表单验证
         document.getElementById('characterId')?.addEventListener('input', (e) => {
             this.validateCharacterId(e.target);
+            this.checkCharacterExists(e.target.value);
+        });
+
+        // 加载角色按钮
+        document.getElementById('loadCharacterButton')?.addEventListener('click', () => {
+            this.loadExistingCharacter();
         });
 
         // 颜色选择器同步
@@ -122,6 +128,100 @@ class CustomCharacterManager {
             description.classList.remove('error');
             description.textContent = '只能包含英文字母、数字或下划线';
         }
+    }
+
+    async checkCharacterExists(characterId) {
+        if (!characterId || !/^[a-zA-Z0-9_]+$/.test(characterId)) {
+            document.getElementById('loadCharacterButton').style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/check-character/${characterId}`);
+            const result = await response.json();
+            
+            const loadButton = document.getElementById('loadCharacterButton');
+            if (result.exists) {
+                loadButton.style.display = 'inline-block';
+            } else {
+                loadButton.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('检查角色存在失败:', error);
+            document.getElementById('loadCharacterButton').style.display = 'none';
+        }
+    }
+
+    async loadExistingCharacter() {
+        const characterId = document.getElementById('characterId').value;
+        if (!characterId) return;
+
+        try {
+            this.showLoading(true);
+            
+            const response = await fetch(`/api/load-character/${characterId}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                this.fillFormWithCharacterData(result.character);
+                alert(`角色 "${result.character.name}" 加载成功！`);
+            } else {
+                alert('加载角色失败：' + result.error);
+            }
+        } catch (error) {
+            console.error('加载角色失败:', error);
+            alert('加载角色失败：' + error.message);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    fillFormWithCharacterData(character) {
+        // 填充基本角色信息
+        document.getElementById('characterName').value = character.name || '';
+        document.getElementById('characterEnglishName').value = character.name_en || '';
+        document.getElementById('themeColorText').value = character.color || '#000000';
+        document.getElementById('themeColor').value = character.color || '#000000';
+        document.getElementById('imageOffset').value = character.calib || 0;
+        document.getElementById('scaleRate').value = character.scale_rate || 100;
+        document.getElementById('characterIntro').value = character.description || '';
+        document.getElementById('characterDescription').value = character.prompt || '';
+
+        // 加载头像预览
+        if (character.avatar_url) {
+            this.showAvatarPreview(character.avatar_url);
+            this.croppedAvatarData = character.avatar_url;
+        }
+
+        // 清空并重新填充心情设置
+        const tableBody = document.getElementById('moodTableBody');
+        tableBody.innerHTML = '';
+        this.moodRowCount = 0;
+
+        if (character.moods && character.moods.length > 0) {
+            character.moods.forEach(mood => {
+                this.addMoodRow(mood.name || mood);
+            });
+        } else {
+            this.addInitialMoodRow();
+        }
+
+        // 显示已加载的详细信息文件
+        if (character.detail_files && character.detail_files.length > 0) {
+            this.displayLoadedDetailFiles(character.detail_files);
+        }
+    }
+
+    displayLoadedDetailFiles(files) {
+        const container = document.getElementById('selectedFiles');
+        container.innerHTML = '<div class="loaded-files-info">已加载的文件：</div>';
+        
+        files.forEach(file => {
+            const fileTag = document.createElement('span');
+            fileTag.className = 'selected-file loaded-file';
+            fileTag.textContent = file;
+            container.appendChild(fileTag);
+        });
     }
 
     addInitialMoodRow() {

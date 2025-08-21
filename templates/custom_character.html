@@ -7,6 +7,7 @@
     <title>CABM - 自定义角色</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <link rel="stylesheet" href="/static/css/custom_character.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 </head>
 
@@ -23,7 +24,10 @@
                     <div class="form-group required">
                         <label for="characterId">角色ID <span class="required-mark">*</span></label>
                         <div class="form-description" id="characterIdDesc">必须是英文字母、数字或下划线</div>
-                        <input type="text" id="characterId" name="characterId" class="form-input" required>
+                        <div class="character-id-container">
+                            <input type="text" id="characterId" name="characterId" class="form-input" required>
+                            <button type="button" id="loadCharacterButton" class="btn secondary-btn" style="display: none; margin-left: 10px;">加载角色</button>
+                        </div>
                     </div>
                     <div class="form-group required">
                         <label for="characterName">角色名 <span class="required-mark">*</span></label>
