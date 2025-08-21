@@ -468,7 +468,7 @@ class StoryService:
         try:
             self.logger.info("生成故事内容...")
             response, data = make_api_request(
-                url=url,
+                url=url+"/chat/completions",
                 method="POST",
                 headers=headers,
                 json_data=request_data,

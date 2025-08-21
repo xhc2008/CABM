@@ -23,6 +23,21 @@ else:
     static_folder = str(Path(__file__).resolve().parent / "static")
     template_folder = str(Path(__file__).resolve().parent / "templates")
 
+# 查看migration文件是否存在
+migration_folder = str(Path(__file__).resolve().parent / "migrations")
+if not os.path.exists(migration_folder):
+    print("旧版记忆开始迁移")
+    import migrate_to_faiss
+    import migrate_to_peewee
+    done_faiss = migrate_to_faiss.main()
+    done_peewee = migrate_to_peewee.main()
+    if done_faiss and done_peewee:
+        print("迁移成功")
+    else:
+        print("请前往tools\json2index尝试备用迁移")
+    with open("migrations", "w") as f:
+        f.close()
+
 # 创建Flask应用
 app = Flask(
     __name__,

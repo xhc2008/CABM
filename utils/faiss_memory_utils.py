@@ -1,6 +1,6 @@
 """
 基于FAISS的记忆存储工具
-使用faiss-cpu进行向量存储和检索
+支持faiss-cpu和faiss-gpu，自动检测GPU并智能回退
 """
 import json
 import os
@@ -12,11 +12,27 @@ import traceback
 from typing import List, Dict, Optional, Tuple
 import numpy as np
 
+# 尝试导入faiss-gpu，如果失败则回退到faiss-cpu
 try:
     import faiss
+    # 检测是否有GPU支持
+    try:
+        # 尝试创建GPU资源来测试GPU可用性
+        if faiss.get_num_gpus() > 0:
+            # 测试GPU是否真正可用
+            test_res = faiss.StandardGpuResources()
+            FAISS_GPU_AVAILABLE = True
+            print(f"✓ 检测到 {faiss.get_num_gpus()} 个GPU，FAISS-GPU支持已启用")
+        else:
+            FAISS_GPU_AVAILABLE = False
+            print("ℹ 未检测到可用GPU，使用CPU模式")
+    except Exception as e:
+        FAISS_GPU_AVAILABLE = False
+        print(f"ℹ GPU初始化失败，回退到CPU模式: {e}")
 except ImportError:
-    print("警告: faiss-cpu 未安装，请运行: pip install faiss-cpu")
+    print("警告: faiss 未安装，请运行: pip install faiss-cpu 或 pip install faiss-gpu")
     faiss = None
+    FAISS_GPU_AVAILABLE = False
 
 from .RAG import RAG
 import sys
@@ -73,9 +89,12 @@ class FaissChatHistoryVectorDB:
         
         # FAISS相关属性
         self.index = None
+        self.gpu_index = None  # GPU索引
+        self.gpu_resources = None  # GPU资源
         self.texts = []  # 存储原始文本
         self.metadata = []  # 存储元数据
         self.vector_dim = RAG_config['Multi_Recall']['Cosine_Similarity']['vector_dim']
+        self.use_gpu = FAISS_GPU_AVAILABLE  # 是否使用GPU
         
         # 文件路径
         self.faiss_index_path = os.path.join(self.data_memory, f"{character_name}_faiss.index")
@@ -86,10 +105,29 @@ class FaissChatHistoryVectorDB:
         self._init_faiss_index()
     
     def _init_faiss_index(self):
-        """初始化FAISS索引"""
-        # 使用L2距离的平面索引，适合中小规模数据
-        self.index = faiss.IndexFlatL2(self.vector_dim)
-        self.logger.info(f"初始化FAISS索引，维度: {self.vector_dim}")
+        """初始化FAISS索引，支持GPU加速"""
+        try:
+            if self.use_gpu and FAISS_GPU_AVAILABLE:
+                # 初始化GPU资源
+                self.gpu_resources = faiss.StandardGpuResources()
+                
+                # 创建CPU索引
+                cpu_index = faiss.IndexFlatL2(self.vector_dim)
+                
+                # 将索引移动到GPU
+                self.index = faiss.index_cpu_to_gpu(self.gpu_resources, 0, cpu_index)
+                self.logger.info(f"✓ 初始化FAISS-GPU索引，维度: {self.vector_dim}")
+            else:
+                # 使用CPU索引
+                self.index = faiss.IndexFlatL2(self.vector_dim)
+                self.logger.info(f"初始化FAISS-CPU索引，维度: {self.vector_dim}")
+                
+        except Exception as e:
+            # GPU初始化失败，回退到CPU
+            self.logger.warning(f"GPU索引初始化失败，回退到CPU模式: {e}")
+            self.use_gpu = False
+            self.index = faiss.IndexFlatL2(self.vector_dim)
+            self.logger.info(f"初始化FAISS-CPU索引（回退），维度: {self.vector_dim}")
     
     def _get_embeddings(self, texts: List[str]) -> np.ndarray:
         """
@@ -260,8 +298,16 @@ class FaissChatHistoryVectorDB:
             
             # 保存FAISS索引
             if self.index.ntotal > 0:
-                faiss.write_index(self.index, self.faiss_index_path)
-                self.logger.info(f"FAISS索引已保存到 {self.faiss_index_path}")
+                # 如果是GPU索引，需要先转换为CPU索引再保存
+                if self.use_gpu and hasattr(self.index, 'index'):
+                    # GPU索引，转换为CPU索引保存
+                    cpu_index = faiss.index_gpu_to_cpu(self.index)
+                    faiss.write_index(cpu_index, self.faiss_index_path)
+                    self.logger.info(f"FAISS-GPU索引已转换为CPU格式并保存到 {self.faiss_index_path}")
+                else:
+                    # CPU索引，直接保存
+                    faiss.write_index(self.index, self.faiss_index_path)
+                    self.logger.info(f"FAISS索引已保存到 {self.faiss_index_path}")
             
             # 保存文本数据
             with open(self.texts_path, 'wb') as f:
@@ -298,8 +344,24 @@ class FaissChatHistoryVectorDB:
         try:
             # 加载FAISS索引
             if os.path.exists(self.faiss_index_path):
-                self.index = faiss.read_index(self.faiss_index_path)
-                self.logger.info(f"FAISS索引加载完成，包含 {self.index.ntotal} 个向量")
+                # 先加载到CPU
+                cpu_index = faiss.read_index(self.faiss_index_path)
+                
+                # 如果启用GPU且可用，将索引移动到GPU
+                if self.use_gpu and FAISS_GPU_AVAILABLE:
+                    try:
+                        if self.gpu_resources is None:
+                            self.gpu_resources = faiss.StandardGpuResources()
+                        self.index = faiss.index_cpu_to_gpu(self.gpu_resources, 0, cpu_index)
+                        self.logger.info(f"✓ FAISS-GPU索引加载完成，包含 {self.index.ntotal} 个向量")
+                    except Exception as e:
+                        self.logger.warning(f"GPU索引加载失败，使用CPU模式: {e}")
+                        self.use_gpu = False
+                        self.index = cpu_index
+                        self.logger.info(f"FAISS-CPU索引加载完成（回退），包含 {self.index.ntotal} 个向量")
+                else:
+                    self.index = cpu_index
+                    self.logger.info(f"FAISS-CPU索引加载完成，包含 {self.index.ntotal} 个向量")
             else:
                 self.logger.info("FAISS索引文件不存在，使用空索引")
                 self._init_faiss_index()
@@ -418,6 +480,44 @@ class FaissChatHistoryVectorDB:
             traceback.print_exc()
             return ""
     
+    def get_gpu_info(self) -> Dict:
+        """
+        获取GPU信息
+        
+        返回:
+            GPU信息字典
+        """
+        gpu_info = {
+            "gpu_available": FAISS_GPU_AVAILABLE,
+            "using_gpu": self.use_gpu,
+            "num_gpus": 0,
+            "gpu_memory_info": []
+        }
+        
+        if FAISS_GPU_AVAILABLE:
+            try:
+                gpu_info["num_gpus"] = faiss.get_num_gpus()
+                
+                # 获取GPU内存信息
+                for i in range(gpu_info["num_gpus"]):
+                    try:
+                        # 创建临时GPU资源来获取内存信息
+                        temp_res = faiss.StandardGpuResources()
+                        gpu_info["gpu_memory_info"].append({
+                            "gpu_id": i,
+                            "status": "可用"
+                        })
+                    except Exception as e:
+                        gpu_info["gpu_memory_info"].append({
+                            "gpu_id": i,
+                            "status": f"不可用: {e}"
+                        })
+                        
+            except Exception as e:
+                gpu_info["error"] = str(e)
+        
+        return gpu_info
+    
     def get_stats(self) -> Dict:
         """
         获取数据库统计信息
@@ -425,7 +525,7 @@ class FaissChatHistoryVectorDB:
         返回:
             统计信息字典
         """
-        return {
+        stats = {
             "character_name": self.character_name,
             "model": self.model,
             "vector_dim": self.vector_dim,
@@ -434,8 +534,11 @@ class FaissChatHistoryVectorDB:
             "total_metadata": len(self.metadata),
             "faiss_index_path": self.faiss_index_path,
             "texts_path": self.texts_path,
-            "metadata_path": self.metadata_path
+            "metadata_path": self.metadata_path,
+            "gpu_info": self.get_gpu_info()
         }
+        
+        return stats
 
 # 使用示例
 if __name__ == "__main__":
