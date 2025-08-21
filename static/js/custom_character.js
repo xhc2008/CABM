@@ -164,7 +164,7 @@ class CustomCharacterManager {
             
             if (result.success) {
                 this.fillFormWithCharacterData(result.character);
-                alert(`角色 "${result.character.name}" 已加载！\n文件需要重新手动上传\n请注意，角色详细信息是追加写入`);
+                alert(`角色 "${result.character.name}" 已加载！\n文件需要重新手动上传（浏览器安全限制，没办法）\n请注意，角色详细信息是追加写入\n如果希望覆写请删除data/details/${result.character.id}.json并重启程序`);
             } else {
                 alert('加载角色失败：' + result.error);
             }
