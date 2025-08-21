@@ -54,6 +54,7 @@ app.register_blueprint(story_bp)
 app.register_blueprint(config_bp)
 app.register_blueprint(tts_bp)
 
+
 # 设置系统提示词，使用角色提示词
 if not need_config:
     from services.chat_service import chat_service
