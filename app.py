@@ -1314,7 +1314,7 @@ def create_custom_character():
             #     shutil.rmtree(detail_dir)
             
             # 清理角色图片目录
-            image_dir = Path('static') / 'images' / character_id
+            image_dir = Path('static') / 'images' / character_id #这行一注释就炸，我也不知道为什么
             # if image_dir.exists():
             #     import shutil
             #     shutil.rmtree(image_dir)
