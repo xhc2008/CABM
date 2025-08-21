@@ -59,8 +59,9 @@ var/
 .installed.cfg
 *.egg
 fuck-u-code.exe
-# npm缓存文件
-node_modules/
+
+# 语音缓存文件
+data/voice_cache.json
 
 # 虚拟环境
 venv/

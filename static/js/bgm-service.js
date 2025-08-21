@@ -22,6 +22,10 @@ class BGMService {
         // 2. 加载歌单
         await this.loadTracks();
         console.log('BGM Service (Web Audio) ready:', this.tracks);
+        // 3. 尝试自动播放
+        if (this.tracks.length) {
+            this.playRandom();
+        }
     }
 
     async loadTracks() {
@@ -40,25 +44,60 @@ class BGMService {
         return await this.ctx.decodeAudioData(arrayBuf);
     }
 
-    async playTrack(trackName) {
+    async playTrack(trackName, startTime = 0) {
         if (this.source) this.source.stop();   // 停掉上一首
         this.buffer = await this.fetchAndDecode(trackName);
         this.source = this.ctx.createBufferSource();
         this.source.buffer = this.buffer;
-        this.source.loop = true;
+        this.source.loop = false; // 不循环，才能触发 ended
+        // 播放完自动随机下一首
+        this.source.onended = () => {
+            this.isPlaying = false;
+            this.playRandom();
+        };
 
         this.gainNode = this.ctx.createGain();
         this.gainNode.gain.value = this.volume;
 
         this.source.connect(this.gainNode).connect(this.ctx.destination);
-        this.source.start();
+        this.source.start(0, startTime);
         this.isPlaying = true;
         this.currentTrack = trackName;
-        console.log(`Playing BGM: ${trackName}`);
+        this._startProgressSaver();
+        console.log(`Playing BGM: ${trackName} from ${startTime}s`);
+    }
+
+    _startProgressSaver() {
+        if (this._progressTimer) clearInterval(this._progressTimer);
+        this._progressTimer = setInterval(() => {
+            if (this.isPlaying && this.ctx && this.ctx.state === 'running' && this.source) {
+                const currentTime = this.ctx.currentTime;
+                localStorage.setItem('bgm_progress', JSON.stringify({
+                    track: this.currentTrack,
+                    time: currentTime % this.buffer.duration
+                }));
+            }
+        }, 500);
+    }
+
+    _stopProgressSaver() {
+        if (this._progressTimer) clearInterval(this._progressTimer);
+        this._progressTimer = null;
     }
 
     async playRandom() {
         if (!this.tracks.length) return;
+        // 检查本地是否有保存进度
+        const saved = localStorage.getItem('bgm_progress');
+        if (saved) {
+            try {
+                const { track, time } = JSON.parse(saved);
+                if (this.tracks.includes(track)) {
+                    await this.playTrack(track, time || 0);
+                    return;
+                }
+            } catch {}
+        }
         const r = Math.floor(Math.random() * this.tracks.length);
         await this.playTrack(this.tracks[r]);
     }
@@ -81,6 +120,7 @@ class BGMService {
             this.source.stop();
             this.source = null;
             this.isPlaying = false;
+            this._stopProgressSaver();
         }
     }
 
