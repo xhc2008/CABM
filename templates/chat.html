@@ -29,6 +29,8 @@
                     <img src="/static/images/default.svg" alt="AI角色" id="characterImage" class="character-img">
                 </div>
             </div>
+            <!-- MMD 渲染容器（覆盖整个角色区域） -->
+            <div id="mmdCanvas" class="mmd-canvas" style="position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:1;display:none;pointer-events:none;"></div>
             <div class="user-input-container">
                 <div class="input-row">
                     <textarea id="messageInput" placeholder="输入消息..." class="chat-input" maxlength="2000"></textarea>
@@ -115,10 +117,18 @@
     <script src="{{ js }}"></script>
     {% endfor %}
 {% endif %}
+    <!-- Three.js 与 MMDLoader（仅当使用MMD时才会实际发挥作用） -->
+    <script src="/static/plugin/three/r128/three.min.js"></script>
+    <script src="/static/plugin/three/r128/examples/js/libs/mmdparser.min.js"></script>
+    <script src="/static/plugin/three/r128/examples/js/animation/MMDAnimationHelper.js"></script>
+    <script src="/static/plugin/three/r128/examples/js/loaders/TGALoader.js"></script>
+    <script src="/static/plugin/three/r128/examples/js/loaders/MMDLoader.js"></script>
+    <!-- 集成脚本：根据开关决定是否覆盖立绘为MMD -->
+    <script type="module" src="/static/js/mmd-integration.js"></script>
     <script src="/static/js/logo.js"></script>
     <script type="module" src="/static/js/chat-init.js"></script>
     <script src="/static/js/stream_processor.js"></script>
-    <script src="/static/js/chat-service.js"></script>
+    <script type="module" src="/static/js/chat-service.js"></script>
     <script src="/static/js/sci-fi-effects.js"></script>
     <script src="/static/js/input-enhancements.js"></script>
 </body>
