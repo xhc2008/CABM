@@ -3,10 +3,11 @@
 
 .history/
 static/images/default/
+data/voice_cache.json
 #测试文件
 test.py
 temp/
-
+node_modules/
 test/
 .kiro/
 .vscode/
