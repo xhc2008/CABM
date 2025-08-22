@@ -1,0 +1,6 @@
+@media (max-width: 600px) {
+    .character-img {
+        width: 120px;
+        height: 120px;
+    }
+}

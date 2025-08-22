@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>CABM - 选择角色</title>
+	<link rel="stylesheet" href="/static/css/style.css">
+	<link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+	<link rel="stylesheet" href="/static/css/media.css">
+</head>
+<body>
+	<div class="container">
+		<div id="selectCharacterPage" class="page active">
+			<div class="home-background"></div>
+			<div class="chat-header" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.6));">
+				<a href="/" class="btn back-btn">首页</a>
+				<h2>选择角色</h2>
+			</div>
+			<div class="character-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(500px,1fr));gap:22px;padding:100px 24px 24px;align-content:flex-start;">
+				{% if characters and characters|length > 0 %}
+					{% for ch in characters %}
+					<div class="character-card" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 20px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; box-shadow: 0 6px 20px rgba(0,0,0,0.25); width: 100%;" onclick="selectCharacter('{{ ch.id }}')">
+						<div style="display:flex;align-items:center;gap:20px;">
+							<img src="{{ ch.avatar_url }}" alt="{{ ch.name }}" style="width:150px;height:150px;border-radius:12px;object-fit:cover;border:1px solid rgba(255,255,255,0.25);flex:0 0 auto;">
+							<div style="display:flex;flex-direction:column;min-width:0;flex-grow:1;align-items:flex-start;text-align:left;">
+								<span style="font-size:20px;font-weight:700;color: {{ ch.color }};">{{ ch.name }}</span>
+								<span style="font-size:14px;opacity:.75;margin-top:4px;color:rgba(255,255,255,0.8);font-style:italic;">{{ ch.description }}</span>
+								<span style="font-size:12px;opacity:.65;margin-top:4px;">最近聊天：{{ ch.last_modified }}</span>
+								{% if ch.last_sentence_short %}
+									<span style="font-size:15px;opacity:.95;margin-top:8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;color:#fff;">"{{ ch.last_sentence_short }}"</span>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+					{% endfor %}
+				{% else %}
+					<div style="opacity:.8;padding:16px;">暂无角色，请先创建或导入角色</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<script>
+		async function selectCharacter(characterId) {
+			try {
+				const resp = await fetch(`/api/characters/${characterId}`, { method: 'POST' });
+				const data = await resp.json();
+				if (data && data.success) {
+					window.location.href = '/chat';
+				} else {
+					alert(data && data.error ? data.error : '切换角色失败');
+				}
+			} catch (e) {
+				alert('切换角色失败: ' + e);
+			}
+		}
+	</script>
+    <script src="/static/js/logo.js"></script>
+    <script src="/static/js/sci-fi-effects.js"></script>
+	<script type="module" src="/static/js/bgm-service.js"></script>
+</body>
+</html>
+
+

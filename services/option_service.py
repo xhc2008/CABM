@@ -76,7 +76,7 @@ class OptionService:
             extra_body_list = [
                 'temperature',
                 'max_tokens',
-                'enable_thinking'
+                'enable_reasoning'
             ]
             extra_body_dict = {
                 k: option_config[k] for k in extra_body_list if k in option_config
@@ -154,9 +154,9 @@ class OptionService:
 
 {character_setting}
 
-用户最后的问题: {user_query}
+用户最后输入: {user_query}
 
-请基于以上对话历史、角色设定和用户最后的问题，生成3个用户可能想要继续询问的问题选项。"""
+请基于以上对话历史、角色设定和用户最后的问题，生成3个**用户**可能想要说的选项。"""
         
         return user_prompt
 

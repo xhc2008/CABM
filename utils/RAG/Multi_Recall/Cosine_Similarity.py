@@ -1,5 +1,5 @@
 from .Retriever import *
-from typing import List, Literal, Dict
+from typing import List, Literal, Dict, Union
 import traceback
 import os
 try:
@@ -28,7 +28,7 @@ try:
             self.model = AutoModel.from_pretrained(emb_model_name_or_path, trust_remote_code=True).half().to(device)
             self.tokenizer = AutoTokenizer.from_pretrained(emb_model_name_or_path, trust_remote_code=True)
 
-        def embed(self, texts: List[str] | str) -> List[List[float]]:
+        def embed(self, texts: Union[List[str], str]) -> List[List[float]]:
             if isinstance(texts, str):
                 texts = [texts]
                 
@@ -74,7 +74,7 @@ try:
                 base_url=self.base_url
             )
         
-        def embed(self, texts: List[str] | str) -> List[List[float]]:
+        def embed(self, texts: Union[List[str], str]) -> List[List[float]]:
             """
             调用API获取文本的嵌入向量（带缓存检查）
             """

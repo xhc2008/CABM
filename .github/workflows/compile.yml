@@ -1,0 +1,151 @@
+name: Build Windows Executable with Nuitka
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '构建版本号 (e.g. v1.0.0)'
+        required: true
+        default: 'v0.0.0'
+      release_name:
+        description: '构建名称 (optional)'
+        required: true
+        default: 'v0.0.0'
+      release_text:
+        description: '构建描述 (optional)'
+        required: true
+        default: 'Windows 编译版本'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+
+      - name: 🧹 Read .nobuild file and clean excluded files
+        shell: pwsh
+        run: |
+          # 读取.nobuild文件中的排除列表
+          $excludedFiles = @()
+          
+          # 添加.nobuild文件中指定的文件
+          if (Test-Path ".nobuild") {
+            $nobuildContent = Get-Content -Path ".nobuild" | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '\S' }
+            $excludedFiles += $nobuildContent
+            Write-Output "Loaded $($nobuildContent.Count) exclusion rules from .nobuild"
+          }
+          
+          # 删除指定文件
+          foreach ($file in $excludedFiles) {
+            if (Test-Path $file) {
+              Remove-Item -Path $file -Force
+              Write-Output "Removed excluded file: $file"
+            }
+          }
+          
+          # 清理空目录
+          Get-ChildItem -Directory | Where-Object { 
+            (Get-ChildItem -Path $_.FullName -Recurse -File).Count -eq 0 
+          } | Remove-Item -Recurse -Force
+
+      - name: 📦 Install dependencies
+        shell: pwsh
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: 🖥️ Build Windows executable with Nuitka
+        shell: pwsh
+        run: |
+          # 构建 EXE (直接使用python命令)
+          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+
+          # 保留 数据目录
+          if (Test-Path "characters") {
+            Copy-Item -Path "characters" -Destination "dist\start.dist\characters" -Recurse -Force
+          }
+          if (Test-Path "data") {
+            Copy-Item -Path "data" -Destination "dist\start.dist\data" -Recurse -Force
+          }
+          # 复制静态资源和模板
+          if (Test-Path "static") {
+            Copy-Item -Path "static" -Destination "dist\start.dist\static" -Recurse -Force
+          }
+          if (Test-Path "templates") {
+            Copy-Item -Path "templates" -Destination "dist\start.dist\templates" -Recurse -Force
+          }
+          if (Test-Path "config") {
+            Copy-Item -Path "config" -Destination "dist\start.dist\config" -Recurse -Force
+          }
+          
+          # 重命名 dist 目录为 app
+          Move-Item -Path "dist\start.dist" -Destination "app" -Force
+
+      - name: 🗑️ Cleanup build artifacts
+        shell: pwsh
+        run: |
+          Remove-Item -Path "dist", "start.build" -Recurse -Force -ErrorAction Ignore
+          Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
+
+      - name: 📦 Package release (copy to root and compress)
+        shell: pwsh
+        run: |
+          # 将 app 目录内容复制到根目录（如有同名先删除）
+          Get-ChildItem -Path "app" | ForEach-Object {
+            $dest = Join-Path "." $_.Name
+            if (Test-Path $dest) {
+              Remove-Item -Path $dest -Recurse -Force
+            }
+            Move-Item -Path $_.FullName -Destination "." -Force
+          }
+          
+          # 删除空的 app 目录
+          Remove-Item -Path "app" -Recurse -Force
+          
+          # 重命名 start.exe 为 app.exe
+          if (Test-Path "start.exe") {
+            Move-Item -Path "start.exe" -Destination "app.exe" -Force
+          }
+          
+          # 压缩整个目录
+          Compress-Archive -Path * -DestinationPath "Windows-Release-${{ inputs.version }}.zip" -Force
+
+      - name: 🗑️ Delete existing release if exists
+        shell: pwsh
+        run: |
+          # 删除 release（如果存在）
+          try {
+            gh release delete "${{ inputs.version }}" --yes
+          } catch {
+            Write-Output "Release not found, skip delete."
+          }
+
+          # 删除本地 tag（如果存在）
+          if (git tag | Select-String -Pattern "${{ inputs.version }}") {
+            git tag -d "${{ inputs.version }}"
+          }
+
+          # 删除远程 tag（如果存在）
+          if (git ls-remote --tags origin | Select-String -Pattern "refs/tags/${{ inputs.version }}") {
+            git push --delete origin "${{ inputs.version }}"
+          }
+
+      - name: 🚀 Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.version }}" `
+            --title "${{ inputs.release_name || inputs.version }}" `
+            --notes "${{ inputs.release_text }}" `
+            "Windows-Release-${{ inputs.version }}.zip"

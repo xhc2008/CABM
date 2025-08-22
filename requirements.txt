@@ -1,7 +1,20 @@
-Flask==3.0.0
-openai==1.95.1
-python-dotenv==1.0.0
-numpy==1.24.3
+Flask
+openai
+python-dotenv
+numpy
 requests
-httpx==0.27.2
+httpx
 pydub
+tenacity
+rtoml
+toml
+Pillow
+pretty-errors
+colorama
+faiss-cpu
+# GPU加速支持（可选）
+# faiss-gpu  # 如果有CUDA环境，可以取消注释这行并注释掉faiss-cpu
+peewee
+# BERT情感分析相关依赖
+# transformers>=4.30.0
+# torch>=2.0.0

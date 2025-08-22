@@ -257,7 +257,7 @@ export function disableUserInput() {
     messageInput.disabled = true;
     sendButton.disabled = true;
     micButton.disabled = true;
-    messageInput.placeholder = "AI正在回复中...";
+    messageInput.placeholder = "角色正在回复中...";
 }
 
 // 启用用户输入
