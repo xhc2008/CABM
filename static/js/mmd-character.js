@@ -32,8 +32,8 @@ const characterConfigs = {
             surprised: 'surprised'
         },
         camera: {
-            position: [0, 1, 3],
-            target: [0, 1, 0]
+            position: [0, 1.8, 2.4],
+            target: [0, 1.4, 0]
         }
     },
     'Collei': {
