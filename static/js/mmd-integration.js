@@ -110,9 +110,39 @@ async function enableMMD() {
                 initMMDCharacterSystem('mmdCanvas');
             } catch (error) {
                 console.error('[MMD] 渲染系统初始化失败:', error);
-                // 如果初始化失败，尝试使用body作为容器
-                console.log('[MMD] 尝试使用body作为容器...');
-                initMMDCharacterSystem('body');
+                
+                // 检查是否是WebGL相关错误
+                if (error.message && error.message.includes('WebGL')) {
+                    console.log('[MMD] 检测到WebGL错误，尝试降级方案...');
+                    
+                    // 尝试使用body作为容器
+                    try {
+                        console.log('[MMD] 尝试使用body作为容器...');
+                        initMMDCharacterSystem('body');
+                    } catch (error2) {
+                        console.error('[MMD] 降级方案也失败:', error2);
+                        
+                        // 显示详细的错误信息和解决方案
+                        const errorMsg = `3D角色功能初始化失败：\n\n错误：${error.message}\n\n可能的解决方案：\n1. 更新显卡驱动到最新版本\n2. 在浏览器设置中启用硬件加速\n3. 关闭可能干扰的安全软件\n4. 尝试使用Chrome或Firefox浏览器\n5. 重启浏览器或系统\n\n如果问题持续存在，请使用图片立绘模式。`;
+                        alert(errorMsg);
+                        
+                        // 自动禁用MMD功能并切换到图片模式
+                        setToggleState(false);
+                        showMMDCanvas(false);
+                        return;
+                    }
+                } else {
+                    // 其他类型的错误
+                    console.log('[MMD] 尝试使用body作为容器...');
+                    try {
+                        initMMDCharacterSystem('body');
+                    } catch (error2) {
+                        console.error('[MMD] 降级方案也失败:', error2);
+                        alert('启用MMD失败：' + (error?.message || error));
+                        showMMDCanvas(false);
+                        return;
+                    }
+                }
             }
         }
 

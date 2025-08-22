@@ -15,6 +15,65 @@ let isInitialized = false;
 let toonRenderer = null; // 卡通渲染器实例
 let postProcessor = null; // 后处理器实例
 
+// 检查WebGL支持
+function checkWebGLSupport() {
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) {
+            throw new Error('WebGL not supported');
+        }
+        return true;
+    } catch (error) {
+        console.error('WebGL支持检查失败:', error);
+        return false;
+    }
+}
+
+// 尝试创建WebGL渲染器，带降级方案
+function createWebGLRenderer(fallbackOptions = {}) {
+    const options = {
+        antialias: true,
+        alpha: true,
+        powerPreference: "default",
+        failIfMajorPerformanceCaveat: false,
+        ...fallbackOptions
+    };
+
+    try {
+        console.log('尝试创建WebGL渲染器，选项:', options);
+        return new THREE.WebGLRenderer(options);
+    } catch (error) {
+        console.warn('WebGL渲染器创建失败，尝试降级选项:', error);
+        
+        // 降级方案1：禁用抗锯齿
+        if (options.antialias) {
+            try {
+                const fallbackOptions1 = { ...options, antialias: false };
+                console.log('尝试降级方案1：禁用抗锯齿');
+                return new THREE.WebGLRenderer(fallbackOptions1);
+            } catch (error1) {
+                console.warn('降级方案1失败:', error1);
+            }
+        }
+        
+        // 降级方案2：使用软件渲染
+        try {
+            const fallbackOptions2 = { 
+                ...options, 
+                antialias: false,
+                powerPreference: "low-power"
+            };
+            console.log('尝试降级方案2：使用低功耗模式');
+            return new THREE.WebGLRenderer(fallbackOptions2);
+        } catch (error2) {
+            console.warn('降级方案2失败:', error2);
+        }
+        
+        throw new Error('所有WebGL渲染器创建方案都失败了');
+    }
+}
+
 // 初始化MMD渲染器
 export function initMMDRenderer(containerId) {
     if (isInitialized) {
@@ -23,6 +82,14 @@ export function initMMDRenderer(containerId) {
     }
 
     console.log('正在初始化MMD渲染器...');
+    
+    // 检查WebGL支持
+    if (!checkWebGLSupport()) {
+        const errorMsg = '您的浏览器或系统不支持WebGL，无法启用3D角色功能。请尝试：\n1. 更新显卡驱动\n2. 启用硬件加速\n3. 使用Chrome或Firefox浏览器\n4. 检查安全软件设置';
+        console.error(errorMsg);
+        alert(errorMsg);
+        throw new Error('WebGL not supported');
+    }
     
     // 创建场景
     scene = new THREE.Scene();
@@ -43,11 +110,15 @@ export function initMMDRenderer(containerId) {
     );
     camera.position.set(0, 10, 25);
     
-    // 创建渲染器
-    renderer = new THREE.WebGLRenderer({ 
-        antialias: true,
-        alpha: true, // 透明背景
-    });
+    // 创建渲染器（带降级方案）
+    try {
+        renderer = createWebGLRenderer();
+    } catch (error) {
+        console.error('WebGL渲染器创建失败:', error);
+        const errorMsg = '无法创建WebGL渲染器。可能的原因：\n1. 显卡驱动过旧或有问题\n2. 硬件加速被禁用\n3. 安全软件阻止了WebGL\n4. 系统资源不足\n\n请尝试重启浏览器或更新显卡驱动。';
+        alert(errorMsg);
+        throw error;
+    }
     renderer.setClearColor(0x000000, 0);
     renderer.setSize(width, height);
     // 使用原始渲染器的抗锯齿
