@@ -30,6 +30,12 @@
                         <span>显示启动Logo</span>
                     </label>
                 </div>
+                <div style="color: white; margin-bottom: 10px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="useMMDToggle" style="margin-right: 8px;">
+                        <span>使用MMD立绘</span>
+                    </label>
+                </div>
             </div>
             <header class="home-header">
                 <h1>CABM</h1>
@@ -55,6 +61,11 @@
             // 设置复选框状态
             showLogoToggle.checked = showLogo;
 
+            // MMD开关
+            const useMMDToggle = document.getElementById('useMMDToggle');
+            const useMMD = localStorage.getItem('useMMDPortrait') === 'true';
+            useMMDToggle.checked = useMMD;
+
             // 设置面板切换
             settingsBtn.addEventListener('click', function () {
                 settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
@@ -70,6 +81,9 @@
             // 保存设置
             showLogoToggle.addEventListener('change', function () {
                 localStorage.setItem('showLogoSplash', this.checked);
+            });
+            useMMDToggle.addEventListener('change', function () {
+                localStorage.setItem('useMMDPortrait', this.checked);
             });
 
             // Logo显示逻辑
