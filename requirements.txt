@@ -12,6 +12,8 @@ Pillow
 pretty-errors
 colorama
 faiss-cpu
+# GPU加速支持（可选）
+# faiss-gpu  # 如果有CUDA环境，可以取消注释这行并注释掉faiss-cpu
 peewee
 # BERT情感分析相关依赖
 # transformers>=4.30.0
