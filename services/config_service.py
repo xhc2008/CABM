@@ -208,12 +208,6 @@ class ConfigService:
             raise RuntimeError("配置未加载")
         return config.get_option_system_prompt()
     
-    def get_tts_config(self):
-        """获取TTS配置"""
-        if not self.config_loaded:
-            raise RuntimeError("配置未加载")
-        return config.get_tts_config()
-    
     def get_character_config(self, character_id: Optional[str] = None) -> Dict[str, Any]:
         """
         获取角色配置
