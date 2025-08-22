@@ -66,6 +66,7 @@ class FaissChatHistoryVectorDB:
             # 角色模式：保存到 data/memory/{character_name}/
             self.data_memory = os.path.join('data', 'memory', character_name)
         
+        # 确保目录存在
         os.makedirs(self.data_memory, exist_ok=True)
         
         # 初始化RAG系统

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用设置</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <style>
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .settings-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .settings-card h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #00ffff;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ffffff;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+        }
+        
+        .form-text {
+            margin-top: 6px;
+            font-size: 0.875rem;
+            color: #b0b0b0;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(45deg, #0080ff, #00ffff);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .range-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .sci-fi-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #00ffff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .settings-container {
+                padding: 15px;
+            }
+            
+            .settings-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body id="settingsPage">
+<div class="sci-fi-background"></div>
+<div class="sci-fi-grid"></div>
+
+<div class="settings-container">
+    <a href="/" class="back-link">← 返回主页</a>
+    
+    <div class="sci-fi-title">
+        <h1>应用设置</h1>
+        <p>配置您的CABM应用</p>
+    </div>
+    
+    <form id="settingsForm">
+        <!-- 存储配置 -->
+        <div class="settings-card">
+            <h2>存储配置</h2>
+            <div class="form-group">
+                <label for="storage_type">存储类型</label>
+                <select class="form-control" id="storage_type" name="storage_type">
+                    <option value="json">JSON文件存储（兼容老版本）</option>
+                    <option value="faiss_peewee">FAISS+Peewee数据库（更快更好）</option>
+                </select>
+                <div class="form-text">选择聊天记录和向量的存储方式</div>
+            </div>
+        </div>
+
+        <!-- 音频配置 -->
+        <div class="settings-card">
+            <h2>背景音乐配置</h2>
+            <div class="form-group">
+                <label for="bgm_volume">背景音乐音量</label>
+                <div class="range-container">
+                    <input type="range" class="form-control" id="bgm_volume" name="bgm_volume" min="0" max="1" step="0.1" value="0.5">
+                    <span class="range-value" id="volume_value">0.5</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="bgm_enabled">启用背景音乐</label>
+                <select class="form-control" id="bgm_enabled" name="bgm_enabled">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                </select>
+            </div>
+        </div>
+
+        
+
+        <button type="submit" class="btn">保存设置 请勿重复点击 点击后请耐心等待10秒</button>
+    </form>
+</div>
+
+<script>
+    // 页面加载时获取当前设置
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(data => {
+                // 填充表单数据
+                document.getElementById('storage_type').value = data.storage?.type || 'json';
+                document.getElementById('bgm_volume').value = data.audio?.bgm_volume || 0.5;
+                document.getElementById('volume_value').textContent = data.audio?.bgm_volume || 0.5;
+                document.getElementById('bgm_enabled').value = data.audio?.bgm_enabled ? 'true' : 'false';
+            })
+            .catch(error => {
+                console.error('获取设置失败:', error);
+                // 使用默认值
+                document.getElementById('storage_type').value = 'json';
+                document.getElementById('bgm_volume').value = 0.5;
+                document.getElementById('volume_value').textContent = '0.5';
+                document.getElementById('bgm_enabled').value = 'true';
+            });
+        
+        // 音量滑块事件监听
+        document.getElementById('bgm_volume').addEventListener('input', function() {
+            document.getElementById('volume_value').textContent = this.value;
+        });
+    });
+
+    // 表单提交处理
+    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 收集表单数据
+        const settings = {
+            storage: {
+                type: document.getElementById('storage_type').value
+            },
+            audio: {
+                bgm_volume: parseFloat(document.getElementById('bgm_volume').value),
+                bgm_enabled: document.getElementById('bgm_enabled').value === 'true'
+            }
+        };
+        
+        // 发送设置数据到服务器
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('设置保存成功！');
+                // 重新应用设置
+                if (window.settingsService) {
+                    window.settingsService.loadSettings().then(() => {
+                        window.settingsService.applySettings();
+                    });
+                }
+            } else {
+                alert('设置保存失败：' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('保存设置失败:', error);
+            alert('设置保存失败：' + error.message);
+        });
+    });
+</script>
+<script src="/static/js/settings-service.js"></script>
+<script src="/static/js/logo.js"></script>
+<script src="/static/js/sci-fi-effects.js"></script>
+</body>
+</html>

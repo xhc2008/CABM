@@ -55,8 +55,8 @@ class ChatHistoryVectorDB:
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
         
-        # 确保数据目录存在
-        self.memory_dir = "data/memory"
+        # 确保数据目录存在，并为每个角色创建独立的文件夹
+        self.memory_dir = os.path.join("data", "memory", character_name)
         os.makedirs(self.memory_dir, exist_ok=True)
         
         # 数据库文件路径

@@ -59,15 +59,10 @@ def select_character_page():
                 avatar_url = f"/{image_dir}/avatar.png"
             else:
                 avatar_url = "/static/images/default.svg"
-            # 获取最后一句助手回复
             last_sentence = ""
             try:
-                history_messages = chat_service.history_manager.load_history(ch_id, count=200, max_cache_size=500)
-                for msg in reversed(history_messages):
-                    if msg.get('role') == 'assistant':
-                        raw = msg.get('content', '')
-                        last_sentence = str(raw)
-                        break
+                # 使用新的方法获取最后一条助手消息
+                last_sentence = chat_service.history_manager.get_last_assistant_message(ch_id)
             except Exception:
                 pass
             short = last_sentence

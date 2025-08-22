@@ -1,0 +1,13 @@
+[storage]
+type = "faiss_peewee"
+vector_db_path = "data/memory"
+chat_history_path = "data/history"
+
+[audio]
+bgm_volume = 0.5
+bgm_enabled = false
+bgm_folder = "static/bgm"
+
+[ui]
+show_logo = false
+theme = "default"

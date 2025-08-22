@@ -38,4 +38,7 @@ try:
             return docs_[:k]
     
 except ImportError:
-    raise ImportError("torch或transformers未安装. 无法使用Reranker_Model")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info('torch或transformers未安装. 无法使用Reranker_Model')
+    Reranker_Model = None

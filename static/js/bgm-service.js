@@ -19,12 +19,30 @@ class BGMService {
     async init() {
         // 1. 创建 AudioContext（需要在用户手势后 resume）
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        // 2. 加载歌单
+        // 2. 加载歌单和设置
         await this.loadTracks();
+        await this.loadSettings();
         console.log('BGM Service (Web Audio) ready:', this.tracks);
-        // 3. 尝试自动播放
-        if (this.tracks.length) {
+        // 3. 根据设置决定是否自动播放
+        if (this.tracks.length && this.bgmEnabled) {
             this.playRandom();
+        }
+    }
+
+    async loadSettings() {
+        try {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+                const settings = await res.json();
+                this.bgmEnabled = settings.audio?.bgm_enabled !== false; // 默认启用
+                this.volume = settings.audio?.bgm_volume || 0.5;
+                console.log('BGM Settings loaded:', { enabled: this.bgmEnabled, volume: this.volume });
+            } else {
+                this.bgmEnabled = true; // 默认启用
+            }
+        } catch (error) {
+            console.error('Failed to load BGM settings:', error);
+            this.bgmEnabled = true; // 默认启用
         }
     }
 
@@ -148,7 +166,7 @@ window.bgmService = new BGMService();
 // 用户第一次交互后启动 AudioContext
 const unlock = () => {
     window.bgmService.ctx.resume().then(() => {
-        if (!window.bgmService.isPlaying && window.bgmService.tracks.length) {
+        if (!window.bgmService.isPlaying && window.bgmService.tracks.length && window.bgmService.bgmEnabled) {
             window.bgmService.playRandom();
         }
     });

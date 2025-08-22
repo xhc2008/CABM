@@ -135,6 +135,28 @@ class HistoryManager:
         # 更新内存缓存
         if character_id in self.history_cache:
             self.history_cache[character_id].append(message_record)
+        
+        # 如果是助手消息，额外保存最后一条消息
+        if role == "assistant":
+            last_message_file = os.path.join(self.history_dir, f"{character_id}_last_message.json")
+            try:
+                # 解析内容获取实际消息
+                last_sentence = content
+                try:
+                    content_obj = json.loads(content)
+                    last_sentence = content_obj.get('content', str(content))
+                except:
+                    pass
+                
+                # 保存最后一条消息
+                last_message_record = {
+                    "timestamp": timestamp,
+                    "content": last_sentence
+                }
+                with open(last_message_file, "w", encoding="utf-8") as f:
+                    json.dump(last_message_record, f, ensure_ascii=False)
+            except Exception as e:
+                print(f"保存最后消息失败: {e}")
     
     def save_message_to_file(self, file_path: str, role: str, content: str) -> None:
         """
@@ -256,3 +278,39 @@ class HistoryManager:
         except Exception as e:
             print(f"清空历史记录失败: {e}")
             return False
+    
+    def get_last_assistant_message(self, character_id: str) -> str:
+        """
+        获取最后一条助手消息
+        
+        Args:
+            character_id: 角色ID
+            
+        Returns:
+            最后一条助手消息内容
+        """
+        try:
+            # 首先尝试读取专门保存的最后消息文件
+            last_message_file = os.path.join(self.history_dir, f"{character_id}_last_message.json")
+            if os.path.exists(last_message_file):
+                with open(last_message_file, "r", encoding="utf-8") as f:
+                    last_message_record = json.load(f)
+                    return last_message_record.get("content", "")
+            
+            # 如果没有专门的最后消息文件，从历史记录中查找
+            history_messages = self.load_history(character_id, count=10, max_cache_size=50)
+            # 从后往前查找最后一条助手消息
+            for i in range(len(history_messages) - 1, -1, -1):
+                msg = history_messages[i]
+                if msg.get('role') == 'assistant':
+                    raw = msg.get('content', '')
+                    try:
+                        content_obj = json.loads(raw)
+                        return content_obj.get('content', str(raw))
+                    except:
+                        return str(raw)
+            
+            return ""
+        except Exception as e:
+            print(f"获取最后助手消息失败: {e}")
+            return ""

@@ -4,27 +4,245 @@
 """
 import os
 import sys
+import json
 import logging
 import asyncio
-from typing import Dict, Optional, Tuple
+from datetime import datetime
+from typing import Dict, Optional, Tuple, Any
 from pathlib import Path
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from utils.peewee_memory_utils import PeeweeChatHistoryVectorDB as ChatHistoryVectorDB
 from services.config_service import config_service
 from services.character_details_service import character_details_service
+from services.settings_service import settings_service
 from config import get_memory_config,  get_RAG_config
+
+def create_memory_database(character_name: str, is_story: bool = False):
+    """
+    根据设置创建相应的内存数据库实例
+    
+    参数:
+        character_name: 角色名称或故事ID
+        is_story: 是否为故事模式
+        
+    返回:
+        内存数据库实例
+    """
+    storage_type = settings_service.get_setting("storage", "type", "json")
+    
+    if storage_type == "json":
+        # 使用JSON存储（兼容老版本）
+        # 注意：JSON存储类不支持is_story参数，只使用character_name
+        from utils.ori_memory_utils import ChatHistoryVectorDB
+        return ChatHistoryVectorDB(character_name=character_name)
+    elif storage_type == "faiss_peewee":
+        # 使用FAISS+Peewee数据库（更快更好）
+        from utils.peewee_memory_utils import PeeweeChatHistoryVectorDB as ChatHistoryVectorDB
+        return ChatHistoryVectorDB(RAG_config=get_RAG_config(), character_name=character_name, is_story=is_story)
+    else:
+        # 默认使用FAISS+Peewee
+        from utils.peewee_memory_utils import PeeweeChatHistoryVectorDB as ChatHistoryVectorDB
+        return ChatHistoryVectorDB(RAG_config=get_RAG_config(), character_name=character_name, is_story=is_story)
+
+def migrate_memory_data(from_type: str, to_type: str):
+    """
+    迁移所有记忆数据和聊天历史从一种存储类型到另一种
+    
+    参数:
+        from_type: 源存储类型 ("json" 或 "faiss_peewee")
+        to_type: 目标存储类型 ("json" 或 "faiss_peewee")
+        
+    返回:
+        是否迁移成功
+    """
+    if from_type == to_type:
+        return True
+        
+    logger = logging.getLogger("MemoryService")
+    logger.info(f"开始迁移所有记忆数据从 {from_type} 到 {to_type}")
+    
+    try:
+        # 导入HistoryManager
+        from utils.history_utils import HistoryManager
+        
+        # 获取所有角色列表
+        characters_dir = Path("characters")
+        if not characters_dir.exists():
+            logger.warning("角色目录不存在，无需迁移")
+            return True
+            
+        character_files = list(characters_dir.glob("*.toml"))
+        if not character_files:
+            logger.warning("未找到角色文件，无需迁移")
+            return True
+            
+        # 提取角色名称
+        character_names = [f.stem for f in character_files]
+        logger.info(f"找到 {len(character_names)} 个角色需要迁移: {character_names}")
+        
+        success_count = 0
+        total_count = len(character_names)
+        
+        # 迁移每个角色的数据
+        for character_name in character_names:
+            try:
+                logger.info(f"正在迁移角色: {character_name}")
+                
+                # 创建源数据库实例
+                if from_type == "json":
+                    from utils.ori_memory_utils import ChatHistoryVectorDB
+                    source_db = ChatHistoryVectorDB(character_name=character_name)
+                else:
+                    from utils.peewee_memory_utils import PeeweeChatHistoryVectorDB
+                    source_db = PeeweeChatHistoryVectorDB(RAG_config=get_RAG_config(), character_name=character_name, is_story=False)
+                
+                # 创建目标数据库实例
+                if to_type == "json":
+                    from utils.ori_memory_utils import ChatHistoryVectorDB
+                    target_db = ChatHistoryVectorDB(character_name=character_name)
+                else:
+                    from utils.peewee_memory_utils import PeeweeChatHistoryVectorDB
+                    target_db = PeeweeChatHistoryVectorDB(RAG_config=get_RAG_config(), character_name=character_name, is_story=False)
+                
+                # 初始化数据库
+                source_db.initialize_database()
+                target_db.initialize_database()
+                
+                # 获取源数据库的所有对话记录
+                migrated_records = 0
+                
+                if from_type == "json":
+                    # 从JSON迁移到数据库
+                    if hasattr(source_db, 'metadata') and source_db.metadata:
+                        logger.info(f"角色 {character_name} 找到 {len(source_db.metadata)} 条JSON记录需要迁移")
+                        
+                        # 迁移每条记录
+                        for meta in source_db.metadata:
+                            if meta.get('type') == 'conversation':
+                                user_msg = meta.get('user_message', '')
+                                assistant_msg = meta.get('assistant_message', '')
+                                timestamp = meta.get('timestamp', '')
+                                
+                                if user_msg and assistant_msg:
+                                    target_db.add_chat_turn(user_msg, assistant_msg, timestamp)
+                                    migrated_records += 1
+                        
+                        # 保存目标数据库
+                        if migrated_records > 0:
+                            target_db.save_to_file()
+                            logger.info(f"角色 {character_name} 迁移完成: {migrated_records} 条记录")
+                        else:
+                            logger.info(f"角色 {character_name} 无有效记录需要迁移")
+                    else:
+                        logger.info(f"角色 {character_name} JSON源数据库为空，无需迁移")
+                        
+                else:
+                    # 从数据库迁移到JSON
+                    try:
+                        # 获取数据库中的所有对话记录
+                        if hasattr(source_db, 'get_recent_conversations'):
+                            # 获取所有对话记录（设置一个很大的limit）
+                            conversations = source_db.get_recent_conversations(limit=10000)
+                            logger.info(f"角色 {character_name} 找到 {len(conversations)} 条数据库记录需要迁移")
+                            
+                            # 迁移每条记录
+                            for conv in conversations:
+                                user_msg = conv.get('user_message', '')
+                                assistant_msg = conv.get('assistant_message', '')
+                                timestamp = conv.get('timestamp', '')
+                                
+                                if user_msg and assistant_msg:
+                                    # 转换timestamp格式
+                                    if hasattr(timestamp, 'isoformat'):
+                                        timestamp = timestamp.isoformat()
+                                    elif isinstance(timestamp, str):
+                                        timestamp = timestamp
+                                    else:
+                                        timestamp = datetime.now().isoformat()
+                                    
+                                    target_db.add_chat_turn(user_msg, assistant_msg, timestamp)
+                                    migrated_records += 1
+                            
+                            # 保存目标数据库
+                            if migrated_records > 0:
+                                target_db.save_to_file()
+                                logger.info(f"角色 {character_name} 迁移完成: {migrated_records} 条记录")
+                            else:
+                                logger.info(f"角色 {character_name} 无有效记录需要迁移")
+                        else:
+                            logger.warning(f"角色 {character_name} 源数据库不支持获取对话记录")
+                            
+                    except Exception as db_error:
+                        logger.error(f"角色 {character_name} 数据库记录读取失败: {db_error}")
+                        traceback.print_exc()
+                
+                # 迁移聊天历史记录
+                try:
+                    history_manager = HistoryManager(config_service.get_app_config()["history_dir"])
+                    old_history_file = os.path.join(history_manager.history_dir, f"{character_name}_history.log")
+                    
+                    if os.path.exists(old_history_file):
+                        # 读取旧的历史记录
+                        old_history = []
+                        with open(old_history_file, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                line = line.strip()
+                                if line:
+                                    try:
+                                        old_history.append(json.loads(line))
+                                    except json.JSONDecodeError:
+                                        continue
+                        
+                        if old_history:
+                            logger.info(f"角色 {character_name} 找到 {len(old_history)} 条历史记录需要迁移")
+                            
+                            # 迁移每条历史记录
+                            for record in old_history:
+                                role = record.get('role')
+                                content = record.get('content')
+                                timestamp = record.get('timestamp')
+                                
+                                if role and content:
+                                    # 保存到新的历史记录管理器
+                                    history_manager.save_message(character_name, role, content)
+                            
+                            logger.info(f"角色 {character_name} 历史记录迁移完成: {len(old_history)} 条记录")
+                        else:
+                            logger.info(f"角色 {character_name} 无历史记录需要迁移")
+                    else:
+                        logger.info(f"角色 {character_name} 无历史记录文件需要迁移")
+                except Exception as history_error:
+                    logger.error(f"角色 {character_name} 历史记录迁移失败: {history_error}")
+                    traceback.print_exc()
+                
+                success_count += 1
+                
+            except Exception as e:
+                logger.error(f"角色 {character_name} 迁移失败: {e}")
+                traceback.print_exc()
+                # 继续迁移其他角色
+                continue
+        
+        logger.info(f"记忆数据迁移完成: {success_count}/{total_count} 个角色迁移成功")
+        
+        # 如果至少有一个角色迁移成功，就认为整体迁移成功
+        return success_count > 0 or total_count == 0
+            
+    except Exception as e:
+        logger.error(f"记忆数据迁移失败: {e}")
+        traceback.print_exc()
+        return False
 
 class MemoryService:
     """记忆服务类"""
     
     def __init__(self):
         """初始化记忆服务"""
-        self.memory_databases: Dict[str, ChatHistoryVectorDB] = {}
-        self.story_databases: Dict[str, ChatHistoryVectorDB] = {}
+        self.memory_databases: Dict[str, Any] = {}
+        self.story_databases: Dict[str, Any] = {}
         self.current_character = None
         self.current_story = None
         self.logger = logging.getLogger("MemoryService")
@@ -49,11 +267,12 @@ class MemoryService:
         """
         try:
             if character_name not in self.memory_databases:
-                # 创建新的记忆数据库
-                memory_db = ChatHistoryVectorDB(RAG_config=get_RAG_config() , character_name=character_name)
+                # 使用工厂函数创建新的记忆数据库
+                memory_db = create_memory_database(character_name, is_story=False)
                 memory_db.initialize_database()
                 self.memory_databases[character_name] = memory_db
-                self.logger.info(f"初始化角色记忆数据库: {character_name}")
+                storage_type = settings_service.get_setting("storage", "type", "json")
+                self.logger.info(f"初始化角色记忆数据库: {character_name} (存储类型: {storage_type})")
             
             self.current_character = character_name
             return True
@@ -63,7 +282,7 @@ class MemoryService:
             self.logger.error(f"初始化角色记忆数据库失败 {character_name}: {e}")
             return False
     
-    def get_current_memory_db(self) -> Optional[ChatHistoryVectorDB]:
+    def get_current_memory_db(self) -> Optional[Any]:
         """
         获取当前角色的记忆数据库
         
@@ -267,11 +486,12 @@ class MemoryService:
         """
         try:
             if story_id not in self.story_databases:
-                # 创建新的故事记忆数据库
-                memory_db = ChatHistoryVectorDB(RAG_config=get_RAG_config(), character_name=story_id, is_story=True)
+                # 使用工厂函数创建新的故事记忆数据库
+                memory_db = create_memory_database(story_id, is_story=True)
                 memory_db.initialize_database()
                 self.story_databases[story_id] = memory_db
-                self.logger.info(f"初始化故事记忆数据库: {story_id}")
+                storage_type = settings_service.get_setting("storage", "type", "json")
+                self.logger.info(f"初始化故事记忆数据库: {story_id} (存储类型: {storage_type})")
             
             self.current_story = story_id
             return True

@@ -63,6 +63,9 @@ fuck-u-code.exe
 # 语音缓存文件
 data/voice_cache.json
 
+# 标记文件
+transfer
+
 # 虚拟环境
 venv/
 ENV/

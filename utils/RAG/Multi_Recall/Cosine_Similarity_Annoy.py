@@ -108,7 +108,8 @@ try:
     from annoy import AnnoyIndex
     import numpy as np
 except ImportError:
-    raise ImportError("annoy 未安装. 无法使用索引向量数据库")
+    logger.info("annoy 未安装. 无法使用索引向量数据库")
+    AnnoyIndex = None
 
 embed_dict = {
     'Model': Embedding_Model,
@@ -122,6 +123,9 @@ class Cosine_Similarity(Retriever):
                  vector_dim: int = 1024,
                  threshold: float = 0.5
                  ):
+        if AnnoyIndex is None:
+            raise ValueError("annoy 未安装. 无法使用索引向量数据库")
+        
         self.vector_dim = vector_dim  # 向量维度
         self.annoy_index = AnnoyIndex(self.vector_dim, 'angular')  # 向量数据库
         self.threshold = threshold

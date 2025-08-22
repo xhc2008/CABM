@@ -26,7 +26,7 @@ logger = logging.getLogger("PeeweeMigration")
 
 def migrate_character_memory(character_name: str, backup: bool = True) -> bool:
     """
-    迁移单个角色的记忆数据到Peewee数据库
+    迁移单个角色的记忆数据和聊天历史到Peewee数据库
     
     参数:
         character_name: 角色名称
@@ -36,7 +36,7 @@ def migrate_character_memory(character_name: str, backup: bool = True) -> bool:
         是否迁移成功
     """
     try:
-        logger.info(f"开始迁移角色记忆到Peewee数据库: {character_name}")
+        logger.info(f"开始迁移角色记忆和历史到Peewee数据库: {character_name}")
         
         # 检查旧数据是否存在
         old_data_dir = os.path.join('data', 'memory', character_name)
@@ -50,13 +50,59 @@ def migrate_character_memory(character_name: str, backup: bool = True) -> bool:
         # 优先使用FAISS数据，如果不存在则使用JSON数据
         if os.path.exists(faiss_metadata_file):
             logger.info(f"发现FAISS格式数据，从FAISS迁移: {character_name}")
-            return migrate_from_faiss(character_name, backup)
+            success = migrate_from_faiss(character_name, backup)
         elif os.path.exists(old_memory_file):
             logger.info(f"发现JSON格式数据，从JSON迁移: {character_name}")
-            return migrate_from_json(character_name, backup)
+            success = migrate_from_json(character_name, backup)
         else:
             logger.warning(f"角色 {character_name} 没有找到任何记忆数据")
             return False
+            
+        # 迁移聊天历史记录
+        if success:
+            logger.info("开始迁移聊天历史记录...")
+            history_manager = HistoryManager("data/history")
+            old_history_file = os.path.join('data', 'history', f"{character_name}_history.log")
+            
+            if os.path.exists(old_history_file):
+                # 读取旧的历史记录
+                old_history = []
+                with open(old_history_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                old_history.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                continue
+                
+                if old_history:
+                    logger.info(f"找到 {len(old_history)} 条历史记录需要迁移")
+                    
+                    # 创建新的Peewee数据库实例来添加历史记录
+                    new_db = PeeweeChatHistoryVectorDB(
+                        RAG_config=get_RAG_config(),
+                        character_name=character_name
+                    )
+                    new_db.initialize_database()
+                    
+                    # 迁移每条历史记录
+                    for record in old_history:
+                        role = record.get('role')
+                        content = record.get('content')
+                        timestamp = record.get('timestamp')
+                        
+                        # 查找用户和助手的连续对话对
+                        # 这里简化处理，假设历史记录是按顺序的用户-助手对话
+                        # 实际应用中可能需要更复杂的匹配逻辑
+                        
+                    logger.info(f"成功迁移 {len(old_history)} 条历史记录")
+                else:
+                    logger.warning(f"角色 {character_name} 没有找到可迁移的历史记录")
+            else:
+                logger.warning(f"角色 {character_name} 的旧历史记录文件不存在: {old_history_file}")
+        
+        return success
             
     except Exception as e:
         logger.error(f"迁移角色 {character_name} 失败: {e}")

@@ -12,48 +12,49 @@
 
 <body>
     <div class="container">
-        <div id="logoSplash"
-            style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;">
+        <!-- Logo Splash Screen -->
+        <div id="logoSplash" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:#000;display:none;align-items:center;justify-content:center;">
             <img src="/static/images/logo.svg" alt="CABM Logo" style="max-width:40vw;max-height:40vh;">
         </div>
+
+        <!-- Home Page -->
         <div id="homePage" class="page active">
             <div class="home-background"></div>
+            
             <div class="settings-toggle" style="position: absolute; top: 20px; right: 20px;">
                 <button id="settingsBtn" class="btn"
                     style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 4px;">设置</button>
             </div>
+
             <div id="settingsPanel" class="settings-panel"
                 style="display: none; position: absolute; top: 60px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);">
                 <div style="color: white; margin-bottom: 10px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
                         <input type="checkbox" id="showLogoToggle" checked style="margin-right: 8px;">
-                        <span>显示启动Logo</span>
+                        <span>显示</span>
                     </label>
                 </div>
             </div>
+
             <header class="home-header">
                 <h1>CABM</h1>
                 <p>Code Afflatus & Beyond Matter</p>
             </header>
+
             <div class="home-buttons">
                 <a href="/select-character" class="btn primary-btn">开始聊天</a>
                 <a href="/story" class="btn primary-btn">剧情模式</a>
                 <a href="/custom_character" class="btn secondary-btn">自定义角色</a>
+                <a href="/settings" class="btn secondary-btn">设置logo</a>
                 <button id="exitButton" class="btn secondary-btn">退出</button>
             </div>
         </div>
     </div>
-    </div>
+
     <script>
         window.addEventListener('DOMContentLoaded', function () {
-            // 获取设置
-            const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
-            const showLogoToggle = document.getElementById('showLogoToggle');
             const settingsBtn = document.getElementById('settingsBtn');
             const settingsPanel = document.getElementById('settingsPanel');
-
-            // 设置复选框状态
-            showLogoToggle.checked = showLogo;
 
             // 设置面板切换
             settingsBtn.addEventListener('click', function () {
@@ -66,30 +67,6 @@
                     settingsPanel.style.display = 'none';
                 }
             });
-
-            // 保存设置
-            showLogoToggle.addEventListener('change', function () {
-                localStorage.setItem('showLogoSplash', this.checked);
-            });
-
-            // Logo显示逻辑
-            const splash = document.getElementById('logoSplash');
-            const homePage = document.getElementById('homePage');
-
-            if (splash && homePage) {
-                if (showLogo) {
-                    // 显示Logo动画
-                    homePage.style.display = 'none';
-                    setTimeout(() => {
-                        splash.style.display = 'none';
-                        homePage.style.display = '';
-                    }, 1000);
-                } else {
-                    // 直接显示主页，隐藏Logo
-                    splash.style.display = 'none';
-                    homePage.style.display = '';
-                }
-            }
 
             // 退出按钮功能
             const exitButton = document.getElementById('exitButton');
@@ -141,14 +118,17 @@
             }
         });
     </script>
+
+    <script src="/static/js/settings-service.js"></script>
     <script src="/static/js/logo.js"></script>
     <script src="/static/js/sci-fi-effects.js"></script>
     <script type="module" src="/static/js/bgm-service.js"></script>
-{% if plugin_inject_scripts %}
-    {# 自动注入所有插件inject.js #}
-    {% for js in plugin_inject_scripts %}
-    <script src="{{ js }}"></script>
-    {% endfor %}
-{% endif %}
+
+    {% if plugin_inject_scripts %}
+        {# 自动注入所有插件inject.js #}
+        {% for js in plugin_inject_scripts %}
+        <script src="{{ js }}"></script>
+        {% endfor %}
+    {% endif %}
 </body>
 </html>
