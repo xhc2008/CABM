@@ -21,3 +21,5 @@ name = "失落"
 name = "疑惑"
 [[moods]]
 name = "惊讶"
+[[moods]]
+name = "自信"
