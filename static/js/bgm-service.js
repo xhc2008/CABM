@@ -13,8 +13,6 @@ class BGMService {
         this.bgmFolder = '/static/bgm/';
         this.currentTrack = null;
         this.tracks = [];
-        this._progressTimer = null;
-        this._startTime = 0;      // 记录开始播放的时间
         this.init();
     }
 
@@ -24,10 +22,6 @@ class BGMService {
         // 2. 加载歌单
         await this.loadTracks();
         console.log('BGM Service (Web Audio) ready:', this.tracks);
-        // 3. 尝试自动播放
-        if (this.tracks.length) {
-            this.playRandom();
-        }
     }
 
     async loadTracks() {
@@ -46,65 +40,27 @@ class BGMService {
         return await this.ctx.decodeAudioData(arrayBuf);
     }
 
-    async playTrack(trackName, startTime = 0) {
-        // 避免重复播放同一首
-        if (this.source) {
-            try { this.source.onended = null; this.source.stop(); } catch (e) {}
-            this.source = null;
-        }
+    async playTrack(trackName) {
+        if (this.source) this.source.stop();   // 停掉上一首
         this.buffer = await this.fetchAndDecode(trackName);
         this.source = this.ctx.createBufferSource();
         this.source.buffer = this.buffer;
-        this.source.loop = false; // 不循环，才能触发 ended
-        // 播放完自动随机下一首
-        this.source.onended = () => {
-            this.isPlaying = false;
-            this._stopProgressSaver();
-            this.playRandom();
-        };
+        this.source.loop = true;
 
         this.gainNode = this.ctx.createGain();
         this.gainNode.gain.value = this.volume;
 
         this.source.connect(this.gainNode).connect(this.ctx.destination);
-        this._startTime = this.ctx.currentTime - startTime;
-        this.source.start(0, startTime);
+        this.source.start();
         this.isPlaying = true;
         this.currentTrack = trackName;
-        this._startProgressSaver();
-        console.log(`Playing BGM: ${trackName} from ${startTime}s`);
-    }
-
-    _startProgressSaver() {
-        if (this._progressTimer) clearInterval(this._progressTimer);
-        this._progressTimer = setInterval(() => {
-            if (this.isPlaying && this.ctx && this.ctx.state === 'running' && this.source && this.buffer) {
-                // 计算当前播放进度（相对于本首歌）
-                const elapsed = this.ctx.currentTime - this._startTime;
-                localStorage.setItem('bgm_progress', JSON.stringify({
-                    track: this.currentTrack,
-                    time: Math.min(elapsed, this.buffer.duration)
-                }));
-            }
-        }, 500);
-    }
-
-    _stopProgressSaver() {
-        if (this._progressTimer) clearInterval(this._progressTimer);
-        this._progressTimer = null;
+        console.log(`Playing BGM: ${trackName}`);
     }
 
     async playRandom() {
         if (!this.tracks.length) return;
-        let nextTrack;
-        if (this.tracks.length === 1) {
-            nextTrack = this.tracks[0];
-        } else {
-            do {
-                nextTrack = this.tracks[Math.floor(Math.random() * this.tracks.length)];
-            } while (nextTrack === this.currentTrack);
-        }
-        await this.playTrack(nextTrack);
+        const r = Math.floor(Math.random() * this.tracks.length);
+        await this.playTrack(this.tracks[r]);
     }
 
     pause() {
@@ -125,7 +81,6 @@ class BGMService {
             this.source.stop();
             this.source = null;
             this.isPlaying = false;
-            this._stopProgressSaver();
         }
     }
 
@@ -153,14 +108,7 @@ window.bgmService = new BGMService();
 // 用户第一次交互后启动 AudioContext
 const unlock = () => {
     window.bgmService.ctx.resume().then(() => {
-        // 尝试恢复进度
-        let progress = null;
-        try {
-            progress = JSON.parse(localStorage.getItem('bgm_progress'));
-        } catch {}
-        if (progress && window.bgmService.tracks.includes(progress.track)) {
-            window.bgmService.playTrack(progress.track, progress.time || 0);
-        } else if (!window.bgmService.isPlaying && window.bgmService.tracks.length) {
+        if (!window.bgmService.isPlaying && window.bgmService.tracks.length) {
             window.bgmService.playRandom();
         }
     });

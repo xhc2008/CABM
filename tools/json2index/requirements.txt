@@ -1,3 +1,0 @@
-gradio
-numpy
-faiss-cpu

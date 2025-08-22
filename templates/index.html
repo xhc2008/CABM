@@ -13,7 +13,7 @@
 <body>
     <div class="container">
         <div id="logoSplash"
-            style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;">
+            style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:#fff;display:flex;align-items:center;justify-content:center;">
             <img src="/static/images/logo.svg" alt="CABM Logo" style="max-width:40vw;max-height:40vh;">
         </div>
         <div id="homePage" class="page active">
@@ -89,55 +89,6 @@
                     splash.style.display = 'none';
                     homePage.style.display = '';
                 }
-            }
-
-            // 退出按钮功能
-            const exitButton = document.getElementById('exitButton');
-            if (exitButton) {
-                exitButton.addEventListener('click', function() {
-                    if (confirm('确定要退出应用吗？')) {
-                        // 调用退出API
-                        fetch('/api/exit', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(response => {
-                            // 检查响应状态
-                            if (response.ok) {
-                                // 尝试解析JSON，如果失败说明服务器已经关闭
-                                return response.json().catch(() => {
-                                    // 服务器关闭时无法解析JSON，这是正常情况
-                                    return { success: true, message: '服务器已关闭' };
-                                });
-                            } else {
-                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                            }
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                // 尝试关闭窗口
-                                window.close();
-                                // 如果无法关闭，提示用户
-                                setTimeout(() => {
-                                    alert('应用已退出，请手动关闭浏览器窗口');
-                                }, 1000);
-                            } else {
-                                alert('退出失败: ' + (data.error || '未知错误'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('退出请求失败:', error);
-                            // 如果是网络错误，可能是服务器已经关闭
-                            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                                alert('应用已退出，请手动关闭浏览器窗口');
-                            } else {
-                                alert('退出失败: ' + error.message);
-                            }
-                        });
-                    }
-                });
             }
         });
     </script>

@@ -437,9 +437,8 @@ class StoryService:
         character_name = character_config.get('name', '角色')
         character_prompt = character_config.get('prompt', character_config.get('description', ''))
         
-        # 构建生成提示词 - 需要传递4个参数：character_name, character_prompt, character_details, seed
-        character_details = character_config.get('description', '')  # 使用角色描述作为详细信息
-        user_prompt = get_story_prompts(character_name, character_prompt, character_details, story_direction)
+        # 构建生成提示词
+        user_prompt = get_story_prompts(character_name, character_prompt, story_direction)
         
         # 获取API配置
         option_config = get_option_config()
@@ -468,7 +467,7 @@ class StoryService:
         try:
             self.logger.info("生成故事内容...")
             response, data = make_api_request(
-                url=url+"/chat/completions",
+                url=url,
                 method="POST",
                 headers=headers,
                 json_data=request_data,
