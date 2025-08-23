@@ -31,13 +31,14 @@ else:
 app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
 app.project_root = project_root
 # 注册蓝图
-register_blueprints(app)
-# app.py
 if not need_config:
     from services.ttsapi_service import ttsService
     app.tts = ttsService()          # 挂到 app 上
 else:
     app.tts = None
+register_blueprints(app)
+# app.py
+
 # MIME 类型
 mimetypes.add_type('text/javascript', '.js')
 mimetypes.add_type('application/javascript', '.mjs')
