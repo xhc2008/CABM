@@ -2,6 +2,11 @@ from .Retriever import *
 from typing import List, Literal, Dict, Union
 import traceback
 import os
+from dotenv import load_dotenv
+
+# 加载.env文件中的环境变量
+load_dotenv()
+
 try:
     import torch
     from transformers import AutoTokenizer, AutoModel
@@ -69,6 +74,8 @@ try:
             self.base_url = base_url
             self.api_key = api_key
             self.model = model
+            if not self.api_key:
+                raise ValueError("API key is missing. Please set the EMBEDDING_API_KEY environment variable.")
             self.client = OpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url
@@ -204,9 +211,6 @@ if __name__ == "__main__":
     # print(time.time() - star)
     
     # 测试embeddingAPI
-    # from dotenv import load_dotenv
-    # import os
-    # load_dotenv()
     # embedding = Embedding_API(api_key=os.getenv("EMBEDDING_API_KEY"), base_url=os.getenv("EMBEDDING_API_BASE_URL"), model=os.getenv("EMBEDDING_MODEL"))
     # star = time.time()
     # print(embedding(["你好"]))

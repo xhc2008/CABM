@@ -73,8 +73,23 @@ mimetypes.add_type('application/javascript', '.mjs')
 from utils.plugin import load_plugins, apply_backend_hooks, apply_frontend_hooks
 plugin_folder = str(Path(__file__).resolve().parent / 'utils' / 'plugin')
 load_plugins(plugin_folder)
+
+# 创建一个用于注册插件静态文件的函数
+def register_plugin_static(route, path):
+    # 为插件静态文件创建路由
+    def serve_plugin_static():
+        import os
+        from flask import send_file
+        if os.path.exists(path):
+            return send_file(path)
+        else:
+            from flask import abort
+            abort(404)
+    
+    app.add_url_rule(route, endpoint=route, view_func=serve_plugin_static)
+
 apply_backend_hooks(app)
-apply_frontend_hooks(lambda route, path: None)
+apply_frontend_hooks(register_plugin_static)
 
 # 注册各功能蓝图
 from routes.chat_routes import chat_bp

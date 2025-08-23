@@ -66,14 +66,27 @@ def load_plugins(plugin_folder: str):
 	自动加载指定目录下的插件（需为模块/包）。
 	"""
 
+	# 读取插件管理器的禁用插件列表
+	disabled_plugins = set()
+	try:
+		plugin_manager_config = os.path.join(plugin_folder, 'plugin_manager', 'disabled_plugins.json')
+		if os.path.exists(plugin_manager_config):
+			import json
+			with open(plugin_manager_config, 'r', encoding='utf-8') as f:
+				disabled_plugins = set(json.load(f))
+	except Exception as e:
+		logger.error(f"读取禁用插件列表失败: {e}")
+
 	sys.path.insert(0, plugin_folder)
 	for fname in os.listdir(plugin_folder):
-		# 跳过以.nl结尾的插件目录，并输出日志
+		# 跳过以_开头的文件/目录
 		full_path = os.path.join(plugin_folder, fname)
 		if fname.startswith("_") or not (fname.endswith(".py") or os.path.isdir(full_path)):
 			continue
-		if fname.endswith('.nl') and os.path.isdir(full_path):
-			logger.info(f"跳过插件目录（以.nl结尾）: {fname}")
+		# 检查是否在禁用列表中（处理.nl后缀）
+		clean_fname = fname.rstrip('.nl') if fname.endswith('.nl') else fname
+		if clean_fname in disabled_plugins:
+			logger.info(f"跳过被禁用的插件: {fname}")
 			continue
 		mod_name = fname[:-3] if fname.endswith(".py") else fname
 		try:

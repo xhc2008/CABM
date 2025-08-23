@@ -57,4 +57,20 @@ def home():
     need_config = not config_service.initialize()
     if need_config:
         return render_template('config.html')
-    return render_template('index.html')
+    
+    # 收集插件注入脚本
+    plugin_inject_scripts = []
+    try:
+        import os
+        static_plugin_root = os.path.join(os.path.dirname(__file__), '..', 'static', 'plugin')
+        if os.path.exists(static_plugin_root):
+            for plugin_name in os.listdir(static_plugin_root):
+                plugin_dir = os.path.join(static_plugin_root, plugin_name)
+                if os.path.isdir(plugin_dir):
+                    inject_js = os.path.join(plugin_dir, 'inject.js')
+                    if os.path.exists(inject_js):
+                        plugin_inject_scripts.append(f'/static/plugin/{plugin_name}/inject.js')
+    except Exception as e:
+        print(f"收集插件注入脚本时出错: {e}")
+    
+    return render_template('index.html', plugin_inject_scripts=plugin_inject_scripts)

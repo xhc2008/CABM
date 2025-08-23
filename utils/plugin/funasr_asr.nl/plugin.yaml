@@ -1,0 +1,5 @@
+name: FunASR语音识别
+id: funasr_asr
+description: 基于FunASR的语音识别插件，支持多种语音格式的转录
+version: 1.0.0
+author: CABM

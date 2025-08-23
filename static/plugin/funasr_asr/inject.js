@@ -118,6 +118,10 @@
                   if (data.text) {
                     messageInput.value += data.text;
                     messageInput.focus();
+                    // FunASR 语音识别后更新字数统计
+                    if (window.inputEnhancements && typeof window.inputEnhancements.updateCharCount === 'function') {
+                      window.inputEnhancements.updateCharCount();
+                    }
                   }
                 })
                 .catch((err) => console.error('上传失败', err));

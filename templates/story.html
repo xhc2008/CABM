@@ -792,6 +792,12 @@
         <div class="creating-message">创建中，这需要一些时间，请耐心等待...</div>
     </div>
     <script type="module" src="/static/js/bgm-service.js"></script>
+    {% if plugin_inject_scripts %}
+        {# 自动注入所有插件inject.js #}
+        {% for js in plugin_inject_scripts %}
+        <script src="{{ js }}"></script>
+        {% endfor %}
+    {% endif %}
 </body>
 
 </html>

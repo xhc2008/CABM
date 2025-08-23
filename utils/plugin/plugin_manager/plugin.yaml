@@ -1,0 +1,5 @@
+name: Plugin Manager
+id: plugin_manager
+description: 插件管理系统，用于查看和管理所有已安装的插件
+version: 1.0.0
+author: CABM

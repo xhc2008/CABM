@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, jsonify, request
+from services.chat_service import chat_service
+from utils.plugin_utils import get_plugin_inject_scripts
 import traceback
 from services.settings_service import settings_service
 from services.memory_service import migrate_memory_data
@@ -8,7 +10,8 @@ settings_bp = Blueprint('settings', __name__)
 @settings_bp.route('/settings')
 def settings_page():
     """设置页面"""
-    return render_template('settings.html')
+    plugin_inject_scripts = get_plugin_inject_scripts()
+    return render_template('settings.html', plugin_inject_scripts=plugin_inject_scripts)
 
 @settings_bp.route('/api/settings', methods=['GET'])
 def get_settings():

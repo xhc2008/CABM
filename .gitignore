@@ -93,6 +93,7 @@ static/images/cache/
 .DS_Store
 Thumbs.db
 utils/RAG/Retriever.py
+static/plugin/*
 
 # Docker相关
 .env.docker

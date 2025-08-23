@@ -8,6 +8,7 @@ from pydub import AudioSegment
 from services.character_details_service import character_details_service
 from utils.env_utils import get_env_var
 from services.chat_service import chat_service
+from utils.plugin_utils import get_plugin_inject_scripts
 from services.config_service import config_service
 
 character_bp = Blueprint('character', __name__)
@@ -81,11 +82,13 @@ def select_character_page():
                 "last_sentence_short": short
             })
         character_items.sort(key=lambda x: x["mtime"], reverse=True)
-        return render_template('select_character.html', characters=character_items)
+        plugin_inject_scripts = get_plugin_inject_scripts()
+        return render_template('select_character.html', characters=character_items, plugin_inject_scripts=plugin_inject_scripts)
     except Exception as e:
         print(f"加载角色选择页面失败: {e}")
         traceback.print_exc()
-        return render_template('select_character.html', characters=[])
+        plugin_inject_scripts = get_plugin_inject_scripts()
+        return render_template('select_character.html', characters=[], plugin_inject_scripts=plugin_inject_scripts)
 
 @character_bp.route('/api/characters', methods=['GET'])
 def list_characters():
@@ -188,7 +191,8 @@ def check_character_exists(character_id):
 @character_bp.route('/custom_character')
 def custom_character_page():
     """自定义角色页面"""
-    return render_template('custom_character.html')
+    plugin_inject_scripts = get_plugin_inject_scripts()
+    return render_template('custom_character.html', plugin_inject_scripts=plugin_inject_scripts)
 
 @character_bp.route('/api/custom-character', methods=['POST'])
 def create_custom_character():

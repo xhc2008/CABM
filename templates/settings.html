@@ -271,5 +271,11 @@
 <script src="/static/js/settings-service.js"></script>
 <script src="/static/js/logo.js"></script>
 <script src="/static/js/sci-fi-effects.js"></script>
+{% if plugin_inject_scripts %}
+    {# 自动注入所有插件inject.js #}
+    {% for js in plugin_inject_scripts %}
+    <script src="{{ js }}"></script>
+    {% endfor %}
+{% endif %}
 </body>
 </html>

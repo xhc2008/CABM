@@ -1,13 +1,17 @@
-from flask import Blueprint, render_template, request, jsonify, Response, current_app
+from flask import Blueprint, jsonify, request, render_template, current_app
 import traceback
 import json
-import re
 import os
+import re
+from pathlib import Path
+from io import BytesIO
+from pydub import AudioSegment
+from services.scene_service import scene_service
 from services.chat_service import chat_service
 from services.image_service import image_service
-from services.scene_service import scene_service
 from services.option_service import option_service
-from utils.api_utils import APIError
+from config import get_app_config
+from utils.plugin_utils import get_plugin_inject_scripts
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -43,13 +47,9 @@ def chat_page():
     scene_data = current_scene.to_dict() if current_scene else None
     show_scene_name = True
     last_sentence = ""
-    try:
-        current_character = chat_service.get_character_config()
-        if current_character and "id" in current_character:
-            last_sentence = ""  # 可调用工具函数
-    except Exception:
-        pass
-    plugin_inject_scripts = []
+    # 收集插件注入脚本
+    plugin_inject_scripts = get_plugin_inject_scripts()
+    
     return render_template(
         'chat.html',
         background_url=background_url,

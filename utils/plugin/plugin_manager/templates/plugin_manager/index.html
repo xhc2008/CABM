@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>插件管理器</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <style>
+        /* 页面布局优化 */
+        .page-container {
+            min-height: 100vh;
+            position: relative;
+            padding: 20px;
+        }
+        
+        /* 返回按钮优化 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        .back-btn .btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .back-btn .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        /* 头部区域优化 */
+        .header {
+            padding-top: 80px;
+            padding-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        /* 插件卡片优化 */
+        .plugin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            padding: 20px 0;
+        }
+        
+        .plugin-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .plugin-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        /* 插件头部优化 */
+        .plugin-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .plugin-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-right: 20px;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .plugin-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        
+        .plugin-title {
+            margin: 0 0 8px 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .plugin-id {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+        
+        .plugin-description {
+            margin: 0 0 20px 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        /* 插件元信息优化 */
+        .plugin-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .meta-item {
+            text-align: center;
+        }
+        
+        .meta-label {
+            display: block;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+        }
+        
+        .meta-value {
+            display: block;
+            font-size: 0.9rem;
+            color: white;
+            font-weight: 500;
+        }
+        
+        /* 作者信息优化 */
+        .plugin-author {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 20px;
+        }
+        
+        .plugin-author i {
+            margin-right: 8px;
+        }
+        
+        /* 操作区域优化 */
+        .plugin-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .plugin-status {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .status-enabled {
+            color: #4CAF50;
+        }
+        
+        .status-disabled {
+            color: #f44336;
+        }
+        
+        /* 开关优化 */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 55px;
+            height: 28px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(27px);
+        }
+        
+        /* 加载状态优化 */
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60vh;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        /* 空状态优化 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .empty-state h4 {
+            margin-bottom: 15px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* 响应式优化 */
+        @media (max-width: 768px) {
+            .plugin-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h2 {
+                font-size: 2rem;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+            
+            .plugin-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .plugin-icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header {
+                padding-top: 60px;
+            }
+            
+            .plugin-card {
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="back-btn">
+            <a href="/" class="btn">
+                <i class="bi bi-arrow-left"></i> 返回首页
+            </a>
+        </div>
+        
+        <div class="home-background"></div>
+        
+        <div class="header">
+            <h2>插件管理器</h2>
+            <p>管理和配置您的插件</p>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="refreshBtn">
+                    <i class="bi bi-arrow-repeat"></i> 刷新列表
+                </button>
+            </div>
+        </div>
+        
+        <div class="plugin-grid" id="pluginsContainer">
+            <!-- 插件列表将通过JavaScript动态加载 -->
+            <div class="loading-container">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script>
+        // 页面加载完成后获取插件列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlugins();
+            
+            // 刷新按钮事件
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                loadPlugins();
+            });
+        });
+        
+        // 加载插件列表
+        function loadPlugins() {
+            const container = document.getElementById('pluginsContainer');
+            container.innerHTML = '<div class="loading-container"><div class="spinner-border" role="status"><span class="visually-hidden">加载中...</span></div></div>';
+            
+            fetch('/plugin-manager/api/plugins')
+                .then(response => response.json())
+                .then(plugins => {
+                    if (plugins.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="bi bi-plug"></i>
+                                <h4>暂无插件</h4>
+                                <p>当前没有安装任何插件</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    let html = '';
+                    plugins.forEach(plugin => {
+                        const isEnabled = !plugin.disabled;
+                        html += `
+                            <div class="plugin-card" data-plugin-id="${plugin.id}">
+                                <div class="card-body">
+                                    <div class="plugin-header">
+                                        <div class="plugin-icon">
+                                            <i class="bi bi-${isEnabled ? 'plug-fill' : 'plug'}"></i>
+                                        </div>
+                                        <div class="plugin-info">
+                                            <h3 class="plugin-title">${plugin.name}</h3>
+                                            <span class="plugin-id">${plugin.id}</span>
+                                            <p class="plugin-description">${plugin.description || '暂无描述'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="plugin-meta">
+                                        <div class="meta-item">
+                                            <span class="meta-label">版本</span>
+                                            <span class="meta-value">${plugin.version || 'N/A'}</span>
+                                        </div>
+                                        <div class="meta-item">
+                                            <span class="meta-label">状态</span>
+                                            <span class="meta-value">${isEnabled ? '启用' : '禁用'}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="plugin-author">
+                                        <i class="bi bi-person"></i> ${plugin.author || '未知作者'}
+                                    </div>
+                                    
+                                    <div class="plugin-actions">
+                                        <span class="plugin-status ${isEnabled ? 'status-enabled' : 'status-disabled'}">
+                                            <i class="bi bi-${isEnabled ? 'check-circle-fill' : 'x-circle-fill'}"></i>
+                                            ${isEnabled ? '已启用' : '已禁用'}
+                                        </span>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" ${isEnabled ? 'checked' : ''} 
+                                                   onchange="togglePlugin('${plugin.id}', this.checked)">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('加载插件列表失败:', error);
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <h4>加载失败</h4>
+                            <p>无法获取插件列表，请刷新重试</p>
+                            <button class="btn btn-primary mt-3" onclick="loadPlugins()">
+                                <i class="bi bi-arrow-repeat"></i> 重新加载
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+        
+        // 切换插件启用/禁用状态
+        function togglePlugin(pluginId, isEnabled) {
+            // 发送请求到后端API
+            fetch('/plugin-manager/api/plugins/' + pluginId + '/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ enabled: isEnabled })
+                
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(`插件 ${pluginId} 状态切换成功`);
+                    // 更新UI状态
+                    const card = event.target.closest('.plugin-card');
+                    if (card) {
+                        const statusElement = card.querySelector('.plugin-status');
+                        const iconElement = card.querySelector('.plugin-header .bi');
+                        const statusIcon = card.querySelector('.plugin-actions .bi');
+                        
+                        if (statusElement) {
+                            statusElement.innerHTML = ` <i class="bi bi-${isEnabled ? 'check-circle-fill' : 'x-circle-fill'}"></i> ${isEnabled ? '已启用' : '已禁用'}`;
+                            statusElement.className = 'plugin-status ' + (isEnabled ? 'status-enabled' : 'status-disabled');
+                        }
+                        if (iconElement) {
+                            iconElement.className = 'bi bi-' + (isEnabled ? 'plug-fill' : 'plug');
+                        }
+                        if (statusIcon) {
+                            statusIcon.className = 'bi bi-' + (isEnabled ? 'check-circle-fill' : 'x-circle-fill');
+                        }
+                    }
+                    
+                    // 提示用户操作成功
+                    alert(data.message);
+                    
+                    // 重新加载插件列表以确保状态一致
+                    setTimeout(loadPlugins, 1000);
+                } else {
+                    // 如果切换失败，恢复原来的状态
+                    event.target.checked = !isEnabled;
+                    // 更新UI状态回原来的状态
+                    const card = event.target.closest('.plugin-card');
+                    if (card) {
+                        const statusElement = card.querySelector('.plugin-status');
+                        const iconElement = card.querySelector('.plugin-header .bi');
+                        const statusIcon = card.querySelector('.plugin-actions .bi');
+                        
+                        if (statusElement) {
+                            statusElement.innerHTML = ` <i class="bi bi-${!isEnabled ? 'check-circle-fill' : 'x-circle-fill'}"></i> ${!isEnabled ? '已启用' : '已禁用'}`;
+                            statusElement.className = 'plugin-status ' + (!isEnabled ? 'status-enabled' : 'status-disabled');
+                        }
+                        if (iconElement) {
+                            iconElement.className = 'bi bi-' + (!isEnabled ? 'plug-fill' : 'plug');
+                        }
+                        if (statusIcon) {
+                            statusIcon.className = 'bi bi-' + (!isEnabled ? 'check-circle-fill' : 'x-circle-fill');
+                        }
+                    }
+                    alert('操作失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('切换插件状态失败:', error);
+                // 如果切换失败，恢复原来的状态
+                event.target.checked = !isEnabled;
+                // 更新UI状态回原来的状态
+                const card = event.target.closest('.plugin-card');
+                if (card) {
+                    const statusElement = card.querySelector('.plugin-status');
+                    const iconElement = card.querySelector('.plugin-header .bi');
+                    const statusIcon = card.querySelector('.plugin-actions .bi');
+                    
+                    if (statusElement) {
+                        statusElement.innerHTML = ` <i class="bi bi-${!isEnabled ? 'check-circle-fill' : 'x-circle-fill'}"></i> ${!isEnabled ? '已启用' : '已禁用'}`;
+                        statusElement.className = 'plugin-status ' + (!isEnabled ? 'status-enabled' : 'status-disabled');
+                    }
+                    if (iconElement) {
+                        iconElement.className = 'bi bi-' + (!isEnabled ? 'plug-fill' : 'plug');
+                    }
+                    if (statusIcon) {
+                        statusIcon.className = 'bi bi-' + (!isEnabled ? 'check-circle-fill' : 'x-circle-fill');
+                    }
+                }
+                alert('操作失败: ' + error.message);
+            });
+            alert('应用成功，重启后生效！');
+        }
+    </script>
+</body>
+</html>

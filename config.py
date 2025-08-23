@@ -62,7 +62,7 @@ RAG_CONFIG = {
             'embed_func': 'API',
             'embed_kwds': {
                 'base_url': 'https://api.siliconflow.cn/v1',  # 嵌入模型的url地址
-                'api_key': os.getenv("MEMORY_API_KEY"),
+                'api_key': os.getenv("EMBEDDING_API_KEY"),
                 'model': 'BAAI/bge-m3'
             },
             
@@ -79,7 +79,7 @@ RAG_CONFIG = {
         'reranker_func': 'API',
         'reranker_kwds': {
             'base_url': 'https://api.siliconflow.cn/v1',
-            'api_key': os.getenv("MEMORY_API_KEY"),
+            'api_key': os.getenv("EMBEDDING_API_KEY"),
             'model': 'netease-youdao/bce-reranker-base_v1'
         }
     }

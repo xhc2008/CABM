@@ -8,12 +8,14 @@ from services.image_service import image_service
 from services.config_service import config_service
 from services.option_service import option_service
 from pathlib import Path
+from utils.plugin_utils import get_plugin_inject_scripts
 
 story_bp = Blueprint('story', __name__)
 
 @story_bp.route('/story')
 def story_page():
-    return render_template('story.html')
+    plugin_inject_scripts = get_plugin_inject_scripts()
+    return render_template('story.html', plugin_inject_scripts=plugin_inject_scripts)
 
 @story_bp.route('/story/<story_id>')
 def story_chat_page(story_id):
