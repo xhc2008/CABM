@@ -176,7 +176,18 @@
             </div>
         </div>
 
-        
+        <!-- Logo配置 -->
+        <div class="settings-card">
+            <h2>Logo配置</h2>
+            <div class="form-group">
+                <label for="show_logo">显示启动Logo</label>
+                <select class="form-control" id="show_logo" name="show_logo">
+                    <option value="true">显示</option>
+                    <option value="false">隐藏</option>
+                </select>
+                <div class="form-text">控制应用启动时是否显示CABM Logo动画</div>
+            </div>
+        </div>
 
         <button type="submit" class="btn">保存设置 请勿重复点击 点击后请耐心等待10秒</button>
     </form>
@@ -188,20 +199,22 @@
         fetch('/api/settings')
             .then(response => response.json())
             .then(data => {
-                // 填充表单数据
-                document.getElementById('storage_type').value = data.storage?.type || 'json';
-                document.getElementById('bgm_volume').value = data.audio?.bgm_volume || 0.5;
-                document.getElementById('volume_value').textContent = data.audio?.bgm_volume || 0.5;
-                document.getElementById('bgm_enabled').value = data.audio?.bgm_enabled ? 'true' : 'false';
-            })
-            .catch(error => {
-                console.error('获取设置失败:', error);
-                // 使用默认值
-                document.getElementById('storage_type').value = 'json';
-                document.getElementById('bgm_volume').value = 0.5;
-                document.getElementById('volume_value').textContent = '0.5';
-                document.getElementById('bgm_enabled').value = 'true';
-            });
+            // 填充表单数据
+            document.getElementById('storage_type').value = data.storage?.type || 'json';
+            document.getElementById('bgm_volume').value = data.audio?.bgm_volume || 0.5;
+            document.getElementById('volume_value').textContent = data.audio?.bgm_volume || 0.5;
+            document.getElementById('bgm_enabled').value = data.audio?.bgm_enabled ? 'true' : 'false';
+            document.getElementById('show_logo').value = data.ui?.show_logo !== false ? 'true' : 'false';
+        })
+        .catch(error => {
+            console.error('获取设置失败:', error);
+            // 使用默认值
+            document.getElementById('storage_type').value = 'json';
+            document.getElementById('bgm_volume').value = 0.5;
+            document.getElementById('volume_value').textContent = '0.5';
+            document.getElementById('bgm_enabled').value = 'true';
+            document.getElementById('show_logo').value = 'true';
+        });
         
         // 音量滑块事件监听
         document.getElementById('bgm_volume').addEventListener('input', function() {
@@ -221,6 +234,9 @@
             audio: {
                 bgm_volume: parseFloat(document.getElementById('bgm_volume').value),
                 bgm_enabled: document.getElementById('bgm_enabled').value === 'true'
+            },
+            ui: {
+                show_logo: document.getElementById('show_logo').value === 'true'
             }
         };
         

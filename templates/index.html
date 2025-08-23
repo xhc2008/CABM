@@ -8,6 +8,41 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
     <link rel="stylesheet" href="/static/css/continue-prompt.css">
+    <style>
+        /* 修复设置按钮样式，避免科幻效果 */
+        .settings-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .settings-toggle .btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: visible;
+        }
+
+        .settings-toggle .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .settings-toggle .btn::before,
+        .settings-toggle .btn::after {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -21,19 +56,8 @@
         <div id="homePage" class="page active">
             <div class="home-background"></div>
             
-            <div class="settings-toggle" style="position: absolute; top: 20px; right: 20px;">
-                <button id="settingsBtn" class="btn"
-                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 4px;">设置</button>
-            </div>
-
-            <div id="settingsPanel" class="settings-panel"
-                style="display: none; position: absolute; top: 60px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);">
-                <div style="color: white; margin-bottom: 10px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="showLogoToggle" checked style="margin-right: 8px;">
-                        <span>显示</span>
-                    </label>
-                </div>
+            <div class="settings-toggle">
+                <a href="/settings" class="btn">设置</a>
             </div>
 
             <header class="home-header">
@@ -45,7 +69,6 @@
                 <a href="/select-character" class="btn primary-btn">开始聊天</a>
                 <a href="/story" class="btn primary-btn">剧情模式</a>
                 <a href="/custom_character" class="btn secondary-btn">自定义角色</a>
-                <a href="/settings" class="btn secondary-btn">设置logo</a>
                 <button id="exitButton" class="btn secondary-btn">退出</button>
             </div>
         </div>
@@ -53,21 +76,6 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', function () {
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsPanel = document.getElementById('settingsPanel');
-
-            // 设置面板切换
-            settingsBtn.addEventListener('click', function () {
-                settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
-            });
-
-            // 点击其他地方关闭设置面板
-            document.addEventListener('click', function (e) {
-                if (!settingsBtn.contains(e.target) && !settingsPanel.contains(e.target)) {
-                    settingsPanel.style.display = 'none';
-                }
-            });
-
             // 退出按钮功能
             const exitButton = document.getElementById('exitButton');
             if (exitButton) {
