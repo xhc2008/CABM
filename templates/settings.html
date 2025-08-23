@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - CABM</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <link rel="stylesheet" href="/static/css/continue-prompt.css">
+    <style>
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+        
+        .settings-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            background: rgba(0, 30, 60, 0.3);
+            border-radius: 8px;
+            border-left: 3px solid rgba(0, 255, 255, 0.5);
+        }
+        
+        .settings-section:last-child {
+            border-bottom: none;
+        }
+        
+        .settings-section h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            color: #fff;
+        }
+        
+        .setting-item label {
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .setting-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        
+        .settings-scrollable {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .settings-scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .settings-scrollable::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .settings-scrollable::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        .settings-scrollable::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="home-background"></div>
+        
+        <a href="/" class="btn secondary-btn back-button">返回主页</a>
+        
+        <div class="settings-container">
+            <h1 style="text-align: center; color: #00ffff; margin-bottom: 30px; text-shadow: 0 0 20px rgba(0, 255, 255, 0.8); font-size: 2.5em;">设置</h1>
+            
+            <div class="settings-scrollable">
+                <div class="settings-section">
+                    <h3>界面设置</h3>
+                    <div class="setting-item">
+                        <label for="showLogoToggle">
+                            <input type="checkbox" id="showLogoToggle">
+                            <span>显示启动Logo</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 预留更多设置区域 -->
+                <div class="settings-section" style="opacity: 0.5;">
+                    <h3>音频设置</h3>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" disabled>
+                            <span>启用背景音乐 (占位)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-section" style="opacity: 0.5;">
+                    <h3>聊天设置</h3>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" disabled>
+                            <span>自动保存聊天记录 (占位)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-section" style="opacity: 0.5;">
+                    <h3>主题设置</h3>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" disabled>
+                            <span>深色模式 (占位)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 加载保存的设置
+        document.addEventListener('DOMContentLoaded', function() {
+            const showLogoToggle = document.getElementById('showLogoToggle');
+            
+            // 从localStorage加载设置
+            const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
+            showLogoToggle.checked = showLogo;
+            
+            // 保存设置
+            showLogoToggle.addEventListener('change', function() {
+                localStorage.setItem('showLogoSplash', this.checked);
+            });
+        });
+    </script>
+    
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script type="module" src="/static/js/bgm-service.js"></script>
+</body>
+</html>

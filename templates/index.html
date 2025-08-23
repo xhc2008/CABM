@@ -19,17 +19,8 @@
         <div id="homePage" class="page active">
             <div class="home-background"></div>
             <div class="settings-toggle" style="position: absolute; top: 20px; right: 20px;">
-                <button id="settingsBtn" class="btn"
-                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 4px;">设置</button>
-            </div>
-            <div id="settingsPanel" class="settings-panel"
-                style="display: none; position: absolute; top: 60px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);">
-                <div style="color: white; margin-bottom: 10px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="showLogoToggle" checked style="margin-right: 8px;">
-                        <span>显示启动Logo</span>
-                    </label>
-                </div>
+                <a href="/settings" class="btn"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 4px; text-decoration: none; position: relative; overflow: visible;">设置</a>
             </div>
             <header class="home-header">
                 <h1>CABM</h1>
@@ -48,29 +39,6 @@
         window.addEventListener('DOMContentLoaded', function () {
             // 获取设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
-            const showLogoToggle = document.getElementById('showLogoToggle');
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsPanel = document.getElementById('settingsPanel');
-
-            // 设置复选框状态
-            showLogoToggle.checked = showLogo;
-
-            // 设置面板切换
-            settingsBtn.addEventListener('click', function () {
-                settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
-            });
-
-            // 点击其他地方关闭设置面板
-            document.addEventListener('click', function (e) {
-                if (!settingsBtn.contains(e.target) && !settingsPanel.contains(e.target)) {
-                    settingsPanel.style.display = 'none';
-                }
-            });
-
-            // 保存设置
-            showLogoToggle.addEventListener('change', function () {
-                localStorage.setItem('showLogoSplash', this.checked);
-            });
 
             // Logo显示逻辑
             const splash = document.getElementById('logoSplash');
