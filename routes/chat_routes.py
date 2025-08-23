@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, render_template, current_app
+from flask import Blueprint, jsonify, request, render_template, current_app, Response
 import traceback
 import json
 import os
@@ -10,6 +10,7 @@ from services.scene_service import scene_service
 from services.chat_service import chat_service
 from services.image_service import image_service
 from services.option_service import option_service
+from utils.api_utils import APIError
 from config import get_app_config
 from utils.plugin_utils import get_plugin_inject_scripts
 

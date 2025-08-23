@@ -71,6 +71,15 @@ mimetypes.add_type('application/javascript', '.mjs')
 
 # 加载并注册插件后端路由和前端资源
 from utils.plugin import load_plugins, apply_backend_hooks, apply_frontend_hooks
+import os
+import shutil
+
+# 在加载插件之前，清理静态插件目录
+static_plugin_dir = os.path.join(os.path.dirname(__file__), 'static', 'plugin')
+if os.path.exists(static_plugin_dir):
+    shutil.rmtree(static_plugin_dir)
+os.makedirs(static_plugin_dir, exist_ok=True)
+
 plugin_folder = str(Path(__file__).resolve().parent / 'utils' / 'plugin')
 load_plugins(plugin_folder)
 

@@ -27,13 +27,15 @@ class CharacterDetailsService:
         self.details_databases: Dict[str, ChatHistoryVectorDB] = {}
         self.logger = logging.getLogger("CharacterDetailsService")
         
-        # 设置日志格式
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        # 只在根日志记录器没有配置时才添加处理器
+        root_logger = logging.getLogger()
+        if not root_logger.handlers:
+            if not self.logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                self.logger.setLevel(logging.INFO)
     
     def initialize_character_details(self, character_id: str) -> bool:
         """
@@ -246,12 +248,16 @@ class CharacterDetailsVectorDB(ChatHistoryVectorDB):
         
         # 更新日志器名称
         self.logger = logging.getLogger(f"CharacterDetailsDB_{character_id}")
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        
+        # 只在根日志记录器没有配置时才添加处理器
+        root_logger = logging.getLogger()
+        if not root_logger.handlers:
+            if not self.logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                self.logger.setLevel(logging.INFO)
     
     def save_to_file(self, file_path: str = None):
         """

@@ -8,12 +8,16 @@ import traceback
 class Retriever:
     def __init__(self, config: dict):
         self.logger = logging.getLogger(f"Retriever")
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        
+        # 只在根日志记录器没有配置时才添加处理器
+        root_logger = logging.getLogger()
+        if not root_logger.handlers:
+            if not self.logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                self.logger.setLevel(logging.INFO)
             
         self.config = config
 

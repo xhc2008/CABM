@@ -247,13 +247,16 @@ class MemoryService:
         self.current_story = None
         self.logger = logging.getLogger("MemoryService")
         
-        # 设置日志格式
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        # 只在根日志记录器没有配置时才添加处理器
+        # 如果根日志记录器已经有处理器，就不要重复添加
+        root_logger = logging.getLogger()
+        if not root_logger.handlers:
+            if not self.logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                self.logger.setLevel(logging.INFO)
     
     def initialize_character_memory(self, character_name: str) -> bool:
         """

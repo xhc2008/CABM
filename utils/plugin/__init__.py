@@ -30,7 +30,6 @@ import shutil
 from typing import Callable, List, Dict, Any
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 PLUGIN_REGISTRY: Dict[str, 'BasePlugin'] = {}

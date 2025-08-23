@@ -48,12 +48,16 @@ class ChatHistoryVectorDB:
         
         # 设置日志
         self.logger = logging.getLogger(f"MemoryDB_{character_name}")
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        
+        # 只在根日志记录器没有配置时才添加处理器
+        root_logger = logging.getLogger()
+        if not root_logger.handlers:
+            if not self.logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                self.logger.setLevel(logging.INFO)
         
         # 确保数据目录存在，并为每个角色创建独立的文件夹
         self.memory_dir = os.path.join("data", "memory", character_name)
