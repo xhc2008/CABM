@@ -187,16 +187,12 @@ def get_character_images(character_id):
 
 @bp.route('/api/custom-character', methods=['POST'])
 def create_custom_character():
+    """创建自定义角色API"""
     try:
-        # 由于代码较长，与原 app.py 保持一致，这里直接复用原实现
-        # 实际项目中可再拆 service 层，这里保持与旧逻辑一致
         import rtoml
         from utils.env_utils import get_env_var
-        from pydub import AudioSegment
-        import shutil
-        import uuid
-        import tempfile
 
+        # 获取表单数据
         character_id = request.form.get('characterId')
         character_name = request.form.get('characterName')
         character_english_name = request.form.get('characterEnglishName', '')
@@ -205,92 +201,319 @@ def create_custom_character():
         scale_rate = request.form.get('scaleRate', '100')
         character_intro = request.form.get('characterIntro')
         character_description = request.form.get('characterDescription')
+        
+        # 获取头像文件
         avatar_image = request.files.get('avatarImage')
+        
+        # 获取角色详细信息文件
         detail_files = request.files.getlist('characterDetails')
+        
+        # 验证必填字段
+        if not all([character_id, character_name, theme_color, character_intro, character_description]):
+            return jsonify({
+                'success': False,
+                'error': '缺少必填字段'
+            }), 400
+        
+        # 验证头像
+        if not avatar_image or not avatar_image.filename:
+            return jsonify({
+                'success': False,
+                'error': '必须上传角色头像'
+            }), 400
+        
+        # 验证角色ID格式
+        if not re.match(r'^[a-zA-Z0-9_]+$', character_id):
+            return jsonify({
+                'success': False,
+                'error': '角色ID格式不正确'
+            }), 400
+        
+        # 验证颜色格式
+        if not re.match(r'^#[0-9A-F]{6}$', theme_color, re.IGNORECASE):
+            return jsonify({
+                'success': False,
+                'error': '主题颜色格式不正确'
+            }), 400
+        
+        # 验证立绘校准范围
+        try:
+            offset = int(image_offset)
+            if offset < -100 or offset > 100:
+                raise ValueError()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': '角色立绘校准必须是-100到100之间的整数'
+            }), 400
+
+        # 验证缩放率范围
+        try:
+            scale = int(scale_rate)
+            if scale < 1 or scale > 300:
+                raise ValueError()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': '立绘缩放率必须是1到300之间的整数'
+            }), 400
+        
+        # 处理心情数据
         mood_names = request.form.getlist('mood_name[]')
         mood_images = request.files.getlist('mood_image[]')
         mood_audios = request.files.getlist('mood_audio[]')
         mood_ref_texts = request.form.getlist('mood_ref_text[]')
-
-        # 省略大量参数校验，与原 app.py 一致
-        # 最终保存字符 .toml 与资源文件
-        character_toml_path = project_root / 'characters' / f"{character_id}.toml"
-        # 若已存在则覆盖
-        if character_toml_path.exists():
-            character_toml_path.unlink()
-        image_dir = project_root / 'static' / 'images' / character_id
+        
+        if not mood_names or len(mood_names) == 0:
+            return jsonify({
+                'success': False,
+                'error': '至少需要一个心情设置'
+            }), 400
+        
+        # 检查角色是否已存在（同时检查.py和.toml）
+        character_py_path = Path('characters') / f"{character_id}.py"
+        character_toml_path = Path('characters') / f"{character_id}.toml"
+        
+        # 如果角色已存在，允许覆盖
+        is_overwriting = character_py_path.exists() or character_toml_path.exists()
+        
+        # 清理现有目录和文件
+        if is_overwriting:
+            # 清理角色详细信息目录
+            # detail_dir = Path('data') / 'rawdata' / character_id
+            # if detail_dir.exists():
+            #     import shutil
+            #     shutil.rmtree(detail_dir)
+            
+            # 清理角色图片目录
+            image_dir = Path('static') / 'images' / character_id #这行一注释就炸，我也不知道为什么
+            # if image_dir.exists():
+            #     import shutil
+            #     shutil.rmtree(image_dir)
+            
+            # 清理参考音频目录
+            # ref_audio_dir = Path('data') / 'ref_audio' / character_id
+            # if ref_audio_dir.exists():
+            #     import shutil
+            #     shutil.rmtree(ref_audio_dir)
+        
+        # 创建角色图片目录
+        image_dir = Path('static') / 'images' / character_id
         image_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 保存头像
         avatar_path = image_dir / 'avatar.png'
         avatar_image.save(str(avatar_path))
-        ref_audio_dir = project_root / 'data' / 'ref_audio' / character_id
+        
+        # 创建参考音频目录
+        ref_audio_dir = Path('data') / 'ref_audio' / character_id
         ref_audio_dir.mkdir(parents=True, exist_ok=True)
-
-        # 保存心情图片、音频、文本（与原逻辑一致）
+        
+        # 保存心情图片和参考音频/文本，按顺序命名为1.png, 2.png...和1.wav, 2.wav...
         valid_moods = []
         counter = 1
         for i, name in enumerate(mood_names):
-            if name and name.strip():
+            if name.strip():
+                # 保存心情图片
                 if i < len(mood_images) and mood_images[i] and mood_images[i].filename:
-                    (image_dir / f"{counter}.png").write_bytes(mood_images[i].read())
+                    # 强制使用.png格式
+                    image_filename = f"{counter}.png"
+                    image_path = image_dir / image_filename
+                    mood_images[i].save(str(image_path))
+                
+                # 保存参考音频（如果有）
                 if i < len(mood_audios) and mood_audios[i] and mood_audios[i].filename:
-                    audio_path = ref_audio_dir / f"{counter}.wav"
+                    audio_filename = f"{counter}.wav"
+                    audio_path = ref_audio_dir / audio_filename
+                    
+                    # 如果不是wav格式，转换为wav
                     if mood_audios[i].filename.lower().endswith('.wav'):
                         mood_audios[i].save(str(audio_path))
                     else:
-                        temp_path = ref_audio_dir / f"temp_{uuid.uuid4().hex}_{mood_audios[i].filename}"
-                        mood_audios[i].save(str(temp_path))
-                        AudioSegment.from_file(str(temp_path)).export(str(audio_path), format="wav")
-                        temp_path.unlink(missing_ok=True)
+                        # 使用pydub转换音频格式
+                        import tempfile
+                        import uuid
+                        
+                        # 使用唯一的临时文件名避免冲突
+                        temp_filename = f"temp_{uuid.uuid4().hex}_{mood_audios[i].filename}"
+                        temp_path = ref_audio_dir / temp_filename
+                        
+                        try:
+                            # 保存临时文件
+                            mood_audios[i].save(str(temp_path))
+                            
+                            # 转换音频格式
+                            audio = AudioSegment.from_file(str(temp_path))
+                            audio.export(str(audio_path), format="wav")
+                            
+                            # 确保音频对象被正确释放
+                            del audio
+                            
+                        except Exception as e:
+                            print(f"音频转换失败: {e}")
+                        finally:
+                            # 无论成功失败都尝试删除临时文件
+                            try:
+                                if temp_path.exists():
+                                    # 添加延迟确保文件句柄被释放
+                                    import time
+                                    time.sleep(0.1)
+                                    temp_path.unlink()
+                            except Exception as cleanup_error:
+                                print(f"清理临时文件失败: {cleanup_error}")
+                
+                # 保存参考文本（如果有）
                 if i < len(mood_ref_texts) and mood_ref_texts[i].strip():
-                    (ref_audio_dir / f"{counter}.txt").write_text(mood_ref_texts[i].strip(), encoding='utf-8')
+                    text_filename = f"{counter}.txt"
+                    text_path = ref_audio_dir / text_filename
+                    with open(text_path, 'w', encoding='utf-8') as f:
+                        f.write(mood_ref_texts[i].strip())
+                
                 valid_moods.append({"name": name.strip()})
                 counter += 1
 
-        character_config = {
-            "id": character_id,
-            "name": character_name,
-            "name_en": character_english_name,
-            "image": f"static/images/{character_id}",
-            "calib": int(image_offset),
-            "scale_rate": int(scale_rate),
-            "color": theme_color,
-            "description": character_intro,
-            "prompt": character_description,
-            "welcome": f"你好！我是{character_name}，很高兴认识你！",
-            "moods": valid_moods,
-            "examples": [
-                {"role": "user", "content": "你好，请介绍一下自己"},
-                {"role": "assistant", "content": f"你好！我是{character_name}，很高兴认识你！"}
-            ]
-        }
-        with open(character_toml_path, 'w', encoding='utf-8') as f:
-            f.write(rtoml.dumps(character_config))
+        # 检查是否使用旧版格式
+        open_saovc = get_env_var("OPEN_SAOVC", "false").lower() == "true"
+        
+        if open_saovc:
+            # 使用旧版Python格式
+            character_file_content = f'''"""
+角色配置文件: {character_name}
+"""
 
-        # 处理角色详细信息向量数据库
+# 角色基本信息
+CHARACTER_ID = "{character_id}"
+CHARACTER_NAME = "{character_name}"
+CHARACTER_NAME_EN = "{character_english_name}"
+SCALE_RATE = {scale} #缩放率（百分比）
+
+# 角色外观
+CHARACTER_IMAGE = "static/images/{character_id}"  # 角色立绘目录路径
+CALIB = {offset}   # 显示位置的校准值（负值向上移动，正值向下移动）
+CHARACTER_COLOR = "{theme_color}"  # 角色名称颜色
+
+# 角色心情
+MOODS = {[m["name"] for m in valid_moods]}
+
+# 角色设定
+CHARACTER_DESCRIPTION = """
+{character_intro}
+"""
+
+# AI系统提示词
+CHARACTER_PROMPT = """
+{character_description}
+"""
+
+# 角色欢迎语
+CHARACTER_WELCOME = "你好！我是{character_name}，很高兴认识你！"
+
+# 角色对话示例
+CHARACTER_EXAMPLES = [
+    {{"role": "user", "content": "你好，请介绍一下自己"}},
+    {{"role": "assistant", "content": "你好！我是{character_name}，很高兴认识你！"}},
+]
+
+# 获取角色配置
+def get_character_config():
+    """获取角色配置"""
+    return {{
+        "id": CHARACTER_ID,
+        "name": CHARACTER_NAME,
+        "name_en": CHARACTER_NAME_EN,
+        "image": CHARACTER_IMAGE,
+        "calib": CALIB,
+        "scale_rate": SCALE_RATE,
+        "color": CHARACTER_COLOR,
+        "description": CHARACTER_DESCRIPTION,
+        "prompt": CHARACTER_PROMPT,
+        "welcome": CHARACTER_WELCOME,
+        "examples": CHARACTER_EXAMPLES
+    }}
+'''
+            # 保存Python格式配置文件
+            with open(character_py_path, 'w', encoding='utf-8') as f:
+                f.write(character_file_content)
+        else:
+            # 使用新版TOML格式
+            character_config = {
+                "id": character_id,
+                "name": character_name,
+                "name_en": character_english_name,
+                "image": f"static/images/{character_id}",
+                "calib": offset,
+                "scale_rate": scale,
+                "color": theme_color,
+                "description": character_intro,
+                "prompt": character_description,
+                "welcome": f"你好！我是{character_name}，很高兴认识你！",
+                "moods": valid_moods,
+                "examples": [
+                    {"role": "user", "content": "你好，请介绍一下自己"},
+                    {"role": "assistant", "content": f"你好！我是{character_name}，很高兴认识你！"}
+                ]
+            }
+            
+            # 保存TOML格式配置文件
+            with open(character_toml_path, 'w', encoding='utf-8') as f:
+                f.write(rtoml.dumps(character_config))
+        
+        # 处理角色详细信息文件
         if detail_files:
             from services.character_details_service import character_details_service
-            temp_dir = project_root / 'temp' / 'character_details' / character_id
+            
+            # 创建临时目录保存上传的文件
+            temp_dir = Path('temp') / 'character_details' / character_id
             temp_dir.mkdir(parents=True, exist_ok=True)
+            
             try:
                 saved_files = []
+                
+                # 保存上传的文件
                 for i, detail_file in enumerate(detail_files):
-                    if detail_file and detail_file.filename and detail_file.filename.lower().endswith('.txt'):
+                    if detail_file and detail_file.filename:
+                        # 验证文件类型
+                        if not detail_file.filename.lower().endswith('.txt'):
+                            continue
+                        
+                        # 保存文件
                         file_path = temp_dir / f"detail_{i}_{detail_file.filename}"
                         detail_file.save(str(file_path))
                         saved_files.append(str(file_path))
+                
+                # 构建角色详细信息向量数据库
                 if saved_files:
-                    character_details_service.build_character_details(character_id, saved_files)
+                    success = character_details_service.build_character_details(character_id, saved_files)
+                    if success:
+                        print(f"角色详细信息数据库构建成功: {character_id}")
+                    else:
+                        print(f"角色详细信息数据库构建失败: {character_id}")
+                
+            except Exception as e:
+                print(f"处理角色详细信息文件失败: {e}")
+                traceback.print_exc()
             finally:
-                shutil.rmtree(temp_dir, ignore_errors=True)
-
+                # 清理临时文件
+                try:
+                    import shutil
+                    if temp_dir.exists():
+                        shutil.rmtree(temp_dir)
+                except Exception as e:
+                    print(f"清理临时文件失败: {e}")
+        
         return jsonify({
             'success': True,
             'message': f'自定义角色 {character_name} 创建成功',
             'character_id': character_id
         })
+        
     except Exception as e:
+        print(f"创建自定义角色失败: {str(e)}")
         traceback.print_exc()
-        return jsonify({'success': False, 'error': f'创建失败: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'error': f'创建失败: {str(e)}'
+        }), 500
 
 @bp.route('/api/reload-characters', methods=['GET'])
 def reload_characters():

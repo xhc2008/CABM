@@ -370,25 +370,199 @@ def story_chat_stream():
             try:
                 stream_gen = chat_service.chat_completion(stream=True, user_query=message)
                 full_response = ""
+                parsed_mood = None
+                parsed_content = ""
+                
                 for chunk in stream_gen:
                     if chunk is not None:
                         full_response += chunk
-                        # 与 chat_routes.py 中同样的 JSON 解析逻辑，略
-                        # 这里简化，仅发送文本块
-                        yield f"data: {json.dumps({'content': chunk})}\n\n"
+                        
+                        # 实时解析JSON格式的响应
+                        try:
+                            # 尝试解析当前累积的响应
+                            # 查找最后一个可能的JSON对象
+                            json_start = full_response.rfind('{')
+                            if json_start != -1:
+                                # 尝试解析从最后一个{开始的JSON
+                                potential_json = full_response[json_start:]
+                                
+                                # 检查是否有完整的JSON结构
+                                brace_count = 0
+                                json_end = -1
+                                for i, char in enumerate(potential_json):
+                                    if char == '{':
+                                        brace_count += 1
+                                    elif char == '}':
+                                        brace_count -= 1
+                                        if brace_count == 0:
+                                            json_end = i + 1
+                                            break
+                                
+                                # 如果找到完整的JSON，尝试解析
+                                if json_end != -1:
+                                    json_str = potential_json[:json_end]
+                                    try:
+                                        json_data = json.loads(json_str)
+                                        
+                                        # 处理mood字段
+                                        if 'mood' in json_data:
+                                            new_mood = json_data['mood']
+                                            if new_mood != parsed_mood:
+                                                parsed_mood = new_mood
+                                                # 立即发送mood给前端处理表情变化
+                                                yield f"data: {json.dumps({'mood': parsed_mood})}\n\n"
+                                        
+                                        # 处理content字段 - 实时发送增量内容
+                                        if 'content' in json_data:
+                                            new_content = json_data['content']
+                                            if new_content != parsed_content:
+                                                # 检查是否是新的JSON对象（content长度变短了）
+                                                if len(new_content) < len(parsed_content):
+                                                    # 新的JSON对象，直接发送全部内容
+                                                    yield f"data: {json.dumps({'content': new_content})}\n\n"
+                                                    parsed_content = new_content
+                                                else:
+                                                    # 同一个JSON对象的增量更新
+                                                    content_diff = new_content[len(parsed_content):]
+                                                    if content_diff:
+                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                                    parsed_content = new_content
+                                                
+                                    except json.JSONDecodeError:
+                                        # JSON不完整，继续等待更多数据
+                                        pass
+                                else:
+                                    # 尝试解析不完整的JSON来提取content字段
+                                    # 这是为了处理流式JSON的情况
+                                    try:
+                                        # 查找content字段的值（支持不完整的字符串）
+                                        # 匹配 "content": "任何内容（可能没有结束引号）
+                                        content_match = re.search(r'"content":\s*"([^"]*)', potential_json)
+                                        if content_match:
+                                            current_content = content_match.group(1)
+                                            if current_content != parsed_content:
+                                                # 检查是否是新的JSON对象（content长度变短了）
+                                                if len(current_content) < len(parsed_content):
+                                                    # 新的JSON对象，直接发送全部内容
+                                                    yield f"data: {json.dumps({'content': current_content})}\n\n"
+                                                    parsed_content = current_content
+                                                else:
+                                                    # 同一个JSON对象的增量更新
+                                                    content_diff = current_content[len(parsed_content):]
+                                                    if content_diff:
+                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                                    parsed_content = current_content
+                                    except Exception:
+                                        pass
+                                        
+                        except Exception as e:
+                            print(f"解析JSON响应失败: {e}")
+                            # 如果JSON解析失败，尝试作为普通文本处理
+                            yield f"data: {json.dumps({'content': chunk})}\n\n"
+                
+                # 将完整消息添加到历史记录（存储原始响应内容）
                 if full_response:
                     chat_service.add_message("assistant", full_response)
-                    chat_service.memory_service.add_story_conversation(
-                        user_message=message,
-                        assistant_message=full_response,
-                        story_id=story_id
-                    )
-                    # 可在此处调用导演模型与选项生成，与原 app.py 一致
+                    # 添加到记忆数据库（存储原始响应内容）
+                    try:
+                        chat_service.memory_service.add_story_conversation(
+                            user_message=message,
+                            assistant_message=full_response,
+                            story_id=story_id
+                        )
+                    except Exception as e:
+                        print(f"添加对话到记忆数据库失败: {e}")
+                        traceback.print_exc()
+                    
+                    # 调用导演模型和生成选项（同步执行以便发送更新给前端）
+                    try:
+                        # 获取聊天历史用于导演判断
+                        app_config = config_service.get_app_config()
+                        max_history = app_config["max_history_length"]
+                        
+                        # 格式化聊天历史
+                        history_messages = chat_service.get_history()[-max_history:]
+                        chat_history_text = ""
+                        for msg in history_messages:
+                            if msg.role == "user":
+                                chat_history_text += f"玩家：{msg.content}\n"
+                            elif msg.role == "assistant":
+                                # 解析JSON格式的回复，只取content部分
+                                try:
+                                    msg_data = json.loads(msg.content)
+                                    content = msg_data.get('content', msg.content)
+                                except:
+                                    content = msg.content
+                                
+                                # 获取角色名
+                                character_config = chat_service.get_character_config()
+                                character_name = character_config.get('name', 'AI助手')
+                                chat_history_text += f"{character_name}：{content}\n"
+                        
+                        # 调用导演模型
+                        director_result = story_service.call_director_model(chat_history_text)
+                        
+                        # 处理导演结果
+                        story_finished = False
+                        if director_result == 0:
+                            # 推进到下一章节
+                            story_service.update_progress(advance_chapter=True)
+                            
+                            # 检查是否故事结束
+                            if story_service.is_story_finished():
+                                print("故事已结束")
+                                story_finished = True
+                        else:
+                            # 增加偏移值
+                            story_service.update_progress(offset_increment=director_result)
+                        
+                        # 获取更新后的故事进度
+                        current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
+                        current_offset = story_service.get_offset()
+                        
+                        # 发送故事进度更新给前端
+                        progress_update = {
+                            'storyProgress': {
+                                'current': current_idx,
+                                'currentChapter': current_chapter,
+                                'nextChapter': next_chapter,
+                                'offset': current_offset
+                            }
+                        }
+                        
+                        if story_finished:
+                            progress_update['storyFinished'] = True
+                        
+                        yield f"data: {json.dumps(progress_update)}\n\n"
+                        
+                    except Exception as e:
+                        print(f"导演模型处理失败: {e}")
+                        traceback.print_exc()
+                    
+                    # 生成选项
+                    try:
+                        conversation_history = chat_service.format_messages()
+                        character_config = chat_service.get_character_config()
+                        options = option_service.generate_options(
+                            conversation_history=conversation_history,
+                            character_config=character_config,
+                            user_query=message
+                        )
+                        
+                        if options:
+                            yield f"data: {json.dumps({'options': options})}\n\n"
+                    except Exception as e:
+                        print(f"选项生成失败: {e}")
+                        
                 yield "data: [DONE]\n\n"
+                
             except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                error_msg = str(e)
+                print(f"流式响应错误: {error_msg}")
+                traceback.print_exc()
+                yield f"data: {json.dumps({'error': error_msg})}\n\n"
                 yield "data: [DONE]\n\n"
-
+        
         headers = {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
