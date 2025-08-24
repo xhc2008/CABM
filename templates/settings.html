@@ -59,6 +59,11 @@
             transform: scale(1.2);
         }
         
+        .setting-item input[type="range"] {
+            margin: 0 10px;
+            cursor: pointer;
+        }
+        
         .back-button {
             position: absolute;
             top: 20px;
@@ -88,6 +93,19 @@
         .settings-scrollable::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.5);
         }
+        
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .volume-value {
+            min-width: 40px;
+            text-align: center;
+            color: #00ffff;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -110,13 +128,19 @@
                     </div>
                 </div>
                 
-                <!-- 预留更多设置区域 -->
-                <div class="settings-section" style="opacity: 0.5;">
+                <div class="settings-section">
                     <h3>音频设置</h3>
                     <div class="setting-item">
-                        <label>
-                            <input type="checkbox" disabled>
-                            <span>启用背景音乐 (占位)</span>
+                        <label for="bgmToggle">
+                            <input type="checkbox" id="bgmToggle">
+                            <span>启用背景音乐</span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="volume-control">
+                            <span>背景音乐音量</span>
+                            <input type="range" id="bgmVolume" min="0" max="100" value="50">
+                            <span id="volumeValue" class="volume-value">50%</span>
                         </label>
                     </div>
                 </div>
@@ -148,15 +172,52 @@
         // 加载保存的设置
         document.addEventListener('DOMContentLoaded', function() {
             const showLogoToggle = document.getElementById('showLogoToggle');
+            const bgmToggle = document.getElementById('bgmToggle');
+            const bgmVolume = document.getElementById('bgmVolume');
+            const volumeValue = document.getElementById('volumeValue');
             
             // 从localStorage加载设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
+            const bgmEnabled = localStorage.getItem('bgmEnabled') !== 'false';
+            const savedVolume = localStorage.getItem('bgmVolume') || '50';
+            
             showLogoToggle.checked = showLogo;
+            bgmToggle.checked = bgmEnabled;
+            bgmVolume.value = savedVolume;
+            volumeValue.textContent = savedVolume + '%';
             
             // 保存设置
             showLogoToggle.addEventListener('change', function() {
                 localStorage.setItem('showLogoSplash', this.checked);
             });
+            
+            bgmToggle.addEventListener('change', function() {
+                localStorage.setItem('bgmEnabled', this.checked);
+                if (window.bgmService) {
+                    if (this.checked) {
+                        window.bgmService.resume();
+                    } else {
+                        window.bgmService.pause();
+                    }
+                }
+            });
+            
+            bgmVolume.addEventListener('input', function() {
+                const volume = this.value;
+                volumeValue.textContent = volume + '%';
+                localStorage.setItem('bgmVolume', volume);
+                if (window.bgmService) {
+                    window.bgmService.setVolume(volume / 100);
+                }
+            });
+            
+            // 初始化BGM设置
+            if (window.bgmService) {
+                window.bgmService.setVolume(savedVolume / 100);
+                if (!bgmEnabled) {
+                    window.bgmService.pause();
+                }
+            }
         });
     </script>
     

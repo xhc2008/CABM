@@ -13,6 +13,7 @@ class BGMService {
         this.bgmFolder = '/static/bgm/';
         this.currentTrack = null;
         this.tracks = [];
+        this.enabled = true;      // BGM开关状态
         this.init();
     }
 
@@ -21,6 +22,16 @@ class BGMService {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         // 2. 加载歌单
         await this.loadTracks();
+        
+        // 3. 从localStorage加载设置
+        const savedVolume = localStorage.getItem('bgmVolume');
+        const bgmEnabled = localStorage.getItem('bgmEnabled') !== 'false';
+        
+        if (savedVolume) {
+            this.volume = parseFloat(savedVolume) / 100;
+        }
+        this.enabled = bgmEnabled;
+        
         console.log('BGM Service (Web Audio) ready:', this.tracks);
     }
 
@@ -41,6 +52,7 @@ class BGMService {
     }
 
     async playTrack(trackName) {
+        if (!this.enabled) return;
         if (this.source) this.source.stop();   // 停掉上一首
         this.buffer = await this.fetchAndDecode(trackName);
         this.source = this.ctx.createBufferSource();
@@ -58,7 +70,7 @@ class BGMService {
     }
 
     async playRandom() {
-        if (!this.tracks.length) return;
+        if (!this.enabled || !this.tracks.length) return;
         const r = Math.floor(Math.random() * this.tracks.length);
         await this.playTrack(this.tracks[r]);
     }
@@ -70,7 +82,7 @@ class BGMService {
     }
 
     resume() {
-        if (!this.ctx) return;
+        if (!this.enabled || !this.ctx) return;
         this.ctx.resume().then(() => {
             this.isPlaying = true;
         });
