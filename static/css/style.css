@@ -237,7 +237,13 @@ body {
     background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
     transition: left 0.6s ease;
 }
+.settings-toggle .btn::before {
+    display: none !important;
+}
 
+.settings-toggle .btn:hover::before {
+    display: none !important;
+}
 .home-buttons .btn:hover {
     transform: translateY(-3px);
     box-shadow:
