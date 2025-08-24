@@ -49,6 +49,11 @@ class BGMService {
         this.setDefaultPageConfigs();
         
         console.log('BGM Service (Web Audio) ready:', this.tracks);
+        
+        // 4. 如果启用BGM，尝试自动播放
+        if (this.enabled && this.tracks.length) {
+            this.playRandom();
+        }
     }
 
     async loadTracks() {
@@ -200,7 +205,7 @@ window.bgmService = new BGMService();
 // 用户第一次交互后启动 AudioContext
 const unlock = () => {
     window.bgmService.ctx.resume().then(() => {
-        if (!window.bgmService.isPlaying && window.bgmService.tracks.length) {
+        if (!window.bgmService.isPlaying && window.bgmService.tracks.length && window.bgmService.enabled) {
             window.bgmService.playRandom();
         }
     });
