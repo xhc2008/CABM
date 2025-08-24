@@ -37,6 +37,11 @@
     </div>
     <script>
         window.addEventListener('DOMContentLoaded', function () {
+            // 设置当前页面
+            if (window.bgmService) {
+                window.bgmService.setCurrentPage('index');
+            }
+            
             // 获取设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
 

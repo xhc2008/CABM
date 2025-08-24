@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/static/css/continue-prompt.css">
     <style>
         .settings-container {
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background: rgba(0, 20, 40, 0.6);
@@ -64,6 +64,19 @@
             cursor: pointer;
         }
         
+        .setting-item select {
+            background: rgba(0, 20, 40, 0.8);
+            color: #fff;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        .setting-item select:hover {
+            border-color: rgba(0, 255, 255, 0.5);
+        }
+        
         .back-button {
             position: absolute;
             top: 20px;
@@ -106,6 +119,37 @@
             color: #00ffff;
             font-weight: bold;
         }
+        
+        .page-bgm-config {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(0, 40, 80, 0.3);
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+        
+        .page-bgm-config h4 {
+            color: #00ffff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .page-bgm-controls {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .page-bgm-controls label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .page-bgm-controls select {
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
@@ -145,6 +189,13 @@
                     </div>
                 </div>
                 
+                <div class="settings-section">
+                    <h3>页面背景音乐设置（暂不可用）</h3>
+                    <div id="pageBgmConfigs">
+                        <!-- 页面BGM配置将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                
                 <div class="settings-section" style="opacity: 0.5;">
                     <h3>聊天设置</h3>
                     <div class="setting-item">
@@ -175,6 +226,7 @@
             const bgmToggle = document.getElementById('bgmToggle');
             const bgmVolume = document.getElementById('bgmVolume');
             const volumeValue = document.getElementById('volumeValue');
+            const pageBgmConfigs = document.getElementById('pageBgmConfigs');
             
             // 从localStorage加载设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
@@ -186,6 +238,62 @@
             bgmVolume.value = savedVolume;
             volumeValue.textContent = savedVolume + '%';
             
+            // 生成页面BGM配置控件
+            function generatePageBgmControls() {
+                if (!window.bgmService) return;
+                
+                const pages = window.bgmService.getAvailablePages();
+                const tracks = window.bgmService.getAvailableTracks();
+                
+                pageBgmConfigs.innerHTML = '';
+                
+                pages.forEach(page => {
+                    const config = window.bgmService.getPageConfig(page);
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page-bgm-config';
+                    
+                    const displayName = window.bgmService.getPageDisplayName(page);
+                    
+                    pageDiv.innerHTML = `
+                        <h4>${displayName}</h4>
+                        <div class="page-bgm-controls">
+                            <label>
+                                <input type="checkbox" class="page-bgm-enable" data-page="${page}" ${config.enabled ? 'checked' : ''}>
+                                <span>启用背景音乐</span>
+                            </label>
+                            <select class="page-bgm-track" data-page="${page}">
+                                <option value="random" ${config.track === 'random' ? 'selected' : ''}>随机播放</option>
+                                <option value="off" ${config.track === 'off' ? 'selected' : ''}>关闭</option>
+                                ${tracks.map(track => 
+                                    `<option value="${track}" ${config.track === track ? 'selected' : ''}>${track}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                    `;
+                    
+                    pageBgmConfigs.appendChild(pageDiv);
+                });
+                
+                // 绑定页面BGM配置事件
+                document.querySelectorAll('.page-bgm-enable').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const page = this.dataset.page;
+                        const config = window.bgmService.getPageConfig(page);
+                        config.enabled = this.checked;
+                        window.bgmService.setPageConfig(page, config);
+                    });
+                });
+                
+                document.querySelectorAll('.page-bgm-track').forEach(select => {
+                    select.addEventListener('change', function() {
+                        const page = this.dataset.page;
+                        const config = window.bgmService.getPageConfig(page);
+                        config.track = this.value;
+                        window.bgmService.setPageConfig(page, config);
+                    });
+                });
+            }
+            
             // 保存设置
             showLogoToggle.addEventListener('change', function() {
                 localStorage.setItem('showLogoSplash', this.checked);
@@ -194,10 +302,11 @@
             bgmToggle.addEventListener('change', function() {
                 localStorage.setItem('bgmEnabled', this.checked);
                 if (window.bgmService) {
+                    window.bgmService.enabled = this.checked;
                     if (this.checked) {
-                        window.bgmService.resume();
+                        window.bgmService.playPageBGM();
                     } else {
-                        window.bgmService.pause();
+                        window.bgmService.stop();
                     }
                 }
             });
@@ -213,10 +322,17 @@
             
             // 初始化BGM设置
             if (window.bgmService) {
-                window.bgmService.setVolume(savedVolume / 100);
-                if (!bgmEnabled) {
-                    window.bgmService.pause();
-                }
+                // 等待BGM服务加载完成
+                const checkBgmService = setInterval(() => {
+                    if (window.bgmService.tracks.length > 0) {
+                        clearInterval(checkBgmService);
+                        generatePageBgmControls();
+                        window.bgmService.setVolume(savedVolume / 100);
+                        if (!bgmEnabled) {
+                            window.bgmService.enabled = false;
+                        }
+                    }
+                }, 100);
             }
         });
     </script>

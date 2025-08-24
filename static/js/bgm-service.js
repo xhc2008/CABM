@@ -1,6 +1,7 @@
 /**
  * BGM Service (Web Audio 版)
  * 支持与其它 <audio>/<video> 同时播放
+ * 支持每个页面独立的BGM配置
  */
 class BGMService {
     constructor() {
@@ -14,6 +15,8 @@ class BGMService {
         this.currentTrack = null;
         this.tracks = [];
         this.enabled = true;      // BGM开关状态
+        this.pageConfigs = {};    // 每个页面的BGM配置
+        this.currentPage = null;  // 当前页面标识
         this.init();
     }
 
@@ -26,11 +29,24 @@ class BGMService {
         // 3. 从localStorage加载设置
         const savedVolume = localStorage.getItem('bgmVolume');
         const bgmEnabled = localStorage.getItem('bgmEnabled') !== 'false';
+        const savedPageConfigs = localStorage.getItem('pageBgmConfigs');
         
         if (savedVolume) {
             this.volume = parseFloat(savedVolume) / 100;
         }
         this.enabled = bgmEnabled;
+        
+        if (savedPageConfigs) {
+            try {
+                this.pageConfigs = JSON.parse(savedPageConfigs);
+            } catch (e) {
+                console.warn('Failed to parse page BGM configs:', e);
+                this.pageConfigs = {};
+            }
+        }
+        
+        // 设置默认页面配置
+        this.setDefaultPageConfigs();
         
         console.log('BGM Service (Web Audio) ready:', this.tracks);
     }
@@ -42,6 +58,70 @@ class BGMService {
         } catch {
             this.tracks = ['bgm01.aac'];
         }
+    }
+
+    setDefaultPageConfigs() {
+        const pages = ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings'];
+        pages.forEach(page => {
+            if (!this.pageConfigs[page]) {
+                this.pageConfigs[page] = {
+                    track: 'random', // 'random', 'off', or specific track
+                    enabled: true
+                };
+            }
+        });
+    }
+
+    setCurrentPage(page) {
+        this.currentPage = page;
+        this.playPageBGM();
+    }
+
+    async playPageBGM() {
+        if (!this.currentPage || !this.enabled) return;
+        
+        const config = this.pageConfigs[this.currentPage];
+        if (!config || !config.enabled || config.track === 'off') {
+            this.stop();
+            return;
+        }
+        
+        if (config.track === 'random') {
+            await this.playRandom();
+        } else {
+            await this.playTrack(config.track);
+        }
+    }
+
+    getPageConfig(page) {
+        return this.pageConfigs[page] || { track: 'random', enabled: true };
+    }
+
+    setPageConfig(page, config) {
+        this.pageConfigs[page] = config;
+        localStorage.setItem('pageBgmConfigs', JSON.stringify(this.pageConfigs));
+        
+        // 如果当前页面就是设置的页面，立即应用更改
+        if (page === this.currentPage) {
+            this.playPageBGM();
+        }
+    }
+
+    getAvailablePages() {
+        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings'];
+    }
+
+    getPageDisplayName(page) {
+        const names = {
+            'index': '主页',
+            'chat': '聊天页面',
+            'story': '故事页面',
+            'story_chat': '故事聊天',
+            'custom_character': '自定义角色',
+            'select_character': '选择角色',
+            'settings': '设置页面'
+        };
+        return names[page] || page;
     }
 
     async fetchAndDecode(trackName) {

@@ -55,6 +55,14 @@
 			}
 		}
 	</script>
+	<script>
+        // 设置当前页面
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.bgmService) {
+                window.bgmService.setCurrentPage('select_character');
+            }
+        });
+    </script>
     <script src="/static/js/logo.js"></script>
     <script src="/static/js/sci-fi-effects.js"></script>
 	<script type="module" src="/static/js/bgm-service.js"></script>
