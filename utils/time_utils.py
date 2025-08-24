@@ -60,13 +60,15 @@ class TimeTracker:
                     if line:
                         try:
                             message = json.loads(line)
-                            timestamp_str = message.get("timestamp")
-                            if timestamp_str:
-                                return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                            # 检查role是否为assistant
+                            if message.get("role") == "assistant":
+                                timestamp_str = message.get("timestamp")
+                                if timestamp_str:
+                                    return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
                         except (json.JSONDecodeError, ValueError):
                             continue
-            
-            return None
+                
+                return None 
             
         except Exception as e:
             print(f"读取最后消息时间失败: {e}")
@@ -117,6 +119,6 @@ class TimeTracker:
         time_elapsed = self.format_time_elapsed(last_time, current_time)
         
         if time_elapsed:
-            return f"距上次对话{time_elapsed}"
+            return f"距上次对话：{time_elapsed}"
         else:
             return ""

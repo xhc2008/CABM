@@ -18,6 +18,7 @@ from utils.history_utils import HistoryManager
 from utils.prompt_logger import prompt_logger
 from services.config_service import config_service
 from config import get_memory_config
+from utils.time_utils import TimeTracker
 # 注意：为了避免循环导入，scene_service和memory_service将在ChatService类中导入
 
 class Message:
@@ -73,6 +74,9 @@ class ChatService:
         app_config = self.config_service.get_app_config()
         history_dir = app_config["history_dir"]
         self.history_manager = HistoryManager(history_dir)
+        
+        # 初始化时间跟踪器
+        self.time_tracker = TimeTracker(history_dir)
         
         # 导入记忆服务（避免循环导入）
         from services.memory_service import memory_service
@@ -498,14 +502,40 @@ class ChatService:
                         full_context += "\n\n" + details_context
                     else:
                         full_context = details_context
-                
-                # 如果有相关上下文，添加到最后一条用户消息中
-                if full_context and messages:
+
+                 # 添加lasttime字符串和相关信息到最后一条用户消息中
+                # 获取时间前缀
+                character_id = self.config_service.current_character_id or "default"
+                if self.story_mode and self.current_story_id:
+                    # 剧情模式：使用故事ID作为角色标识
+                    #time_prefix = self.time_tracker.get_time_elapsed_prefix(self.current_story_id)
+                    time_prefix=""
+                else:
+                    # 普通模式：使用角色ID
+                    time_prefix = self.time_tracker.get_time_elapsed_prefix(character_id)
+
+                if messages:
                     # 找到最后一条用户消息
                     for i in range(len(messages) - 1, -1, -1):
                         if messages[i]["role"] == "user":
                             original_content = messages[i]["content"]
-                            messages[i]["content"] = full_context + "\n以下是用户说的话：\n" + original_content
+                            
+                            # 构建新的消息内容
+                            new_content = time_prefix
+                            if time_prefix and full_context:
+                                # 如果有时间前缀和上下文，都添加
+                                new_content += "\n\n" + full_context + "\n以下是用户说的话：\n" + original_content
+                            elif time_prefix and not full_context:
+                                # 只有时间前缀，没有上下文
+                                new_content += "\n\n以下是用户说的话：\n" + original_content
+                            elif not time_prefix and full_context:
+                                # 没有时间前缀，只有上下文
+                                new_content += "\n\n" + full_context + "\n以下是用户说的话：\n" + original_content
+                            else:
+                                # 都没有，只保留原始内容
+                                new_content = original_content
+                
+                            messages[i]["content"] = new_content
                             break
                             
             except Exception as e:
