@@ -227,8 +227,36 @@ class ChatService:
         # 获取基础系统提示词
         if self.story_mode and self.current_story_id:
             base_prompt = self.config_service.get_system_prompt("character")
+            
+            # 剧情模式：添加剧情引导内容
+            try:
+                from services.story_service import story_service
+                
+                # 获取故事进度信息
+                offset = story_service.get_offset()
+                current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
+                
+                # 根据偏移值添加引导内容
+                guidance = f"当前章节：`{current_chapter}`"
+                if next_chapter:  # 只有在还有下一章节时才添加引导
+                    if 10 <= offset < 30:
+                        guidance += f"。请暗示性地引导用户向`{next_chapter}`方向推进故事"
+                    elif offset >= 30:
+                        guidance += f"。请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
+                
+                # 构建剧情模式提示词
+                story_prompt = f"你是一个视听小说中的角色，你需要为用户制造沉浸式的剧情体验。{guidance}{base_prompt}"
+                base_prompt = story_prompt
+                
+                self.logger.info(f"剧情模式提示词已构建，偏移值: {offset}, 当前章节: {current_chapter}")
+                
+            except Exception as e:
+                self.logger.error(f"构建剧情模式提示词失败: {e}")
+                # 出错时回退到基础提示词
+                
         else:
-            base_prompt = self.config_service.get_system_prompt("character")
+            # 普通模式
+            base_prompt = "你是一个视听小说中的角色，你正在和用户闲聊。"+self.config_service.get_system_prompt("character")
         
         # 初始化上下文部分
         context_parts = []
@@ -281,7 +309,7 @@ class ChatService:
         # 如果有上下文信息，添加到系统提示词
         if context_parts:
             context_str = "\n\n".join(context_parts)
-            full_prompt = f"{base_prompt}\n{context_str}"
+            full_prompt = f"{base_prompt}\n\n{context_str}"
         else:
             full_prompt = base_prompt
             
@@ -422,40 +450,13 @@ class ChatService:
             return False
     
     def set_story_system_prompt(self):
-        """设置剧情模式的系统提示词"""
-        from services.story_service import story_service
-        
-        # 获取基础系统提示词
-        base_prompt = self.config_service.get_system_prompt("character")
-        
-        # 获取故事进度信息
-        offset = story_service.get_offset()
-        current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
-        
-        # 根据偏移值添加引导内容
-        guidance = f"当前章节：`{current_chapter}`"
-        if next_chapter:  # 只有在还有下一章节时才添加引导
-            if 10 <= offset < 30:
-                guidance += f"。请暗示性地引导用户向`{next_chapter}`方向推进故事"
-            elif offset >= 30:
-                guidance += f"。请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
-        
-        # 在基础提示词中插入引导内容
-        if guidance:
-            # 在"你正在进行角色扮演，和用户进行交互。"后面插入引导内容
-            modified_prompt = base_prompt.replace(
-                "你是一个视听小说中的角色。",
-                f"你是一个视听小说中的角色，你需要根据当前章节推动剧情发展。{guidance}。"
-            )
-        else:
-            modified_prompt = base_prompt
-        
+        """设置剧情模式的系统提示词（现在只是触发更新）"""
         # 移除现有的system消息
         self.history = [msg for msg in self.history if msg.role != "system"]
         
-        # 添加修改后的系统提示词
-        self.add_message("system", modified_prompt)
-        self.logger.info(f"剧情模式系统提示词已设置，偏移值: {offset}")
+        # 添加空的系统消息占位符，实际内容会在_build_system_prompt_with_context中构建
+        self.add_message("system", "")
+        self.logger.info("剧情模式系统提示词已触发更新")
     
     def exit_story_mode(self):
         """退出剧情模式"""
@@ -532,7 +533,7 @@ class ChatService:
         
         # 如果有用户查询，构建包含上下文的系统提示词
         if user_query:
-            # 构建包含记忆、角色详情和时间前缀的系统提示词
+            # 构建包含记忆、角色详情、时间前缀和剧情引导的系统提示词
             full_system_prompt = self._build_system_prompt_with_context(user_query)
             
             # 移除现有的system消息
@@ -541,12 +542,11 @@ class ChatService:
             # 添加新的系统提示词到消息列表开头
             messages.insert(0, {"role": "system", "content": full_system_prompt})
         else:
-            # 如果没有用户查询，使用基础系统提示词
+            # 如果没有用户查询，检查是否需要添加基础系统提示词
             has_system_message = any(msg.get("role") == "system" for msg in messages)
             if not has_system_message:
-                system_prompt = self.config_service.get_system_prompt(
-                    "character" if self.config_service.current_character_id else "default"
-                )
+                # 使用_build_system_prompt_with_context来构建基础提示词
+                system_prompt = self._build_system_prompt_with_context()
                 messages.insert(0, {"role": "system", "content": system_prompt})
         
         # 记录完整提示词到日志

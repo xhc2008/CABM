@@ -401,13 +401,23 @@ def story_chat_stream():
                                             yield f"data: {json.dumps({'content': content_diff})}\n\n"
                                         parsed_content = current_content
                             
-                            # 同时尝试提取mood字段
-                            mood_match = re.search(r'"mood":\s*"([^"]*)', full_response)
+                            # 同时尝试提取mood字段（支持int和string类型）
+                            mood_match = re.search(r'"mood":\s*("[^"]*"|\d+)', full_response)
                             if mood_match:
-                                current_mood = mood_match.group(1)
-                                if current_mood != parsed_mood:
-                                    yield f"data: {json.dumps({'mood': current_mood})}\n\n"
-                                    parsed_mood = current_mood
+                                mood_str = mood_match.group(1)
+                                try:
+                                    # 如果是引号包围的字符串
+                                    if mood_str.startswith('"') and mood_str.endswith('"'):
+                                        current_mood = mood_str[1:-1]
+                                    else:
+                                        # 如果是数字
+                                        current_mood = int(mood_str)
+
+                                    if current_mood != parsed_mood:
+                                        yield f"data: {json.dumps({'mood': current_mood})}\n\n"
+                                        parsed_mood = current_mood
+                                except (ValueError, TypeError):
+                                    pass
                                     
                         except Exception as e:
                             # JSON解析失败，尝试作为普通文本发送
