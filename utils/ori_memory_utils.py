@@ -366,7 +366,7 @@ class ChatHistoryVectorDB:
                     memory_prompt += f"记录 {i}: {result['text']}\n\n"
                     self.logger.info(f"  -> 记录 {i}: '{result['text'][:50]}...', 相似度={result['similarity']:.3f}")
             
-            memory_prompt += "```\n请参考以上历史记录，保持对话的连贯性和一致性。"
+            memory_prompt += "```\nn以上是记忆而不是最近的对话，可以不使用。"
             
             self.logger.info(f"生成记忆提示词: {len(memory_prompt)} 字符")
             
