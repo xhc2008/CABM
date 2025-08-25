@@ -297,7 +297,7 @@ class ChatHistoryVectorDB:
             timestamp = datetime.now().isoformat()
         
         # 将用户消息和助手回复组合成一个对话单元（用于向量化）
-        conversation_text = f"用户: {user_message}\n助手: {assistant_message}"
+        conversation_text = f"用户: {user_message}\n{self.character_name}: {assistant_message}"
         
         # 添加到向量数据库（不在metadata中重复存储text）
         metadata = {
@@ -346,7 +346,7 @@ class ChatHistoryVectorDB:
             self.logger.info(f"记忆过滤结果: {len(filtered_results)}/{len(results)} 条记录通过相似度阈值 {min_similarity}")
             
             # 格式化为提示词
-            memory_prompt = "这是相关的记忆，可以作为参考：\n```\n"
+            memory_prompt = "这是唤醒的记忆，可以作为参考：\n```\n"
             
             for i, result in enumerate(filtered_results, 1):
                 metadata = result['metadata']
@@ -366,7 +366,7 @@ class ChatHistoryVectorDB:
                     memory_prompt += f"记录 {i}: {result['text']}\n\n"
                     self.logger.info(f"  -> 记录 {i}: '{result['text'][:50]}...', 相似度={result['similarity']:.3f}")
             
-            memory_prompt += "```\nn以上是记忆而不是最近的对话，可以不使用。"
+            memory_prompt += "\n```\n以上是记忆而不是最近的对话，可以不使用。"
             
             self.logger.info(f"生成记忆提示词: {len(memory_prompt)} 字符")
             

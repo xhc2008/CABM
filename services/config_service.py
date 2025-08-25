@@ -129,7 +129,7 @@ class ConfigService:
                 # 替换通用提示词中的心情部分
                 general_prompt = general_prompt.replace("<[MOODS]>", mood_str)
             
-            return f"{general_prompt}\n\n{character_config['prompt']}"
+            return f"{general_prompt}{character_config['prompt']}\n```"
         
         # 对于非角色类型的提示词，也需要处理心情拼接
         prompt = config.get_system_prompt(prompt_type)
@@ -138,7 +138,6 @@ class ConfigService:
             if moods:
                 mood_str = " ".join([f"{i+1}.{mood}" for i, mood in enumerate(moods)])
                 prompt = prompt.replace("<[MOODS]>", mood_str)
-        
         return prompt
     
     def get_random_image_prompt(self):

@@ -214,6 +214,79 @@ class ChatService:
         self.add_message("system", system_prompt)
         self.logger.info(f"系统提示词已设置: {system_prompt[:50]}...")
     
+    def _build_system_prompt_with_context(self, user_query: str = None) -> str:
+        """
+        构建包含时间前缀、相关记忆和角色详情的系统提示词
+        
+        Args:
+            user_query: 用户查询，用于检索相关记忆和角色详情
+            
+        Returns:
+            完整的系统提示词
+        """
+        # 获取基础系统提示词
+        if self.story_mode and self.current_story_id:
+            base_prompt = self.config_service.get_system_prompt("character")
+        else:
+            base_prompt = self.config_service.get_system_prompt("character")
+        
+        # 初始化上下文部分
+        context_parts = []
+        
+        # 添加时间前缀（仅在非故事模式下）
+        if not self.story_mode:
+            character_id = self.config_service.current_character_id or "default"
+            time_prefix = self.time_tracker.get_time_elapsed_prefix(character_id)
+            if time_prefix:
+                context_parts.append(time_prefix)
+        
+        # 添加记忆和角色详情上下文
+        memory_context = ""
+        details_context = ""
+        
+        if user_query:
+            try:
+                if self.story_mode and self.current_story_id:
+                    # 剧情模式：使用故事ID进行记忆检索
+                    memory_context = self.memory_service.search_story_memory(
+                        query=user_query,
+                        story_id=self.current_story_id
+                    )
+                    # 剧情模式：尝试获取角色详细信息
+                    character_id = self.config_service.current_character_id
+                    if character_id:
+                        from services.character_details_service import character_details_service
+                        details_context = character_details_service.search_character_details(
+                            character_id=character_id,
+                            query=user_query,
+                            top_k=3
+                        )
+                else:
+                    # 普通模式：同时进行记忆和角色详细信息检索
+                    character_id = self.config_service.current_character_id or "default"
+                    memory_context, details_context = self.memory_service.search_memory_and_details(
+                        query=user_query,
+                        character_name=character_id
+                    )
+                
+                # 构建完整的上下文
+                if memory_context:
+                    context_parts.append(memory_context)
+                if details_context:
+                    context_parts.append(details_context)
+                    
+            except Exception as e:
+                self.logger.error(f"记忆和详细信息检索失败: {e}")
+        
+        # 如果有上下文信息，添加到系统提示词
+        if context_parts:
+            context_str = "\n\n".join(context_parts)
+            full_prompt = f"{base_prompt}\n{context_str}"
+        else:
+            full_prompt = base_prompt
+            
+        return full_prompt
+    
     def _load_history_on_startup(self):
         """在启动时加载历史记录到内存"""
         if self.story_mode and self.current_story_id:
@@ -456,92 +529,25 @@ class ChatService:
         if messages is None:
             # 使用内存中的历史记录（已经包含了从持久化存储加载的记录）
             messages = self.format_messages()
+        
+        # 如果有用户查询，构建包含上下文的系统提示词
+        if user_query:
+            # 构建包含记忆、角色详情和时间前缀的系统提示词
+            full_system_prompt = self._build_system_prompt_with_context(user_query)
             
-            # 确保系统提示词中包含角色设定（统一由config_service处理）
+            # 移除现有的system消息
+            messages = [msg for msg in messages if msg.get("role") != "system"]
+            
+            # 添加新的系统提示词到消息列表开头
+            messages.insert(0, {"role": "system", "content": full_system_prompt})
+        else:
+            # 如果没有用户查询，使用基础系统提示词
             has_system_message = any(msg.get("role") == "system" for msg in messages)
             if not has_system_message:
-                system_prompt = self.config_service.get_system_prompt("default")
+                system_prompt = self.config_service.get_system_prompt(
+                    "character" if self.config_service.current_character_id else "default"
+                )
                 messages.insert(0, {"role": "system", "content": system_prompt})
-        
-        # 如果有用户查询，进行记忆和角色详细信息检索
-        memory_context = ""
-        details_context = ""
-        if user_query:
-            try:
-                if self.story_mode and self.current_story_id:
-                    # 剧情模式：使用故事ID进行记忆检索
-                    memory_context = self.memory_service.search_story_memory(
-                        query=user_query,
-                        story_id=self.current_story_id
-                    )
-                    # 剧情模式：尝试获取角色详细信息
-                    character_id = self.config_service.current_character_id
-                    if character_id:
-                        from services.character_details_service import character_details_service
-                        details_context = character_details_service.search_character_details(
-                            character_id=character_id,
-                            query=user_query,
-                            top_k=3
-                        )
-                    else:
-                        details_context = ""
-                else:
-                    # 普通模式：同时进行记忆和角色详细信息检索
-                    character_id = self.config_service.current_character_id or "default"
-                    memory_context, details_context = self.memory_service.search_memory_and_details(
-                        query=user_query,
-                        character_name=character_id
-                    )
-                
-                # 构建完整的上下文
-                full_context = ""
-                if memory_context:
-                    full_context += memory_context
-                if details_context:
-                    if full_context:
-                        full_context += "\n\n" + details_context
-                    else:
-                        full_context = details_context
-
-                 # 添加lasttime字符串和相关信息到最后一条用户消息中
-                # 获取时间前缀
-                character_id = self.config_service.current_character_id or "default"
-                if self.story_mode and self.current_story_id:
-                    # 剧情模式：使用故事ID作为角色标识
-                    #time_prefix = self.time_tracker.get_time_elapsed_prefix(self.current_story_id)
-                    time_prefix=""
-                else:
-                    # 普通模式：使用角色ID
-                    time_prefix = self.time_tracker.get_time_elapsed_prefix(character_id)
-
-                if messages:
-                    # 找到最后一条用户消息
-                    for i in range(len(messages) - 1, -1, -1):
-                        if messages[i]["role"] == "user":
-                            original_content = messages[i]["content"]
-                            
-                            # 构建新的消息内容
-                            new_content = time_prefix
-                            if time_prefix and full_context:
-                                # 如果有时间前缀和上下文，都添加
-                                new_content += "\n\n" + full_context + "\n以下是用户说的话：\n" + original_content
-                            elif time_prefix and not full_context:
-                                # 只有时间前缀，没有上下文
-                                new_content += "\n\n以下是用户说的话：\n" + original_content
-                            elif not time_prefix and full_context:
-                                # 没有时间前缀，只有上下文
-                                new_content += "\n\n" + full_context + "\n以下是用户说的话：\n" + original_content
-                            else:
-                                # 都没有，只保留原始内容
-                                new_content = original_content
-                
-                            messages[i]["content"] = new_content
-                            break
-                            
-            except Exception as e:
-                self.logger.error(f"记忆和详细信息检索失败: {e}")
-                memory_context = ""
-                details_context = ""
         
         # 记录完整提示词到日志
         try:

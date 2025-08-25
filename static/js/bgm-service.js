@@ -5,18 +5,27 @@
  */
 class BGMService {
     constructor() {
-        this.ctx = null;          // AudioContext
-        this.source = null;       // AudioBufferSourceNode
-        this.gainNode = null;     // GainNode（音量）
-        this.buffer = null;       // 解码后的音频数据
+        // 如果已存在实例，返回该实例
+        if (window.bgmServiceInstance) {
+            return window.bgmServiceInstance;
+        }
+        
+        this.ctx = null;
+        this.source = null;
+        this.gainNode = null;
+        this.buffer = null;
         this.isPlaying = false;
         this.volume = 0.5;
         this.bgmFolder = '/static/bgm/';
         this.currentTrack = null;
         this.tracks = [];
-        this.enabled = true;      // BGM开关状态
-        this.pageConfigs = {};    // 每个页面的BGM配置
-        this.currentPage = null;  // 当前页面标识
+        this.enabled = true;
+        this.pageConfigs = {};
+        this.currentPage = null;
+        
+        // 存储单例实例
+        window.bgmServiceInstance = this;
+        
         this.init();
     }
 
@@ -139,19 +148,36 @@ class BGMService {
     async playTrack(trackName) {
         if (!this.enabled) return;
         if (this.source) this.source.stop();   // 停掉上一首
-        this.buffer = await this.fetchAndDecode(trackName);
-        this.source = this.ctx.createBufferSource();
-        this.source.buffer = this.buffer;
-        this.source.loop = true;
 
-        this.gainNode = this.ctx.createGain();
-        this.gainNode.gain.value = this.volume;
+        
+        // 确保停止当前播放
+        this.stop();
+        
+        try {
+            this.buffer = await this.fetchAndDecode(trackName);
+            this.source = this.ctx.createBufferSource();
+            this.source.buffer = this.buffer;
+            this.source.loop = true;
 
-        this.source.connect(this.gainNode).connect(this.ctx.destination);
-        this.source.start();
-        this.isPlaying = true;
-        this.currentTrack = trackName;
-        console.log(`Playing BGM: ${trackName}`);
+            this.gainNode = this.ctx.createGain();
+            this.gainNode.gain.value = this.volume;
+
+            this.source.connect(this.gainNode).connect(this.ctx.destination);
+            this.source.start();
+            this.isPlaying = true;
+            this.currentTrack = trackName;
+            console.log(`Playing BGM: ${trackName}`);
+        } catch (error) {
+            console.error('播放BGM失败:', error);
+        }
+    }
+    // 添加清理方法
+    cleanup() {
+        this.stop();
+        if (this.ctx) {
+            this.ctx.close();
+            this.ctx = null;
+        }
     }
 
     async playRandom() {
@@ -199,16 +225,24 @@ class BGMService {
     async refreshTracks() { await this.loadTracks(); }
 }
 
-// 全局实例
-window.bgmService = new BGMService();
-
-// 用户第一次交互后启动 AudioContext
-const unlock = () => {
-    window.bgmService.ctx.resume().then(() => {
-        if (!window.bgmService.isPlaying && window.bgmService.tracks.length && window.bgmService.enabled) {
-            window.bgmService.playRandom();
-        }
+if (!window.bgmService) {
+    window.bgmService = new BGMService();
+    
+    // 页面卸载时清理资源
+    window.addEventListener('beforeunload', () => {
+        window.bgmService.cleanup();
     });
-    ['click', 'keydown', 'touchstart'].forEach(e => document.removeEventListener(e, unlock));
-};
-['click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unlock));
+    
+    // 用户第一次交互后启动 AudioContext
+    const unlock = () => {
+        if (window.bgmService.ctx) {
+            window.bgmService.ctx.resume().then(() => {
+                if (!window.bgmService.isPlaying && window.bgmService.tracks.length && window.bgmService.enabled) {
+                    window.bgmService.playRandom();
+                }
+            });
+            ['click', 'keydown', 'touchstart'].forEach(e => document.removeEventListener(e, unlock));
+        }
+    };
+    ['click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unlock));
+}

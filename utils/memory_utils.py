@@ -219,7 +219,7 @@ class ChatHistoryVectorDB:
             timestamp = datetime.now().isoformat()
         
         # 将用户消息和助手回复组合成一个对话单元（用于向量化）
-        conversation_text = f"用户: {user_message}\n助手: {assistant_message}"
+        conversation_text = f"用户: {user_message}\{self.character_name}: {assistant_message}"
     
         self.add_text(conversation_text)
         self.logger.info(f"添加对话记录到向量数据库: {user_message[:50]}...")
@@ -251,10 +251,10 @@ class ChatHistoryVectorDB:
                 return ""
                     
             # 格式化为提示词
-            memory_prompt = "这是相关的记忆，可以作为参考：\n```\n" + \
+            memory_prompt = "这是唤醒的记忆，可以作为参考：\n```\n" + \
                 '\n'.join([r['text'] for r in results])
             
-            memory_prompt += "```\n以上是记忆而不是最近的对话，可以不使用。"
+            memory_prompt += "\n```\n以上是记忆而不是最近的对话，可以不使用。"
             
             self.logger.info(f"生成记忆提示词: {len(memory_prompt)} 字符")
             self.logger.debug(f"生成的记忆提示词内容: {memory_prompt}")

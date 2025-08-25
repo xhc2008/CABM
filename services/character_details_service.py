@@ -189,7 +189,7 @@ class CharacterDetailsService:
             
             # 格式化为提示词
             details_texts = [result['text'] for result in results]
-            details_prompt = "你的相关人物细节：\n```" + "；".join(details_texts)+"```\n\n："
+            details_prompt = "你的相关人物细节：\n```\n" + "\n\n".join(details_texts)+"\n```"
             
             self.logger.info(f"角色详细信息检索完成: 生成了 {len(details_prompt)} 字符的详细信息上下文")
             return details_prompt
