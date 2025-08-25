@@ -42,6 +42,10 @@
                 window.bgmService.setCurrentPage('index');
             }
             
+            // 初始化TTS设置
+            window.ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+            window.ttsVolume = parseFloat(localStorage.getItem('ttsVolume') || '80') / 100;
+            
             // 获取设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
 

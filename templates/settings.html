@@ -183,8 +183,21 @@
                     <div class="setting-item">
                         <label class="volume-control">
                             <span>背景音乐音量</span>
-                            <input type="range" id="bgmVolume" min="0" max="100" value="50">
-                            <span id="volumeValue" class="volume-value">50%</span>
+                            <input type="range" id="bgmVolume" min="0" max="100" value="40">
+                            <span id="volumeValue" class="volume-value">40%</span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label for="ttsToggle">
+                            <input type="checkbox" id="ttsToggle">
+                            <span>启用语音合成</span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="volume-control">
+                            <span>角色语音音量</span>
+                            <input type="range" id="ttsVolume" min="0" max="100" value="80">
+                            <span id="ttsVolumeValue" class="volume-value">80%</span>
                         </label>
                     </div>
                 </div>
@@ -226,17 +239,25 @@
             const bgmToggle = document.getElementById('bgmToggle');
             const bgmVolume = document.getElementById('bgmVolume');
             const volumeValue = document.getElementById('volumeValue');
+            const ttsToggle = document.getElementById('ttsToggle');
+            const ttsVolume = document.getElementById('ttsVolume');
+            const ttsVolumeValue = document.getElementById('ttsVolumeValue');
             const pageBgmConfigs = document.getElementById('pageBgmConfigs');
             
             // 从localStorage加载设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
             const bgmEnabled = localStorage.getItem('bgmEnabled') !== 'false';
             const savedVolume = localStorage.getItem('bgmVolume') || '50';
+            const ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+            const savedTtsVolume = localStorage.getItem('ttsVolume') || '80';
             
             showLogoToggle.checked = showLogo;
             bgmToggle.checked = bgmEnabled;
             bgmVolume.value = savedVolume;
             volumeValue.textContent = savedVolume + '%';
+            ttsToggle.checked = ttsEnabled;
+            ttsVolume.value = savedTtsVolume;
+            ttsVolumeValue.textContent = savedTtsVolume + '%';
             
             // 生成页面BGM配置控件
             function generatePageBgmControls() {
@@ -320,6 +341,20 @@
                 }
             });
             
+            ttsToggle.addEventListener('change', function() {
+                localStorage.setItem('ttsEnabled', this.checked);
+                window.ttsEnabled = this.checked;
+                console.log('TTS开关状态:', this.checked);
+            });
+            
+            ttsVolume.addEventListener('input', function() {
+                const volume = this.value;
+                ttsVolumeValue.textContent = volume + '%';
+                localStorage.setItem('ttsVolume', volume);
+                window.ttsVolume = volume / 100;
+                console.log('TTS音量设置:', volume + '%');
+            });
+            
             // 初始化BGM设置
             if (window.bgmService) {
                 // 等待BGM服务加载完成
@@ -334,6 +369,11 @@
                     }
                 }, 100);
             }
+            
+            // 初始化TTS设置
+            window.ttsEnabled = ttsEnabled;
+            window.ttsVolume = savedTtsVolume / 100;
+            console.log('初始化TTS设置 - 启用:', ttsEnabled, '音量:', savedTtsVolume + '%');
         });
     </script>
     <script>

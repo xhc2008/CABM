@@ -28,10 +28,17 @@ def serve_story_file(filename):
 
 @bp.route('/api/tts', methods=['POST'])
 def serve_tts():
+    # 检查TTS是否启用（从前端传递的参数或默认启用）
+    data = request.get_json()
+    tts_enabled = data.get("enabled", True)  # 默认启用，兼容旧版本
+    
+    if not tts_enabled:
+        return jsonify({"error": "TTS功能已关闭"}), 400
+    
     tts = current_app.tts
     if tts is None or not tts.running():
         return jsonify({"error": "语音合成服务未启用/连接失败"}), 400
-    data = request.get_json()
+    
     text = data.get("text", "").strip()
     role = data.get("role", "AI助手")
     if not text:

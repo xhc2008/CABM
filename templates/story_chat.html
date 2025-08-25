@@ -307,6 +307,10 @@
     <script>
         // 设置当前页面
         window.addEventListener('DOMContentLoaded', function() {
+            // 初始化TTS设置
+            window.ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+            window.ttsVolume = parseFloat(localStorage.getItem('ttsVolume') || '80') / 100;
+            
             if (window.bgmService) {
                 window.bgmService.setCurrentPage('story_chat');
             }

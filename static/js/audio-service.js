@@ -60,6 +60,7 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
             const audio = new Audio();
             const url = URL.createObjectURL(audioBlob);
             audio.src = url;
+            audio.volume = window.ttsVolume || 0.8; // 应用TTS音量设置
             audio.onended = () => { URL.revokeObjectURL(url); };
             audio.onerror = () => { 
                 if (!autoPlay) showError('音频播放失败'); 
@@ -103,7 +104,8 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: textToPlay,
-                role: currentCharacter ? currentCharacter.name : 'AI助手'
+                role: currentCharacter ? currentCharacter.name : 'AI助手',
+                enabled: window.ttsEnabled !== false
             })
         });
 
@@ -123,6 +125,7 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
         const audio = new Audio();
         const url = URL.createObjectURL(blob);
         audio.src = url;
+        audio.volume = window.ttsVolume || 0.8; // 应用TTS音量设置
         audio.onended = () => { URL.revokeObjectURL(url); };
         audio.onerror = () => { 
             if (!autoPlay) showError('音频播放失败'); 
@@ -191,6 +194,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             const audio = new Audio();
             const url = URL.createObjectURL(audioBlob);
             audio.src = url;
+            audio.volume = window.ttsVolume || 0.8; // 应用TTS音量设置
             audio.onended = () => { URL.revokeObjectURL(url); };
             audio.onerror = () => { 
                 if (!autoPlay) showError('音频播放失败'); 
@@ -234,7 +238,8 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
-                role: currentCharacter ? currentCharacter.name : 'AI助手'
+                role: currentCharacter ? currentCharacter.name : 'AI助手',
+                enabled: window.ttsEnabled !== false
             })
         });
 
@@ -254,6 +259,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
         const audio = new Audio();
         const url = URL.createObjectURL(blob);
         audio.src = url;
+        audio.volume = window.ttsVolume || 0.8; // 应用TTS音量设置
         audio.onended = () => { URL.revokeObjectURL(url); };
         audio.onerror = () => { 
             if (!autoPlay) showError('音频播放失败'); 
@@ -316,7 +322,8 @@ export function prefetchAndPlayAudio(text, roleName, currentCharacter) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             text: textToProcess,
-            role: roleName || 'AI助手'
+            role: roleName || 'AI助手',
+            enabled: window.ttsEnabled !== false
         })
     })
     .then(response => {
@@ -361,7 +368,8 @@ export function prefetchAudio(text, roleName, callback) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             text: text,
-            role: roleName || 'AI助手'
+            role: roleName || 'AI助手',
+            enabled: window.ttsEnabled !== false
         })
     })
     .then(response => {
