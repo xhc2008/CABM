@@ -177,48 +177,48 @@ def chat_stream():
                 full_response = ""
                 parsed_mood = None
                 parsed_content = ""
+                
                 for chunk in stream_gen:
                     if chunk is not None:
                         full_response += chunk
-                        # --- JSON 解析逻辑（同原 app.py）---
+                        
+                        # 实时解析JSON内容，即使不完整
                         try:
-                            json_start = full_response.rfind('{')
-                            if json_start != -1:
-                                potential_json = full_response[json_start:]
-                                brace_count = 0
-                                json_end = -1
-                                for i, char in enumerate(potential_json):
-                                    if char == '{':
-                                        brace_count += 1
-                                    elif char == '}':
-                                        brace_count -= 1
-                                        if brace_count == 0:
-                                            json_end = i + 1
-                                            break
-                                if json_end != -1:
-                                    json_str = potential_json[:json_end]
-                                    try:
-                                        json_data = json.loads(json_str)
-                                        if 'mood' in json_data:
-                                            new_mood = json_data['mood']
-                                            if new_mood != parsed_mood:
-                                                parsed_mood = new_mood
-                                                yield f"data: {json.dumps({'mood': parsed_mood})}\n\n"
-                                        if 'content' in json_data:
-                                            new_content = json_data['content']
-                                            if new_content != parsed_content:
-                                                if len(new_content) < len(parsed_content):
-                                                    yield f"data: {json.dumps({'content': new_content})}\n\n"
-                                                    parsed_content = new_content
-                                                else:
-                                                    content_diff = new_content[len(parsed_content):]
-                                                    if content_diff:
-                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
-                                                    parsed_content = new_content
-                                    except json.JSONDecodeError:
-                                        pass
+                            # 尝试提取content字段，即使JSON不完整
+                            content_match = re.search(r'"content":\s*"([^"]*)', full_response)
+                            if content_match:
+                                current_content = content_match.group(1)
+                                
+                                # 处理转义字符
+                                current_content = current_content.replace('\\"', '"')
+                                current_content = current_content.replace('\\\\', '\\')
+                                
+                                if current_content != parsed_content:
+                                    # 检查是否是新的响应（内容变短）
+                                    if len(current_content) < len(parsed_content):
+                                        # 新的响应开始，发送完整内容
+                                        yield f"data: {json.dumps({'content': current_content})}\n\n"
+                                        parsed_content = current_content
+                                    else:
+                                        # 同一响应的增量内容
+                                        content_diff = current_content[len(parsed_content):]
+                                        if content_diff:
+                                            yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                        parsed_content = current_content
+                            
+                            # 同时尝试提取mood字段
+                            mood_match = re.search(r'"mood":\s*"([^"]*)', full_response)
+                            if mood_match:
+                                current_mood = mood_match.group(1)
+                                if current_mood != parsed_mood:
+                                    yield f"data: {json.dumps({'mood': current_mood})}\n\n"
+                                    parsed_mood = current_mood
+                                    
                         except Exception as e:
+                            # JSON解析失败，尝试作为普通文本发送
                             yield f"data: {json.dumps({'content': chunk})}\n\n"
+                
+                # 处理完整响应（保持原有逻辑）
                 if full_response:
                     chat_service.add_message("assistant", full_response)
                     try:
@@ -253,6 +253,10 @@ def chat_stream():
             except Exception as e:
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 yield "data: [DONE]\n\n"
+                
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                yield "data: [DONE]\n\n"
 
         headers = {
             'Content-Type': 'text/event-stream',
@@ -260,6 +264,7 @@ def chat_stream():
             'X-Accel-Buffering': 'no'
         }
         return Response(generate(), mimetype='text/event-stream', headers=headers)
+        
     except APIError as e:
         return jsonify({'success': False, 'error': e.message}), 500
     except Exception as e:

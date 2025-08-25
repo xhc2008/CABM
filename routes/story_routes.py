@@ -377,87 +377,40 @@ def story_chat_stream():
                     if chunk is not None:
                         full_response += chunk
                         
-                        # 实时解析JSON格式的响应
+                        # 实时解析JSON内容，即使不完整
                         try:
-                            # 尝试解析当前累积的响应
-                            # 查找最后一个可能的JSON对象
-                            json_start = full_response.rfind('{')
-                            if json_start != -1:
-                                # 尝试解析从最后一个{开始的JSON
-                                potential_json = full_response[json_start:]
+                            # 尝试提取content字段，即使JSON不完整
+                            content_match = re.search(r'"content":\s*"([^"]*)', full_response)
+                            if content_match:
+                                current_content = content_match.group(1)
                                 
-                                # 检查是否有完整的JSON结构
-                                brace_count = 0
-                                json_end = -1
-                                for i, char in enumerate(potential_json):
-                                    if char == '{':
-                                        brace_count += 1
-                                    elif char == '}':
-                                        brace_count -= 1
-                                        if brace_count == 0:
-                                            json_end = i + 1
-                                            break
+                                # 处理转义字符
+                                current_content = current_content.replace('\\"', '"')
+                                current_content = current_content.replace('\\\\', '\\')
                                 
-                                # 如果找到完整的JSON，尝试解析
-                                if json_end != -1:
-                                    json_str = potential_json[:json_end]
-                                    try:
-                                        json_data = json.loads(json_str)
-                                        
-                                        # 处理mood字段
-                                        if 'mood' in json_data:
-                                            new_mood = json_data['mood']
-                                            if new_mood != parsed_mood:
-                                                parsed_mood = new_mood
-                                                # 立即发送mood给前端处理表情变化
-                                                yield f"data: {json.dumps({'mood': parsed_mood})}\n\n"
-                                        
-                                        # 处理content字段 - 实时发送增量内容
-                                        if 'content' in json_data:
-                                            new_content = json_data['content']
-                                            if new_content != parsed_content:
-                                                # 检查是否是新的JSON对象（content长度变短了）
-                                                if len(new_content) < len(parsed_content):
-                                                    # 新的JSON对象，直接发送全部内容
-                                                    yield f"data: {json.dumps({'content': new_content})}\n\n"
-                                                    parsed_content = new_content
-                                                else:
-                                                    # 同一个JSON对象的增量更新
-                                                    content_diff = new_content[len(parsed_content):]
-                                                    if content_diff:
-                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
-                                                    parsed_content = new_content
-                                                
-                                    except json.JSONDecodeError:
-                                        # JSON不完整，继续等待更多数据
-                                        pass
-                                else:
-                                    # 尝试解析不完整的JSON来提取content字段
-                                    # 这是为了处理流式JSON的情况
-                                    try:
-                                        # 查找content字段的值（支持不完整的字符串）
-                                        # 匹配 "content": "任何内容（可能没有结束引号）
-                                        content_match = re.search(r'"content":\s*"([^"]*)', potential_json)
-                                        if content_match:
-                                            current_content = content_match.group(1)
-                                            if current_content != parsed_content:
-                                                # 检查是否是新的JSON对象（content长度变短了）
-                                                if len(current_content) < len(parsed_content):
-                                                    # 新的JSON对象，直接发送全部内容
-                                                    yield f"data: {json.dumps({'content': current_content})}\n\n"
-                                                    parsed_content = current_content
-                                                else:
-                                                    # 同一个JSON对象的增量更新
-                                                    content_diff = current_content[len(parsed_content):]
-                                                    if content_diff:
-                                                        yield f"data: {json.dumps({'content': content_diff})}\n\n"
-                                                    parsed_content = current_content
-                                    except Exception:
-                                        pass
-                                        
+                                if current_content != parsed_content:
+                                    # 检查是否是新的响应（内容变短）
+                                    if len(current_content) < len(parsed_content):
+                                        # 新的响应开始，发送完整内容
+                                        yield f"data: {json.dumps({'content': current_content})}\n\n"
+                                        parsed_content = current_content
+                                    else:
+                                        # 同一响应的增量内容
+                                        content_diff = current_content[len(parsed_content):]
+                                        if content_diff:
+                                            yield f"data: {json.dumps({'content': content_diff})}\n\n"
+                                        parsed_content = current_content
+                            
+                            # 同时尝试提取mood字段
+                            mood_match = re.search(r'"mood":\s*"([^"]*)', full_response)
+                            if mood_match:
+                                current_mood = mood_match.group(1)
+                                if current_mood != parsed_mood:
+                                    yield f"data: {json.dumps({'mood': current_mood})}\n\n"
+                                    parsed_mood = current_mood
+                                    
                         except Exception as e:
-                            print(f"解析JSON响应失败: {e}")
-                            # 如果JSON解析失败，尝试作为普通文本处理
+                            # JSON解析失败，尝试作为普通文本发送
                             yield f"data: {json.dumps({'content': chunk})}\n\n"
                 
                 # 将完整消息添加到历史记录（存储原始响应内容）
@@ -572,7 +525,7 @@ def story_chat_stream():
     except Exception as e:
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
+        
 @bp.route('/api/story/exit', methods=['POST'])
 def exit_story_mode():
     try:
