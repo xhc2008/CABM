@@ -59,9 +59,14 @@ class BGMService {
         
         console.log('BGM Service (Web Audio) ready:', this.tracks);
         
-        // 4. 如果启用BGM，尝试自动播放
+        // 4. 如果启用BGM，尝试自动播放（根据当前页面配置）
         if (this.enabled && this.tracks.length) {
-            this.playRandom();
+            // 如果当前页面已设置，播放页面BGM，否则播放随机
+            if (this.currentPage) {
+                this.playPageBGM();
+            } else {
+                this.playRandom();
+            }
         }
     }
 
@@ -147,8 +152,6 @@ class BGMService {
 
     async playTrack(trackName) {
         if (!this.enabled) return;
-        if (this.source) this.source.stop();   // 停掉上一首
-
         
         // 确保停止当前播放
         this.stop();
