@@ -257,9 +257,16 @@ class HistoryManager:
         # 转换为API需要的格式
         api_messages = []
         for message in page_messages:
+            # 导入文本处理工具
+            from utils.text_utils import format_message_content_for_display
+            
+            # 格式化消息内容
+            sentences = format_message_content_for_display(message["content"], message["role"])
+            
             api_messages.append({
                 "role": message["role"],
-                "content": message["content"],
+                "content": message["content"],  # 保留原始内容
+                "sentences": sentences,  # 添加分割后的句子
                 "timestamp": message.get("timestamp", "")
             })
         
@@ -337,9 +344,16 @@ class HistoryManager:
         # 转换为API需要的格式
         api_messages = []
         for message in page_messages:
+            # 导入文本处理工具
+            from utils.text_utils import format_message_content_for_display
+            
+            # 格式化消息内容
+            sentences = format_message_content_for_display(message["content"], message["role"])
+            
             api_messages.append({
                 "role": message["role"],
-                "content": message["content"],
+                "content": message["content"],  # 保留原始内容
+                "sentences": sentences,  # 添加分割后的句子
                 "timestamp": message.get("timestamp", "")
             })
         

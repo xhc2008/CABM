@@ -23,47 +23,9 @@ import rtoml
 bp = Blueprint('character', __name__, url_prefix='')
 
 # ------------------------------------------------------------------
-# 工具函数
+# 导入文本处理工具
 # ------------------------------------------------------------------
-def _parse_assistant_text(raw: str) -> str:
-    if not raw:
-        return ""
-    try:
-        obj = json.loads(raw)
-        if isinstance(obj, dict):
-            text = obj.get('content')
-            if isinstance(text, str):
-                return text
-        if isinstance(obj, str):
-            return obj
-    except Exception:
-        pass
-    return str(raw)
-
-def _extract_last_sentence(text: str) -> str:
-    import re as _re
-    if not text:
-        return ""
-    text = _re.sub(r"\s+", " ", text).strip()
-    if not text:
-        return ""
-    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...']
-    escaped = ''.join(_re.escape(ch) for ch in sentence_endings)
-    pattern = rf"([^ {escaped}]+(?:[{escaped}]+)?)$"
-    m = _re.search(pattern, text)
-    return m.group(1).strip() if m else text
-
-def _get_last_assistant_sentence_for_character(character_id: str) -> str:
-    try:
-        history_messages = chat_service.history_manager.load_history(character_id, count=200, max_cache_size=500)
-        for msg in reversed(history_messages):
-            if msg.get('role') == 'assistant':
-                raw = msg.get('content', '')
-                text = _parse_assistant_text(raw)
-                return _extract_last_sentence(text)
-    except Exception as e:
-        print(f"提取最后一句失败: {e}")
-    return ""
+from utils.text_utils import get_last_assistant_sentence_for_character
 
 # ------------------------------------------------------------------
 # 页面路由
@@ -87,7 +49,7 @@ def select_character_page():
             full_image_dir = project_root / image_dir
             avatar_abs = full_image_dir / 'avatar.png'
             avatar_url = f"/{image_dir}/avatar.png" if avatar_abs.exists() else "/static/images/default.svg"
-            last_sentence = _get_last_assistant_sentence_for_character(ch_id)
+            last_sentence = get_last_assistant_sentence_for_character(ch_id)
             short = last_sentence
             max_len = 100
             if short and len(short) > max_len:

@@ -116,6 +116,44 @@
     white-space: pre-wrap;
 }
 
+.history-content-container {
+    color: white;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.history-sentence {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.history-sentence:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-left-color: rgba(255, 255, 255, 0.3);
+    transform: translateX(2px);
+}
+
+.history-sentence:last-child {
+    margin-bottom: 0;
+}
+
+.history-message.history-assistant .history-sentence:hover {
+    border-left-color: #ffeb3b;
+}
+
+.history-message.history-user .history-sentence:hover {
+    border-left-color: #90caf9;
+}
+
+.history-message.history-system .history-sentence:hover {
+    border-left-color: #4caf50;
+}
+
 .history-timestamp {
     font-size: 0.8em;
     color: rgba(255, 255, 255, 0.5);

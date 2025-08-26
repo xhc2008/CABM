@@ -206,9 +206,6 @@ class HistoryService {
         
         roleSpan.textContent = roleName;
         
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'history-content';
-        
         // 处理消息内容
         let content = message.content;
         if (message.role === 'assistant') {
@@ -224,7 +221,35 @@ class HistoryService {
             }
         }
         
-        contentDiv.textContent = content;
+        // 使用后端提供的句子数据，如果没有则前端分割
+        let sentences = [];
+        if (message.sentences && Array.isArray(message.sentences)) {
+            sentences = message.sentences;
+        } else if (message.role === 'assistant') {
+            sentences = this.splitIntoSentences(content);
+        } else {
+            sentences = [content];
+        }
+        
+        // 创建内容容器
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'history-content-container';
+        
+        // 为每个句子创建一个元素
+        sentences.forEach((sentence, index) => {
+            if (sentence.trim()) {
+                const sentenceDiv = document.createElement('div');
+                sentenceDiv.className = 'history-sentence';
+                sentenceDiv.textContent = sentence.trim();
+                
+                // 为句子添加点击事件（可以用于TTS播放等）
+                sentenceDiv.addEventListener('click', () => {
+                    this.onSentenceClick(sentence, roleName);
+                });
+                
+                contentContainer.appendChild(sentenceDiv);
+            }
+        });
         
         // 添加时间戳
         if (message.timestamp) {
@@ -235,9 +260,45 @@ class HistoryService {
         }
         
         messageDiv.appendChild(roleSpan);
-        messageDiv.appendChild(contentDiv);
+        messageDiv.appendChild(contentContainer);
         
         return messageDiv;
+    }
+    
+    splitIntoSentences(text) {
+        if (!text) return [];
+        
+        // 清理文本
+        text = text.replace(/\s+/g, ' ').trim();
+        if (!text) return [];
+        
+        // 定义句子结束标点
+        const sentenceEndings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...'];
+        
+        // 构建分割正则表达式
+        const escapedEndings = sentenceEndings.map(ch => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('');
+        const pattern = new RegExp(`([^${escapedEndings}]*[${escapedEndings}]+|[^${escapedEndings}]+(?=[${escapedEndings}]|$))`, 'g');
+        
+        const sentences = text.match(pattern) || [];
+        
+        // 清理和过滤句子
+        return sentences
+            .map(sentence => sentence.trim())
+            .filter(sentence => sentence.length > 0);
+    }
+    
+    onSentenceClick(sentence, characterName) {
+        // 句子点击事件处理
+        console.log('点击句子:', sentence, '角色:', characterName);
+        
+        // 如果有TTS功能，可以播放这个句子
+        if (window.playTextAudio && characterName !== '你' && characterName !== '系统') {
+            try {
+                window.playTextAudio(sentence, false);
+            } catch (error) {
+                console.error('播放句子失败:', error);
+            }
+        }
     }
     
     updateLoadMoreButton() {

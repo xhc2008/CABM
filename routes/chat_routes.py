@@ -27,47 +27,8 @@ if not need_config:
 bp = Blueprint('chat', __name__, url_prefix='')
 
 # ------------------------------------------------------------------
-# 工具函数（与 app.py 保持一致）
-# ------------------------------------------------------------------
-def _parse_assistant_text(raw: str) -> str:
-    if not raw:
-        return ""
-    try:
-        obj = json.loads(raw)
-        if isinstance(obj, dict):
-            text = obj.get('content')
-            if isinstance(text, str):
-                return text
-        if isinstance(obj, str):
-            return obj
-    except Exception:
-        pass
-    return str(raw)
-
-def _extract_last_sentence(text: str) -> str:
-    import re as _re
-    if not text:
-        return ""
-    text = _re.sub(r"\s+", " ", text).strip()
-    if not text:
-        return ""
-    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...']
-    escaped = ''.join(_re.escape(ch) for ch in sentence_endings)
-    pattern = rf"([^ {escaped}]+(?:[{escaped}]+)?)$"
-    m = _re.search(pattern, text)
-    return m.group(1).strip() if m else text
-
-def _get_last_assistant_sentence_for_character(character_id: str) -> str:
-    try:
-        history_messages = chat_service.history_manager.load_history(character_id, count=200, max_cache_size=500)
-        for msg in reversed(history_messages):
-            if msg.get('role') == 'assistant':
-                raw = msg.get('content', '')
-                text = _parse_assistant_text(raw)
-                return _extract_last_sentence(text)
-    except Exception as e:
-        print(f"提取最后一句失败: {e}")
-    return ""
+# 导入文本处理工具
+from utils.text_utils import get_last_assistant_sentence_for_character
 
 # ------------------------------------------------------------------
 # 页面路由
@@ -116,7 +77,7 @@ def chat_page():
     try:
         current_character = chat_service.get_character_config()
         if current_character and "id" in current_character:
-            last_sentence = _get_last_assistant_sentence_for_character(current_character["id"]) or ""
+            last_sentence = get_last_assistant_sentence_for_character(current_character["id"]) or ""
     except Exception:
         pass
 
