@@ -51,7 +51,7 @@ def extract_last_sentence(text: str) -> str:
     if not text:
         return ""
     
-    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...']
+    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~']
     escaped = ''.join(re.escape(ch) for ch in sentence_endings)
     pattern = rf"([^ {escaped}]+(?:[{escaped}]+)?)$"
     m = re.search(pattern, text)
@@ -80,7 +80,7 @@ def split_into_sentences(text: str) -> List[str]:
         return []
     
     # 定义句子结束标点
-    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...']
+    sentence_endings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~']
     
     # 构建分割正则表达式
     escaped_endings = ''.join(re.escape(ch) for ch in sentence_endings)
