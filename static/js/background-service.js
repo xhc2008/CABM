@@ -68,8 +68,8 @@ class BackgroundService {
                     </div>
                     
                     <div class="form-group">
-                        <label for="backgroundDesc">描述</label>
-                        <textarea id="backgroundDesc" placeholder="可选，描述这个背景的特点"></textarea>
+                        <label for="backgroundDesc">简介</label>
+                        <textarea id="backgroundDesc" placeholder="这个背景的简介，可选"></textarea>
                     </div>
                     
                     <div class="form-group">
