@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/continue-prompt.css">
     <link rel="stylesheet" href="/static/css/media.css">
     <link rel="stylesheet" href="/static/css/history.css">
+    <link rel="stylesheet" href="/static/css/background-selector.css">
     <style>
         .story-info {
             position: absolute;
@@ -305,7 +306,15 @@
             showStoryFinishedModal();
         });
     </script>
-    <script>
+    <script type="module">
+        // 导入必要的函数
+        import { updateBackground, updateCurrentMessage, showError } from '/static/js/ui-service.js';
+        
+        // 暴露到全局作用域
+        window.updateBackground = updateBackground;
+        window.updateCurrentMessage = updateCurrentMessage;
+        window.showError = showError;
+        
         // 设置当前页面
         window.addEventListener('DOMContentLoaded', function() {
             // 初始化TTS设置
@@ -323,5 +332,6 @@
     <script src="/static/js/sci-fi-effects.js"></script>
     <script src="/static/js/input-enhancements.js"></script>
     <script type="module" src="/static/js/bgm-service.js"></script>
+    <script type="module" src="/static/js/background-service.js"></script>
 </body>
 </html>

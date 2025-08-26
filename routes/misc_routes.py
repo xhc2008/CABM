@@ -26,6 +26,10 @@ def serve_character_image(filename):
 def serve_story_file(filename):
     return send_from_directory(str(project_root / 'data' / 'saves'), filename)
 
+@bp.route('/static/images/backgrounds/<path:filename>')
+def serve_background_image(filename):
+    return send_from_directory(str(project_root / 'data' / 'backgrounds'), filename)
+
 @bp.route('/api/tts', methods=['POST'])
 def serve_tts():
     # 检查TTS是否启用（从前端传递的参数或默认启用）
@@ -57,3 +61,5 @@ def serve_tts():
 def settings():
     """设置页面"""
     return render_template('settings.html')
+
+

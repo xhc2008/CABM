@@ -256,6 +256,119 @@ def generate_background():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@bp.route('/api/backgrounds', methods=['GET'])
+def get_backgrounds():
+    """获取所有背景列表"""
+    try:
+        import json
+        from pathlib import Path
+        
+        # 读取背景配置文件
+        background_json_path = project_root / 'data' / 'background.json'
+        if background_json_path.exists():
+            with open(background_json_path, 'r', encoding='utf-8') as f:
+                backgrounds = json.load(f)
+        else:
+            backgrounds = {}
+        
+        return jsonify({
+            'success': True,
+            'backgrounds': backgrounds
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/background/select', methods=['POST'])
+def select_background():
+    """选择指定的背景"""
+    try:
+        filename = request.json.get('filename')
+        if not filename:
+            return jsonify({'success': False, 'error': '未指定背景文件'}), 400
+        
+        # 构建背景URL
+        background_url = f"/static/images/backgrounds/{filename}"
+        
+        # 读取背景信息
+        import json
+        from pathlib import Path
+        
+        background_json_path = project_root / 'data' / 'background.json'
+        prompt = None
+        if background_json_path.exists():
+            with open(background_json_path, 'r', encoding='utf-8') as f:
+                backgrounds = json.load(f)
+                if filename in backgrounds:
+                    prompt = backgrounds[filename].get('prompt')
+        
+        return jsonify({
+            'success': True,
+            'background_url': background_url,
+            'prompt': prompt
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/background/add', methods=['POST'])
+def add_background():
+    """添加新背景"""
+    try:
+        import json
+        import uuid
+        from pathlib import Path
+        
+        name = request.json.get('name', '').strip()
+        desc = request.json.get('desc', '').strip()
+        prompt = request.json.get('prompt', '').strip()
+        
+        if not name:
+            return jsonify({'success': False, 'error': '背景名称不能为空'}), 400
+        
+        # 生成背景图片
+        result = image_service.generate_background(prompt if prompt else None)
+        if "image_path" not in result:
+            return jsonify({'success': False, 'error': '背景图片生成失败'}), 500
+        
+        # 生成新的文件名
+        file_extension = Path(result["image_path"]).suffix
+        new_filename = f"{uuid.uuid4().hex}{file_extension}"
+        
+        # 移动文件到backgrounds目录
+        backgrounds_dir = project_root / 'data' / 'backgrounds'
+        backgrounds_dir.mkdir(exist_ok=True)
+        
+        new_path = backgrounds_dir / new_filename
+        import shutil
+        shutil.move(result["image_path"], new_path)
+        
+        # 更新背景配置文件
+        background_json_path = project_root / 'data' / 'background.json'
+        if background_json_path.exists():
+            with open(background_json_path, 'r', encoding='utf-8') as f:
+                backgrounds = json.load(f)
+        else:
+            backgrounds = {}
+        
+        backgrounds[new_filename] = {
+            'name': name,
+            'desc': desc,
+            'prompt': prompt if prompt else result.get('config', {}).get('prompt', '')
+        }
+        
+        with open(background_json_path, 'w', encoding='utf-8') as f:
+            json.dump(backgrounds, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'filename': new_filename,
+            'message': '背景添加成功'
+        })
+        
+    except APIError as e:
+        return jsonify({'success': False, 'error': e.message}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @bp.route('/api/clear', methods=['POST'])
 def clear_history():
     try:

@@ -119,9 +119,10 @@ window.setTTS = function(enabled) {
 
 // 暴露必要的函数给全局使用
 window.getCurrentCharacter = getCurrentCharacter;
-import { showOptionButtons } from './ui-service.js';
+import { showOptionButtons, updateBackground, updateCurrentMessage } from './ui-service.js';
 window.showOptionButtons = showOptionButtons;
+window.updateBackground = updateBackground;
+window.updateCurrentMessage = updateCurrentMessage;
 window.playAudio = (autoPlay = false) => playAudio(getCurrentCharacter(), autoPlay);
-window.playTextAudio = (text, autoPlay = false) => playTextAudio(text, getCurrentCharacter(), autoPlay);
 window.stopCurrentAudio = stopCurrentAudio;
 window.showError = showError;

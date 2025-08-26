@@ -1,0 +1,352 @@
+/* 背景选择器样式 */
+
+.background-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.background-content {
+    background: rgba(0, 20, 40, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    height: 80%;
+    max-height: 600px;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+}
+
+.background-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.background-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.add-background-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.add-background-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+.background-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.background-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.background-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.background-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 150, 255, 0.6);
+    border-radius: 4px;
+}
+
+.background-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.background-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.background-thumbnail {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-right: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.background-info {
+    flex: 1;
+    color: white;
+}
+
+.background-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #90caf9;
+}
+
+.background-desc {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 3px;
+    line-height: 1.4;
+}
+
+.background-prompt {
+    font-size: 12px;
+    color: #999;
+    font-style: italic;
+}
+
+.background-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: white;
+}
+
+.background-loading .loading-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #00ff88;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.background-loading p {
+    margin: 0;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.background-empty {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 40px 20px;
+    font-size: 1.1em;
+}
+
+.background-empty-icon {
+    font-size: 3em;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.background-error {
+    text-align: center;
+    color: #ff6b6b;
+    padding: 20px;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+/* 添加背景模态框 */
+.add-background-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1100;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-background-content {
+    background: rgba(0, 20, 40, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+}
+
+.add-background-content h3 {
+    color: white;
+    margin: 0 0 20px 0;
+    font-size: 1.3em;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: white;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #90caf9;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.form-group textarea {
+    height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.form-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.form-btn-primary {
+    background: #4CAF50;
+    color: white;
+}
+
+.form-btn-primary:hover:not(:disabled) {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+.form-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.form-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.form-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .background-content {
+        width: 95%;
+        height: 90%;
+    }
+    
+    .background-header {
+        padding: 15px;
+    }
+    
+    .background-list {
+        padding: 15px;
+        gap: 10px;
+    }
+    
+    .background-item {
+        padding: 12px;
+    }
+    
+    .background-thumbnail {
+        width: 60px;
+        height: 45px;
+        margin-right: 12px;
+    }
+    
+    .background-name {
+        font-size: 14px;
+    }
+    
+    .background-desc {
+        font-size: 12px;
+    }
+    
+    .add-background-content {
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .form-buttons {
+        flex-direction: column;
+    }
+    
+    .form-btn {
+        width: 100%;
+    }
+}

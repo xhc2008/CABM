@@ -274,38 +274,18 @@ export async function changeBackground() {
         return;
     }
 
-    showLoading();
-
-    try {
-        const response = await fetch('/api/background', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-            throw new Error(data.error || '请求失败');
+    // 打开背景选择器
+    if (window.openBackgroundSelector) {
+        window.openBackgroundSelector();
+    } else {
+        // 如果背景选择器还没有加载，动态加载
+        try {
+            const { openBackgroundSelector } = await import('./background-service.js');
+            openBackgroundSelector();
+        } catch (error) {
+            console.error('加载背景选择器失败:', error);
+            showError('背景选择器加载失败');
         }
-
-        if (data.background_url) {
-            updateBackground(data.background_url);
-
-            const promptMessage = data.prompt ?
-                `背景已更新，提示词: "${data.prompt}"` :
-                '背景已更新';
-
-            updateCurrentMessage('system', promptMessage);
-        }
-
-    } catch (error) {
-        console.error('更换背景失败:', error);
-        showError(`更换背景失败: ${error.message}`);
-    } finally {
-        hideLoading();
     }
 }
 

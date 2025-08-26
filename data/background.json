@@ -1,0 +1,17 @@
+{
+  "IDE.jpg": {
+    "name": "IDE",
+    "desc": "故事的开端，故事的发展，故事的高潮……",
+    "prompt": "【预设背景，无提示词】"
+  },
+  "bedroom.jpeg": {
+    "name": "卧室",
+    "desc": "一间卧室",
+    "prompt": "一间温馨的卧室"
+  },
+  "6fc171ed2633406eac58af96bd02a9dd.jpg": {
+    "name": "卧室",
+    "desc": "",
+    "prompt": "一间卧室"
+  }
+}
