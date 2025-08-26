@@ -123,11 +123,12 @@ import {
 import {
     showError,
     hideError,
-    toggleHistory,
     handleConfirmYes,
     handleConfirmNo,
     hideConfirmModal
 } from './ui-service.js';
+
+import { toggleHistory } from './history-service.js';
 
 // 全局流式处理器实例
 let globalStreamProcessor = null;

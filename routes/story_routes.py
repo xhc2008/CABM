@@ -544,3 +544,42 @@ def exit_story_mode():
     except Exception as e:
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/story/history', methods=['GET'])
+def get_story_history_paginated():
+    """分页获取故事历史记录"""
+    try:
+        # 获取查询参数
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 20))
+        
+        # 获取当前故事的历史记录文件路径
+        history_path = story_service.get_story_history_path()
+        if not history_path:
+            return jsonify({
+                'success': False,
+                'error': '未找到故事历史记录'
+            }), 400
+        
+        # 分页加载历史记录
+        result = chat_service.history_manager.load_history_from_file_paginated(
+            file_path=history_path,
+            page=page,
+            page_size=page_size
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+        
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': f'参数错误: {str(e)}'
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

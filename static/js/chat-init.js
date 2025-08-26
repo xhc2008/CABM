@@ -21,11 +21,12 @@ import {
 import {
     showError,
     hideError,
-    toggleHistory,
     handleConfirmYes,
     handleConfirmNo,
     hideConfirmModal
 } from './ui-service.js';
+
+import { toggleHistory } from './history-service.js';
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', () => {

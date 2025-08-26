@@ -197,6 +197,163 @@ class HistoryManager:
         # 返回最近的count条消息
         return messages[-count:] if count > 0 and len(messages) > count else messages
     
+    def load_history_paginated(self, character_id: str, page: int = 1, page_size: int = 20, max_cache_size: int = 200) -> Dict[str, Any]:
+        """
+        分页加载历史记录
+        
+        Args:
+            character_id: 角色ID
+            page: 页码（从1开始）
+            page_size: 每页消息数量
+            max_cache_size: 缓存的最大消息数量
+            
+        Returns:
+            包含历史记录和分页信息的字典
+        """
+        # 确保缓存已初始化
+        if character_id not in self.history_cache:
+            self._initialize_cache(character_id, max_cache_size)
+        
+        # 从缓存中获取所有历史记录
+        all_messages = list(self.history_cache[character_id])
+        total_messages = len(all_messages)
+        
+        # 如果缓存中的消息不够，从文件中加载更多
+        if total_messages < page * page_size:
+            # 从文件中加载更多历史记录
+            history_file = self._get_character_history_file(character_id)
+            if os.path.exists(history_file):
+                try:
+                    with open(history_file, "r", encoding="utf-8") as f:
+                        file_messages = []
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                try:
+                                    message = json.loads(line)
+                                    file_messages.append(message)
+                                except json.JSONDecodeError:
+                                    continue
+                    
+                    # 更新缓存（保留最新的max_cache_size条消息）
+                    if len(file_messages) > max_cache_size:
+                        file_messages = file_messages[-max_cache_size:]
+                    
+                    self.history_cache[character_id] = collections.deque(file_messages, maxlen=max_cache_size)
+                    all_messages = list(self.history_cache[character_id])
+                    total_messages = len(all_messages)
+                    
+                except Exception as e:
+                    print(f"从文件加载历史记录失败: {e}")
+        
+        # 计算分页
+        total_pages = (total_messages + page_size - 1) // page_size if total_messages > 0 else 1
+        start_index = max(0, total_messages - page * page_size)
+        end_index = max(0, total_messages - (page - 1) * page_size)
+        
+        # 获取当前页的消息（从后往前取）
+        page_messages = all_messages[start_index:end_index]
+        
+        # 转换为API需要的格式
+        api_messages = []
+        for message in page_messages:
+            api_messages.append({
+                "role": message["role"],
+                "content": message["content"],
+                "timestamp": message.get("timestamp", "")
+            })
+        
+        return {
+            "messages": api_messages,
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_messages": total_messages,
+                "total_pages": total_pages,
+                "has_more": page < total_pages
+            }
+        }
+    
+    def load_history_from_file_paginated(self, file_path: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        """
+        从指定文件分页加载历史记录
+        
+        Args:
+            file_path: 历史记录文件路径
+            page: 页码（从1开始）
+            page_size: 每页消息数量
+            
+        Returns:
+            包含历史记录和分页信息的字典
+        """
+        # 如果文件不存在，返回空结果
+        if not os.path.exists(file_path):
+            return {
+                "messages": [],
+                "pagination": {
+                    "current_page": 1,
+                    "page_size": page_size,
+                    "total_messages": 0,
+                    "total_pages": 0,
+                    "has_more": False
+                }
+            }
+        
+        # 读取所有历史记录
+        all_messages = []
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            message = json.loads(line)
+                            all_messages.append(message)
+                        except json.JSONDecodeError:
+                            continue
+        except Exception as e:
+            print(f"加载历史记录失败: {e}")
+            return {
+                "messages": [],
+                "pagination": {
+                    "current_page": 1,
+                    "page_size": page_size,
+                    "total_messages": 0,
+                    "total_pages": 0,
+                    "has_more": False
+                }
+            }
+        
+        total_messages = len(all_messages)
+        total_pages = (total_messages + page_size - 1) // page_size if total_messages > 0 else 1
+        
+        # 计算当前页的消息范围（从后往前取）
+        start_index = max(0, total_messages - page * page_size)
+        end_index = max(0, total_messages - (page - 1) * page_size)
+        
+        # 获取当前页的消息
+        page_messages = all_messages[start_index:end_index]
+        
+        # 转换为API需要的格式
+        api_messages = []
+        for message in page_messages:
+            api_messages.append({
+                "role": message["role"],
+                "content": message["content"],
+                "timestamp": message.get("timestamp", "")
+            })
+        
+        return {
+            "messages": api_messages,
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_messages": total_messages,
+                "total_pages": total_pages,
+                "has_more": page < total_pages
+            }
+        }
+    
     def load_history(self, character_id: str, count: int = 10, max_cache_size: int = 100) -> List[Dict[str, Any]]:
         """
         加载历史记录

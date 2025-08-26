@@ -304,3 +304,45 @@ def clear_history():
         return jsonify({'success': True, 'message': '对话历史已清空'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/history', methods=['GET'])
+def get_history_paginated():
+    """分页获取历史记录"""
+    try:
+        # 获取查询参数
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 20))
+        
+        # 获取当前角色
+        current_character = chat_service.get_character_config()
+        if not current_character or "id" not in current_character:
+            return jsonify({
+                'success': False,
+                'error': '未选择角色'
+            }), 400
+        
+        character_id = current_character["id"]
+        
+        # 分页加载历史记录
+        result = chat_service.history_manager.load_history_paginated(
+            character_id=character_id,
+            page=page,
+            page_size=page_size,
+            max_cache_size=200
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+        
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': f'参数错误: {str(e)}'
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

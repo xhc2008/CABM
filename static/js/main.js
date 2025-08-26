@@ -30,7 +30,6 @@ import {
     showChatPage, 
     confirmBackToHome, 
     confirmExit, 
-    toggleHistory, 
     hideError, 
     handleConfirmYes, 
     handleConfirmNo, 
@@ -38,6 +37,18 @@ import {
     showOptionButtons,
     showError
 } from './ui-service.js';
+
+// 动态导入历史记录服务
+let toggleHistory = null;
+import('./history-service.js').then(module => {
+    toggleHistory = module.toggleHistory;
+}).catch(error => {
+    console.error('加载历史记录服务失败:', error);
+    // 使用备用方案
+    import('./ui-service.js').then(uiModule => {
+        toggleHistory = uiModule.toggleHistoryLegacy;
+    });
+});
 
 import { 
     loadCharacters, 
@@ -119,8 +130,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // sendButton 的点击事件已经在 input-enhancements.js 中处理
         playaudioButton.addEventListener('click', () => playAudio(getCurrentCharacter(), false)); // 用户主动播放
         backgroundButton.addEventListener('click', changeBackground);
-        historyButton.addEventListener('click', toggleHistory);
-        closeHistoryButton.addEventListener('click', toggleHistory);
+        historyButton.addEventListener('click', () => {
+            if (toggleHistory) {
+                toggleHistory();
+            } else {
+                console.error('历史记录服务未加载');
+            }
+        });
+        closeHistoryButton.addEventListener('click', () => {
+            if (toggleHistory) {
+                toggleHistory();
+            } else {
+                console.error('历史记录服务未加载');
+            }
+        });
         characterButton.addEventListener('click', toggleCharacterModal);
         closeCharacterButton.addEventListener('click', toggleCharacterModal);
         continueButton.addEventListener('click', continueOutput);
@@ -164,7 +187,11 @@ function registrationShortcuts(config) {
 registrationShortcuts({
     Enter: continueOutput,
     s: skipTyping,
-    h: toggleHistory,
+    h: () => {
+        if (toggleHistory) {
+            toggleHistory();
+        }
+    },
     b: changeBackground
 });
 

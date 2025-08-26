@@ -136,14 +136,25 @@ export function addToHistory(role, content, customName = null) {
     historyMessages.appendChild(messageDiv);
 }
 
-// 切换历史记录面板
-export function toggleHistory() {
+// 切换历史记录面板（保留原有实现作为备用）
+export function toggleHistoryLegacy() {
     if (historyModal.style.display === 'flex') {
         historyModal.style.display = 'none';
     } else {
         historyModal.style.display = 'flex';
         historyMessages.scrollTop = historyMessages.scrollHeight;
     }
+}
+
+// 新的历史记录切换函数（使用历史记录服务）
+export function toggleHistory() {
+    // 动态导入历史记录服务
+    import('./history-service.js').then(module => {
+        module.toggleHistory();
+    }).catch(error => {
+        console.error('加载历史记录服务失败，使用备用方案:', error);
+        toggleHistoryLegacy();
+    });
 }
 
 // 更新背景图片
