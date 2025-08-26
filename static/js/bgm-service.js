@@ -30,8 +30,14 @@ class BGMService {
     }
 
     async init() {
-        // 1. 创建 AudioContext（需要在用户手势后 resume）
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // 1. 创建或复用 AudioContext
+        if (!window.bgmAudioContext) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            window.bgmAudioContext = this.ctx;
+        } else {
+            this.ctx = window.bgmAudioContext;
+        }
+        
         // 2. 加载歌单
         await this.loadTracks();
         
@@ -92,6 +98,9 @@ class BGMService {
     }
 
     setCurrentPage(page) {
+        // 如果页面没有变化，不需要重新播放
+        if (this.currentPage === page) return;
+        
         this.currentPage = page;
         this.playPageBGM();
     }
@@ -174,13 +183,15 @@ class BGMService {
             console.error('播放BGM失败:', error);
         }
     }
-    // 添加清理方法
+
+    // 修改清理方法
     cleanup() {
         this.stop();
-        if (this.ctx) {
-            this.ctx.close();
-            this.ctx = null;
-        }
+        // 不要关闭全局的 AudioContext，只需停止当前播放
+        this.source = null;
+        this.gainNode = null;
+        this.buffer = null;
+        this.isPlaying = false;
     }
 
     async playRandom() {
@@ -204,7 +215,11 @@ class BGMService {
 
     stop() {
         if (this.source) {
-            this.source.stop();
+            try {
+                this.source.stop();
+            } catch (e) {
+                console.warn('Error stopping source:', e);
+            }
             this.source = null;
             this.isPlaying = false;
         }
@@ -228,24 +243,41 @@ class BGMService {
     async refreshTracks() { await this.loadTracks(); }
 }
 
+// 修改全局初始化代码
 if (!window.bgmService) {
-    window.bgmService = new BGMService();
-    
-    // 页面卸载时清理资源
-    window.addEventListener('beforeunload', () => {
-        window.bgmService.cleanup();
-    });
-    
-    // 用户第一次交互后启动 AudioContext
-    const unlock = () => {
-        if (window.bgmService.ctx) {
-            window.bgmService.ctx.resume().then(() => {
-                if (!window.bgmService.isPlaying && window.bgmService.tracks.length && window.bgmService.enabled) {
-                    window.bgmService.playRandom();
+    // 确保只绑定一次事件监听器
+    if (!window.bgmEventListenersBound) {
+        window.bgmService = new BGMService();
+        
+        // 页面卸载时清理资源但不关闭全局 AudioContext
+        window.addEventListener('beforeunload', () => {
+            if (window.bgmService) {
+                window.bgmService.cleanup();
+            }
+        });
+        
+        // 用户第一次交互后启动 AudioContext
+        const unlock = () => {
+            if (window.bgmService && window.bgmService.ctx) {
+                window.bgmService.ctx.resume().then(() => {
+                    if (!window.bgmService.isPlaying && 
+                        window.bgmService.tracks.length && 
+                        window.bgmService.enabled) {
+                        window.bgmService.playRandom();
+                    }
+                });
+                // 只移除一次事件监听器
+                if (!window.bgmUnlocked) {
+                    ['click', 'keydown', 'touchstart'].forEach(e => 
+                        document.removeEventListener(e, unlock));
+                    window.bgmUnlocked = true;
                 }
-            });
-            ['click', 'keydown', 'touchstart'].forEach(e => document.removeEventListener(e, unlock));
-        }
-    };
-    ['click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unlock));
+            }
+        };
+        
+        ['click', 'keydown', 'touchstart'].forEach(e => 
+            document.addEventListener(e, unlock));
+        
+        window.bgmEventListenersBound = true;
+    }
 }
