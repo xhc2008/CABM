@@ -410,19 +410,39 @@ class BackgroundService {
     }
 
     async loadInitialBackground() {
-        // 检查是否已经有服务器端设置的背景
-        const existingBackground = document.querySelector('.background-image');
-        if (existingBackground && existingBackground.style.backgroundImage && 
-            existingBackground.style.backgroundImage !== 'none' && 
-            !existingBackground.classList.contains('default-background')) {
-            console.log('已有服务器端背景，跳过初始化');
+        console.log('开始加载初始背景...');
+        
+        // 更可靠的背景检测逻辑
+        const backgroundContainer = document.querySelector('.background-container');
+        if (!backgroundContainer) {
+            console.warn('未找到背景容器');
             return;
         }
+    
+        // 检查是否已经有非默认背景
+        const backgroundImages = backgroundContainer.querySelectorAll('.background-image');
+        let hasCustomBackground = false;
         
+        backgroundImages.forEach(img => {
+            const bgImage = img.style.backgroundImage;
+            if (bgImage && bgImage !== 'none' && bgImage !== '' && 
+                !img.classList.contains('default-background')) {
+                hasCustomBackground = true;
+                console.log('检测到已有自定义背景:', bgImage);
+            }
+        });
+    
+        if (hasCustomBackground) {
+            console.log('已有自定义背景，跳过初始背景加载');
+            return;
+        }
+    
         // 加载初始背景
         try {
             const characterId = this.getCurrentCharacterId();
             const storyId = this.getCurrentStoryId();
+            
+            console.log('请求初始背景，角色ID:', characterId, '故事ID:', storyId);
             
             const response = await fetch('/api/background/initial', {
                 method: 'POST',
@@ -431,20 +451,39 @@ class BackgroundService {
                 },
                 body: JSON.stringify({
                     character_id: characterId,
-                    story_id: storyId
+                    storyId: storyId
                 })
             });
-
+    
             const data = await response.json();
+            console.log('初始背景响应:', data);
             
             if (data.success && data.background_url) {
-                console.log('加载初始背景:', data.background_url);
+                console.log('设置初始背景:', data.background_url);
                 if (window.updateBackground) {
+                    // 确保在设置新背景前清除可能存在的默认背景
+                    const defaultBackground = document.querySelector('.default-background');
+                    if (defaultBackground) {
+                        defaultBackground.style.opacity = '0';
+                        setTimeout(() => {
+                            defaultBackground.style.display = 'none';
+                        }, 1000); // 与过渡动画时间匹配
+                    }
+                    
                     window.updateBackground(data.background_url);
+                } else {
+                    console.error('updateBackground 函数未定义');
                 }
+            } else {
+                console.warn('未获取到初始背景，使用默认背景');
             }
         } catch (error) {
             console.error('加载初始背景失败:', error);
+            // 确保即使出错也显示默认背景
+            const defaultBackground = document.querySelector('.default-background');
+            if (defaultBackground) {
+                defaultBackground.style.opacity = '1';
+            }
         }
     }
 }

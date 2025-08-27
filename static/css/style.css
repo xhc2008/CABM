@@ -282,6 +282,7 @@ body {
     z-index: -1;
 }
 
+/* 修改背景图像样式 */
 .background-image {
     position: absolute;
     top: 0;
@@ -291,19 +292,26 @@ body {
     background-size: cover;
     background-position: center;
     transition: opacity 1s ease;
+    /* 添加明确的初始不透明度 */
+    opacity: 1;
 }
 
+/* 确保默认背景也有明确的不透明度 */
 .default-background {
     background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    /* 添加明确的不透明度 */
+    opacity: 1;
 }
 
+/* 修改背景叠加层 */
 .background-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    /* 调整叠加层透明度 */
+    background-color: rgba(0, 0, 0, 0.4); /* 从0.5调整为0.4 */
 }
 
 .chat-header {
