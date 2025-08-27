@@ -237,6 +237,7 @@ body {
     background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
     transition: left 0.6s ease;
 }
+
 .settings-toggle .btn::before {
     display: none !important;
 }
@@ -244,6 +245,7 @@ body {
 .settings-toggle .btn:hover::before {
     display: none !important;
 }
+
 .home-buttons .btn:hover {
     transform: translateY(-3px);
     box-shadow:
@@ -302,7 +304,6 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(3px);
 }
 
 .chat-header {
@@ -394,16 +395,19 @@ body {
     justify-content: center;
     align-items: center;
 }
+
 @media (max-width: 600px) {
     .character-img {
         max-width: 220%;
     }
 }
+
 .character-image img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    transform-origin: center center; /* 确保缩放以图片中心为原点 */
+    transform-origin: center center;
+    /* 确保缩放以图片中心为原点 */
 }
 
 /* 用户输入区域样式 - 右上角 - 优化布局 */
@@ -935,19 +939,19 @@ body {
     0% {
         transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
     }
-    
+
     25% {
         transform: translateY(var(--jump-distance-25, -12px)) scale(calc(var(--base-scale, 1) * 1.03)) scaleY(0.98);
     }
-    
+
     50% {
         transform: translateY(var(--jump-distance-50, -20px)) scale(calc(var(--base-scale, 1) * 1.01)) scaleY(1.02);
     }
-    
+
     75% {
         transform: translateY(var(--jump-distance-75, -5px)) scale(calc(var(--base-scale, 1) * 0.99)) scaleY(0.99);
     }
-    
+
     100% {
         transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
     }
@@ -962,11 +966,11 @@ body {
     0% {
         transform: scale(var(--base-scale, 1)) scaleY(1);
     }
-    
+
     50% {
         transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.02));
     }
-    
+
     100% {
         transform: scale(var(--base-scale, 1)) scaleY(1);
     }
@@ -974,7 +978,8 @@ body {
 
 .character-breathing {
     animation: characterBreathe 4s ease-in-out infinite;
-    transform-origin: center center; /* 使用中心原点，与容器缩放保持一致 */
+    transform-origin: center center;
+    /* 使用中心原点，与容器缩放保持一致 */
 }
 
 /* 响应式设计 */
@@ -1065,19 +1070,19 @@ body {
         0% {
             transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
         }
-        
+
         25% {
             transform: translateY(var(--jump-distance-25, -8px)) scale(calc(var(--base-scale, 1) * 1.02)) scaleY(0.99);
         }
-        
+
         50% {
             transform: translateY(var(--jump-distance-50, -12px)) scale(calc(var(--base-scale, 1) * 1.01)) scaleY(1.01);
         }
-        
+
         75% {
             transform: translateY(var(--jump-distance-75, -3px)) scale(calc(var(--base-scale, 1) * 0.995)) scaleY(0.995);
         }
-        
+
         100% {
             transform: translateY(0) scale(var(--base-scale, 1)) scaleY(1);
         }
@@ -1092,11 +1097,11 @@ body {
         0% {
             transform: scale(var(--base-scale, 1)) scaleY(1);
         }
-        
+
         50% {
             transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.015));
         }
-        
+
         100% {
             transform: scale(var(--base-scale, 1)) scaleY(1);
         }
@@ -1104,7 +1109,8 @@ body {
 
     .character-breathing {
         animation: characterBreathe 3.5s ease-in-out infinite;
-        transform-origin: center center; /* 使用中心原点，与容器缩放保持一致 */
+        transform-origin: center center;
+        /* 使用中心原点，与容器缩放保持一致 */
     }
 }
 
@@ -1196,7 +1202,7 @@ body {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
-    
+
     /* 立绘动画也遵循减少动画偏好 */
     .character-jump,
     .character-breathing {
@@ -2245,7 +2251,9 @@ body {
         padding: 0.5rem;
         font-size: 0.8rem;
     }
-}/* 
+}
+
+/* 
 头像上传相关样式 */
 .avatar-upload-container {
     display: flex;
@@ -2318,12 +2326,13 @@ body {
         width: 95vw;
         height: 95vh;
     }
-    
+
     .avatar-preview img {
         max-width: 150px;
         max-height: 150px;
     }
 }
+
 /* 
 Cropper.js 自定义样式 */
 .crop-modal-content {
@@ -2709,6 +2718,7 @@ Cropper.js 自定义样式 */
 }
 
 @media (max-width: 480px) {
+
     .mood-table-header,
     .mood-row {
         grid-template-columns: 70px 1fr 1fr 50px;
@@ -2736,6 +2746,7 @@ Cropper.js 自定义样式 */
     0% {
         background-position: 0% 50%;
     }
+
     100% {
         background-position: 200% 50%;
     }

@@ -51,25 +51,26 @@ def chat_page():
         print(f"进入聊天页切换角色失败: {e}")
         traceback.print_exc()
 
-    background = image_service.get_current_background()
-    if not background:
-        try:
-            result = image_service.generate_background()
-            if "image_path" in result:
-                background = result["image_path"]
-        except Exception as e:
-            print(f"背景图片生成失败: {e}")
-
+    # 使用新的场景服务获取背景
     background_url = None
-    if background:
-        background_url = f"/static/images/cache/{os.path.basename(background)}"
+    try:
+        from services.scene_service import scene_service
+        
+        # 获取当前角色ID
+        current_character = chat_service.get_character_config()
+        character_id = current_character.get("id") if current_character else None
+        
+        # 获取最后使用的背景
+        last_background = scene_service.get_last_background(character_id=character_id)
+        if last_background:
+            background_url = scene_service.get_background_url(last_background)
+    except Exception as e:
+        print(f"获取背景失败: {e}")
 
     character_image_path = os.path.join(bp.static_folder or str(project_root / 'static'), 'images', 'default', '1.png')
     if not os.path.exists(character_image_path):
         print(f"警告: 默认角色图片不存在: {character_image_path}")
 
-    current_scene = scene_service.get_current_scene()
-    scene_data = current_scene.to_dict() if current_scene else None
     app_config = config_service.get_app_config()
     show_scene_name = app_config.get("show_scene_name", True)
 
@@ -92,7 +93,6 @@ def chat_page():
     return render_template(
         'chat.html',
         background_url=background_url,
-        current_scene=scene_data,
         show_scene_name=show_scene_name,
         last_sentence=last_sentence,
         plugin_inject_scripts=plugin_inject_scripts
@@ -282,12 +282,20 @@ def get_backgrounds():
 def select_background():
     """选择指定的背景"""
     try:
+        from services.scene_service import scene_service
+        
         filename = request.json.get('filename')
+        character_id = request.json.get('character_id')
+        story_id = request.json.get('story_id')
+        
         if not filename:
             return jsonify({'success': False, 'error': '未指定背景文件'}), 400
         
+        # 更新场景使用记录
+        scene_service.update_background_usage(filename, character_id, story_id)
+        
         # 构建背景URL
-        background_url = f"/static/images/backgrounds/{filename}"
+        background_url = scene_service.get_background_url(filename)
         
         # 读取背景信息
         import json
@@ -305,6 +313,81 @@ def select_background():
             'success': True,
             'background_url': background_url,
             'prompt': prompt
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/background/initial', methods=['POST'])
+def get_initial_background():
+    """获取初始背景"""
+    try:
+        from services.scene_service import scene_service
+        
+        character_id = request.json.get('character_id')
+        story_id = request.json.get('story_id')
+        
+        # 获取最后使用的背景
+        last_background = scene_service.get_last_background(character_id, story_id)
+        
+        if last_background:
+            background_url = scene_service.get_background_url(last_background)
+            
+            # 读取背景信息
+            import json
+            background_json_path = project_root / 'data' / 'background.json'
+            prompt = None
+            if background_json_path.exists():
+                with open(background_json_path, 'r', encoding='utf-8') as f:
+                    backgrounds = json.load(f)
+                    if last_background in backgrounds:
+                        prompt = backgrounds[last_background].get('prompt')
+            
+            return jsonify({
+                'success': True,
+                'background_url': background_url,
+                'filename': last_background,
+                'prompt': prompt
+            })
+        else:
+            # 没有历史背景，随机选择一个
+            selected_bg = scene_service.select_random_background(character_id, story_id)
+            if selected_bg:
+                background_url = scene_service.get_background_url(selected_bg)
+                return jsonify({
+                    'success': True,
+                    'background_url': background_url,
+                    'filename': selected_bg,
+                    'prompt': None
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': '没有可用的背景'
+                })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/background/stats', methods=['POST'])
+def get_background_stats():
+    """获取背景使用统计"""
+    try:
+        from services.scene_service import scene_service
+        
+        character_id = request.json.get('character_id')
+        story_id = request.json.get('story_id')
+        
+        # 获取使用统计
+        stats = scene_service.get_background_usage_stats(character_id, story_id)
+        
+        # 获取每个背景的完整信息
+        background_info = []
+        for bg_record in stats:
+            bg_info = scene_service.get_background_info(bg_record["id"], character_id, story_id)
+            background_info.append(bg_info)
+        
+        return jsonify({
+            'success': True,
+            'stats': background_info
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

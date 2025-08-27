@@ -91,10 +91,10 @@ def setup_environment():
         # 获取应用配置
         app_config = config_service.get_app_config()
         
-        # 检查图像缓存目录
-        logger.info("正在检查图像缓存...")
-        cache_dir = Path(app_config["image_cache_dir"])
-        os.makedirs(cache_dir, exist_ok=True)
+        # 检查临时图像目录
+        logger.info("正在检查临时图像目录...")
+        temp_images_dir = Path(app_config["image_cache_dir"])
+        os.makedirs(temp_images_dir, exist_ok=True)
         
         # 检查默认角色图片
         character_image_path = Path("static/images/default/1.png")

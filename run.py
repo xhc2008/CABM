@@ -24,10 +24,10 @@ def main():
     # 获取应用配置
     app_config = config_service.get_app_config()
     
-    # 检查图像缓存目录
-    print("正在检查图像缓存...")
-    cache_dir = Path(app_config["image_cache_dir"])
-    os.makedirs(cache_dir, exist_ok=True)
+    # 检查临时图像目录
+    print("正在检查临时图像目录...")
+    temp_images_dir = Path(app_config["image_cache_dir"])
+    os.makedirs(temp_images_dir, exist_ok=True)
     
     # 检查是否有背景图片
     if not image_service.get_current_background():

@@ -324,6 +324,14 @@
             if (window.bgmService) {
                 window.bgmService.setCurrentPage('story_chat');
             }
+            
+            // 加载初始背景
+            setTimeout(() => {
+                if (window.getBackgroundService) {
+                    const backgroundService = window.getBackgroundService();
+                    backgroundService.loadInitialBackground();
+                }
+            }, 500); // 延迟500ms确保其他服务已初始化
         });
     </script>
     <script src="/static/js/logo.js"></script>

@@ -1,0 +1,15 @@
+{
+  "last_background": "bedroom.jpeg",
+  "backgrounds": [
+    {
+      "id": "IDE.png",
+      "usage_count": 1,
+      "impression": "一个普通的IDE"
+    },
+    {
+      "id": "bedroom.jpeg",
+      "usage_count": 1,
+      "impression": "None"
+    }
+  ]
+}

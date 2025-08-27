@@ -40,18 +40,17 @@ def story_chat_page(story_id):
     if not chat_service.set_story_mode(story_id):
         return f"无法设置剧情模式: {story_id}", 500
 
-    background = image_service.get_current_background()
-    if not background:
-        try:
-            result = image_service.generate_background()
-            if "image_path" in result:
-                background = result["image_path"]
-        except Exception as e:
-            print(f"背景图片生成失败: {e}")
-
+    # 使用新的场景服务获取背景
     background_url = None
-    if background:
-        background_url = f"/static/images/cache/{os.path.basename(background)}"
+    try:
+        from services.scene_service import scene_service
+        
+        # 获取故事的背景
+        last_background = scene_service.get_last_background(story_id=story_id)
+        if last_background:
+            background_url = scene_service.get_background_url(last_background)
+    except Exception as e:
+        print(f"获取故事背景失败: {e}")
     story_data = story_service.get_current_story_data()
     current_character = chat_service.get_character_config()
     app_config = config_service.get_app_config()
@@ -237,6 +236,10 @@ def create_story():
             shutil.copy2(str(memory_source), str(memory_target))
         else:
             memory_target.write_text('[]', encoding='utf-8')
+
+        # 复制场景数据
+        from services.scene_service import scene_service
+        scene_service.copy_scenes_for_story(character_id, story_id)
 
         character_prompt = character_config.get('prompt', '')
         character_details_text = ""

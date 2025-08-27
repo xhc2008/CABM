@@ -189,7 +189,7 @@ APP_CONFIG = {
     "host": get_env_var("HOST", "0.0.0.0"),  # 服务器监听地址，0.0.0.0表示监听所有接口
     "static_folder": "static",
     "template_folder": "templates",
-    "image_cache_dir": "static/images/cache",
+    "image_cache_dir": "data/temp_images",
     "max_history_length": 8,  # 最大对话历史长度（发送给AI的上下文长度）
     "history_dir": "data/history",  # 历史记录存储目录
     "show_scene_name": True,  # 是否在前端显示场景名称

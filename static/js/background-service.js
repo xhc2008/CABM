@@ -224,12 +224,20 @@ class BackgroundService {
     async selectBackground(filename) {
         console.log('选择背景:', filename);
         try {
+            // 获取当前角色ID或故事ID
+            const characterId = this.getCurrentCharacterId();
+            const storyId = this.getCurrentStoryId();
+            
             const response = await fetch('/api/background/select', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ filename })
+                body: JSON.stringify({ 
+                    filename,
+                    character_id: characterId,
+                    story_id: storyId
+                })
             });
 
             const data = await response.json();
@@ -385,6 +393,59 @@ class BackgroundService {
         this.backgroundModal.style.display = 'none';
         // 同时关闭添加背景模态框
         this.hideAddBackgroundModal();
+    }
+
+    getCurrentCharacterId() {
+        // 尝试从全局变量获取当前角色ID
+        if (window.getCurrentCharacter) {
+            const character = window.getCurrentCharacter();
+            return character ? character.id : null;
+        }
+        return null;
+    }
+
+    getCurrentStoryId() {
+        // 尝试从全局变量获取当前故事ID
+        return window.storyId || null;
+    }
+
+    async loadInitialBackground() {
+        // 检查是否已经有服务器端设置的背景
+        const existingBackground = document.querySelector('.background-image');
+        if (existingBackground && existingBackground.style.backgroundImage && 
+            existingBackground.style.backgroundImage !== 'none' && 
+            !existingBackground.classList.contains('default-background')) {
+            console.log('已有服务器端背景，跳过初始化');
+            return;
+        }
+        
+        // 加载初始背景
+        try {
+            const characterId = this.getCurrentCharacterId();
+            const storyId = this.getCurrentStoryId();
+            
+            const response = await fetch('/api/background/initial', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    character_id: characterId,
+                    story_id: storyId
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.background_url) {
+                console.log('加载初始背景:', data.background_url);
+                if (window.updateBackground) {
+                    window.updateBackground(data.background_url);
+                }
+            }
+        } catch (error) {
+            console.error('加载初始背景失败:', error);
+        }
     }
 }
 

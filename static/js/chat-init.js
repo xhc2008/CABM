@@ -35,6 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 加载角色数据
         loadCharacters();
+        
+        // 加载初始背景
+        if (window.getBackgroundService) {
+            const backgroundService = window.getBackgroundService();
+            backgroundService.loadInitialBackground();
+        }
 
         // 绑定按钮事件
         const playAudioButton = document.getElementById('playaudioButton');

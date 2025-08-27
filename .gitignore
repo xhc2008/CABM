@@ -81,8 +81,8 @@ env/
 *.db
 *.sqlite3
 
-# 图片缓存
-static/images/cache/
+# 临时图片
+data/temp_images/
 
 # 系统文件
 .DS_Store
