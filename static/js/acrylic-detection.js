@@ -14,40 +14,32 @@ class AcrylicEffectDetector {
      * @returns {boolean} 是否支持亚克力效果
      */
     detectBackdropFilterSupport() {
-        // 检测标准backdrop-filter支持
+        // 首先检测标准backdrop-filter支持
         if (CSS.supports('backdrop-filter', 'blur(10px)')) {
             return true;
         }
-        
-        // 检测Webkit前缀支持
+
+        // 然后检测Webkit前缀支持
         if (CSS.supports('-webkit-backdrop-filter', 'blur(10px)')) {
             return true;
         }
-        
-        // 创建测试元素进行功能检测
-        const testElement = document.createElement('div');
-        testElement.style.backdropFilter = 'blur(10px)';
-        testElement.style.webkitBackdropFilter = 'blur(10px)';
-        
-        // 如果样式被保留，说明支持
-        const hasStandardSupport = testElement.style.backdropFilter.includes('blur');
-        const hasWebkitSupport = testElement.style.webkitBackdropFilter.includes('blur');
-        
-        return hasStandardSupport || hasWebkitSupport;
+
+        // 如果CSS.supports不可靠，则返回false（现代浏览器普遍支持CSS.supports）
+        return false;
     }
 
     /**
      * 初始化检测和回退处理
      */
     init() {
-        // 确保DOM加载完成后再进行初始化
-        if (document.readyState === 'loading') {
+        // 如果DOM已经加载，直接应用效果
+        if (document.readyState !== 'loading') {
+            this.applyAcrylicEffects();
+        } else {
+            // 否则等待DOM加载完成
             document.addEventListener('DOMContentLoaded', () => {
                 this.applyAcrylicEffects();
             });
-        } else {
-            // DOM已经加载完成
-            this.applyAcrylicEffects();
         }
     }
 
@@ -55,18 +47,16 @@ class AcrylicEffectDetector {
      * 应用亚克力效果或回退效果
      */
     applyAcrylicEffects() {
+        // 立即应用正确的样式类
         if (!this.supportsAcrylic) {
             this.fallbackToTransparent();
             this.addNoAcrylicClass();
         } else {
             this.addAcrylicClass();
         }
-        
+
         // 监听性能问题导致的回退
         this.monitorPerformance();
-        
-        // 强制重绘以确保样式正确应用
-        this.forceRepaint();
     }
 
     /**
@@ -141,21 +131,6 @@ class AcrylicEffectDetector {
         }
     }
 
-    /**
-     * 强制重绘以确保样式正确应用
-     */
-    forceRepaint() {
-        // 使用requestAnimationFrame确保在下一帧强制重绘
-        requestAnimationFrame(() => {
-            const elements = document.querySelectorAll('.acrylic-effect, .chat-header, .user-input-container, .dialog-box, .control-buttons');
-            elements.forEach(element => {
-                // 强制重绘
-                element.style.display = 'none';
-                element.offsetHeight; // 触发重排
-                element.style.display = '';
-            });
-        });
-    }
 
     /**
      * 手动触发回退（用于测试或其他情况）
@@ -175,10 +150,8 @@ class AcrylicEffectDetector {
     }
 }
 
-// 全局初始化
-document.addEventListener('DOMContentLoaded', function() {
-    window.acrylicDetector = new AcrylicEffectDetector();
-});
+// 全局初始化 - 立即创建检测器并应用样式
+window.acrylicDetector = new AcrylicEffectDetector();
 
 // 导出用于模块化使用
 if (typeof module !== 'undefined' && module.exports) {
