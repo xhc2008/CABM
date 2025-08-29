@@ -5,6 +5,8 @@
 ~~(Isn't it just a Galgame?)~~
 
 ---
+> ⚠️This document may not be up to date. Please refer to the [Chinese version](README.md) for the latest information.
+---
 > ### **⚠️ Note: This project is currently under development. Core features are implemented (maybe?), and other functionalities and optimizations are in progress. Contributions and suggestions are welcome.**
 
 ## Development Status
