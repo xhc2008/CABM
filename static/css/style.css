@@ -611,7 +611,7 @@ body {
     background-color: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
-    border: none;/*1px solid rgba(255, 255, 255, 0.2);*/
+    /*border: 1px solid rgba(255, 255, 255, 0.2);*/
     border-radius: 0px;
     border-top: none;
 }
@@ -923,6 +923,7 @@ body {
 .acrylic-support .dialog-box,
 .acrylic-support .control-buttons,
 .acrylic-support .modal-content,
+.acrylic-support .option-buttons-container,
 .acrylic-support .history-content{
     /* 确保支持亚克力效果时正确应用样式 */
     backdrop-filter: blur(10px) saturate(180%) !important;
@@ -937,6 +938,7 @@ body {
 .no-acrylic-support .dialog-box,
 .no-acrylic-support .control-buttons,
 .no-acrylic-support .modal-content,
+.no-acrylic-support .option-buttons-container,
 .no-acrylic-support .history-content {
     /* 禁用亚克力效果，使用回退的半透明样式 */
     backdrop-filter: none !important;
@@ -957,10 +959,11 @@ body {
 
 .no-acrylic-support .control-buttons {
     background-color: rgba(0, 0, 0, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border: none !important;
 }
 
 .no-acrylic-support .modal-content,
+.no-acrylic-support .option-buttons-container,
 .no-acrylic-support .history-content{
     background-color: rgba(30, 30, 50, 0.9) !important;
     border: 1px solid rgba(255, 255, 255, 0.18) !important;
@@ -1325,7 +1328,7 @@ body {
     flex-direction: column;
     gap: 10px;
     max-width: 300px;
-    background-color: rgba(0, 0, 0, 0.7); /* 亚克力效果不可用时的回退背景 */
+    background-color: rgba(0, 0, 0, 0); /* 亚克力效果不可用时的回退背景 */
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
     background-color: rgba(0, 0, 0, 0.3); /* 深色半透明背景 */
