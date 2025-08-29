@@ -157,3 +157,93 @@ window.acrylicDetector = new AcrylicEffectDetector();
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AcrylicEffectDetector;
 }
+
+/**
+ * 亚克力效果应用机制
+ * 根据用户设置应用亚克力效果或半透明效果
+ */
+
+class AcrylicEffectManager {
+    constructor() {
+        this.init();
+    }
+
+    /**
+     * 初始化效果应用处理
+     */
+    init() {
+        // 等待DOM加载完成后再进行初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.applyEffects();
+            });
+        } else {
+            // DOM已经加载完成
+            this.applyEffects();
+        }
+    }
+
+    /**
+     * 应用用户选择的视觉效果
+     */
+    applyEffects() {
+        // 从localStorage获取用户设置，如果没有设置默认使用亚克力效果
+        const useAcrylic = localStorage.getItem('useAcrylic') !== 'false';
+        
+        if (useAcrylic) {
+            this.applyAcrylicEffects();
+        } else {
+            this.applyTransparentEffects();
+        }
+    }
+
+    /**
+     * 应用亚克力效果
+     */
+    applyAcrylicEffects() {
+        document.documentElement.classList.remove('no-acrylic-support');
+        document.documentElement.classList.add('acrylic-support');
+    }
+
+    /**
+     * 应用半透明效果
+     */
+    applyTransparentEffects() {
+        document.documentElement.classList.remove('acrylic-support');
+        document.documentElement.classList.add('no-acrylic-support');
+    }
+
+    /**
+     * 切换到亚克力效果
+     */
+    switchToAcrylic() {
+        this.applyAcrylicEffects();
+        localStorage.setItem('useAcrylic', 'true');
+    }
+
+    /**
+     * 切换到半透明效果
+     */
+    switchToTransparent() {
+        this.applyTransparentEffects();
+        localStorage.setItem('useAcrylic', 'false');
+    }
+
+    /**
+     * 检查当前是否使用亚克力效果
+     * @returns {boolean} 当前是否使用亚克力效果
+     */
+    isAcrylicEnabled() {
+        return localStorage.getItem('useAcrylic') !== 'false';
+    }
+}
+
+// 全局初始化
+document.addEventListener('DOMContentLoaded', function() {
+    window.acrylicManager = new AcrylicEffectManager();
+});
+
+// 导出用于模块化使用
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AcrylicEffectManager;
+}

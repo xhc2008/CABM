@@ -915,27 +915,78 @@ body {
     background-color: rgba(0, 0, 0, 0.7);
 }
 
-/* 亚克力效果检测类 - 通过JavaScript动态添加 */
-.no-acrylic-support .acrylic-effect,
-.no-acrylic-support .chat-header,
-.no-acrylic-support .user-input-container,
-.no-acrylic-support .dialog-box,
-.no-acrylic-support .control-buttons {
-    /* 禁用亚克力效果，使用回退的半透明样式 */
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background-color: rgba(0, 0, 0, 0.7) !important;
-}
-
+/* 亚克力效果应用类 - 通过JavaScript动态添加 */
+.acrylic-support .acrylic-effect,
 .acrylic-support .chat-header,
 .acrylic-support .user-input-container,
 .acrylic-support .dialog-box,
-.acrylic-support .control-buttons {
+.acrylic-support .control-buttons,
+.acrylic-support .modal-content,
+.acrylic-support .history-content,
+.acrylic-support .character-card,
+.acrylic-support .option-buttons-container,
+.acrylic-support .story-container,
+.acrylic-support .custom-character-form,
+.acrylic-support .settings-container,
+.acrylic-support .loading-container,
+.acrylic-support .error-container {
     /* 确保支持亚克力效果时正确应用样式 */
     backdrop-filter: blur(10px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
     background-color: rgba(255, 255, 255, 0.1) !important;
     border: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.no-acrylic-support .acrylic-effect,
+.no-acrylic-support .chat-header,
+.no-acrylic-support .user-input-container,
+.no-acrylic-support .dialog-box,
+.no-acrylic-support .control-buttons,
+.no-acrylic-support .modal-content,
+.no-acrylic-support .history-content,
+.no-acrylic-support .character-card,
+.no-acrylic-support .option-buttons-container,
+.no-acrylic-support .story-container,
+.no-acrylic-support .custom-character-form,
+.no-acrylic-support .settings-container,
+.no-acrylic-support .loading-container,
+.no-acrylic-support .error-container {
+    /* 禁用亚克力效果，使用回退的半透明样式 */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.no-acrylic-support .acrylic-effect,
+.no-acrylic-support .dialog-box,
+.no-acrylic-support .chat-header {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.no-acrylic-support .user-input-container {
+    background-color: rgba(0, 0, 0, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.no-acrylic-support .control-buttons {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.no-acrylic-support .modal-content,
+.no-acrylic-support .history-content,
+.no-acrylic-support .character-card,
+.no-acrylic-support .option-buttons-container,
+.no-acrylic-support .story-container,
+.no-acrylic-support .custom-character-form,
+.no-acrylic-support .settings-container,
+.no-acrylic-support .loading-container {
+    background-color: rgba(30, 30, 50, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.no-acrylic-support .error-container {
+    background-color: rgba(183, 28, 28, 0.9) !important;
 }
 
 /* 错误提示样式 */
