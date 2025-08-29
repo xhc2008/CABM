@@ -62,4 +62,9 @@ def settings():
     """设置页面"""
     return render_template('settings.html')
 
+@bp.route('/about')
+def about():
+    """关于页面"""
+    return render_template('about.html')
+
 
