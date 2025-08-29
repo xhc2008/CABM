@@ -271,7 +271,7 @@ class StoryService:
             raise ValueError("未加载任何故事")
         
         # 获取章节信息
-        current_idx, current_chapter, next_chapter = self.get_current_chapter_info()
+        _, current_chapter, next_chapter = self.get_current_chapter_info()
         
         if next_chapter is None:
             # 已经是最后一章，返回0表示故事结束
