@@ -14,7 +14,7 @@
 }
 
 .history-content {
-    background: rgba(0, 20, 40, 0.95);
+    background: rgba(0, 20, 40, 0.95); /* 保留原有颜色 */
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     width: 90%;
@@ -23,7 +23,10 @@
     max-height: 600px;
     display: flex;
     flex-direction: column;
-    backdrop-filter: blur(10px);
+    /* 应用亚克力效果 */
+    background-color: rgba(0, 20, 40, 0.7); /* 亚克力效果背景色 */
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
 }
 
 .history-header {

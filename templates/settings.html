@@ -170,6 +170,12 @@
                             <span>显示启动Logo</span>
                         </label>
                     </div>
+                    <div class="setting-item">
+                        <label for="acrylicEffectToggle">
+                            <input type="checkbox" id="acrylicEffectToggle">
+                            <span>使用亚克力效果</span>
+                        </label>
+                    </div>
                 </div>
                 
                 <div class="settings-section">
@@ -243,6 +249,7 @@
             const ttsVolume = document.getElementById('ttsVolume');
             const ttsVolumeValue = document.getElementById('ttsVolumeValue');
             const pageBgmConfigs = document.getElementById('pageBgmConfigs');
+            const acrylicEffectToggle = document.getElementById('acrylicEffectToggle');
             
             // 从localStorage加载设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
@@ -250,6 +257,7 @@
             const savedVolume = localStorage.getItem('bgmVolume') || '50';
             const ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
             const savedTtsVolume = localStorage.getItem('ttsVolume') || '80';
+            const useAcrylic = localStorage.getItem('useAcrylic') !== 'false'; // 默认启用亚克力效果
             
             showLogoToggle.checked = showLogo;
             bgmToggle.checked = bgmEnabled;
@@ -258,6 +266,10 @@
             ttsToggle.checked = ttsEnabled;
             ttsVolume.value = savedTtsVolume;
             ttsVolumeValue.textContent = savedTtsVolume + '%';
+            acrylicEffectToggle.checked = useAcrylic; // 设置亚克力效果开关状态
+            
+            // 应用保存的效果样式
+            applyVisualEffects(useAcrylic);
             
             // 生成页面BGM配置控件
             function generatePageBgmControls() {
@@ -320,6 +332,11 @@
                 localStorage.setItem('showLogoSplash', this.checked);
             });
             
+            acrylicEffectToggle.addEventListener('change', function() {
+                localStorage.setItem('useAcrylic', this.checked);
+                applyVisualEffects(this.checked);
+            });
+            
             bgmToggle.addEventListener('change', function() {
                 localStorage.setItem('bgmEnabled', this.checked);
                 if (window.bgmService) {
@@ -377,6 +394,17 @@
         });
     </script>
     <script>
+        // 应用视觉效果样式
+        function applyVisualEffects(useAcrylic) {
+            if (useAcrylic) {
+                document.documentElement.classList.remove('no-acrylic-support');
+                document.documentElement.classList.add('acrylic-support');
+            } else {
+                document.documentElement.classList.remove('acrylic-support');
+                document.documentElement.classList.add('no-acrylic-support');
+            }
+        }
+        
         // 设置当前页面
         window.addEventListener('DOMContentLoaded', function() {
             if (window.bgmService) {

@@ -322,9 +322,15 @@ body {
     left: 0;
     right: 0;
     height: 60px;
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
     background-color: rgba(0, 0, 0, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 50;
     padding: 0 1rem;
+    /* 为支持亚克力效果的浏览器设置默认样式 */
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
 }
 
 .chat-header h2 {
@@ -367,7 +373,7 @@ body {
 
 .chat-header .back-btn:hover {
     background-color: rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.3);
+    color: #ffffff; /* 修复hover状态颜色重叠问题 */
     transform: none;
     /* 移除变换效果 */
     box-shadow: none;
@@ -375,7 +381,7 @@ body {
 }
 
 #chatPage .chat-header .back-btn:hover {
-    color: rgba(255, 255, 255, 0.1);
+    color: #ffffff; /* 修复hover状态颜色重叠问题 */
     transform: none;
     /* 移除变换效果 */
     box-shadow: none;
@@ -427,13 +433,20 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
-    background-color: rgba(0, 0, 0, 0.75);
     padding: 1rem;
     border-radius: 12px;
     z-index: 10;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
+    background-color: rgba(0, 0, 0, 0.75);
+    /* 应用亚克力效果 */
+    backdrop-filter: blur(15px) saturate(180%);
+    -webkit-backdrop-filter: blur(15px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    
+    /* 回退机制 - 当亚克力效果不可用时使用半透明效果 */
+    background-color: rgba(0, 0, 0, 0.75);
 }
 
 /* 输入框和按钮的容器 */
@@ -527,7 +540,6 @@ body {
 }
 
 .dialog-box {
-    background-color: rgba(0, 0, 0, 0.7);
     padding: 1rem;
     margin: 0 auto;
     width: 80%;
@@ -538,12 +550,13 @@ body {
     max-height: 120px;
     overflow: hidden;
     position: relative;
-    backdrop-filter: none;
-    /* 移除模糊效果 */
-    border: none;
-    /* 移除边框 */
-    box-shadow: none;
-    /* 移除阴影 */
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
+    background-color: rgba(0, 0, 0, 0.7);
+    /* 应用亚克力效果 */
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 /* 移除科幻边框动画 */
@@ -583,7 +596,7 @@ body {
     /* 移除发光效果 */
 }
 
-/* 控制按钮样式 - 传统样式 */
+/* 控制按钮样式 - 亚克力效果 */
 .control-buttons {
     display: flex;
     justify-content: center;
@@ -591,13 +604,15 @@ body {
     gap: 0.5rem;
     margin-top: 0.5rem;
     padding: 0.5rem;
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
     background-color: rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 21;
-    backdrop-filter: none;
-    /* 移除模糊效果 */
-    border-top: none;
-    /* 移除边框 */
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
 }
 
 /* 按钮样式 */
@@ -730,13 +745,20 @@ body {
 
 .modal-content,
 .history-content {
-    background-color: rgba(30, 30, 50, 0.9);
     border-radius: 10px;
     width: 80%;
     max-width: 800px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
+    /* 应用亚克力效果 */
+    backdrop-filter: blur(15px) saturate(180%);
+    -webkit-backdrop-filter: blur(15px) saturate(180%);
+    background-color: rgba(40, 40, 60, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    
+    /* 回退机制 - 当亚克力效果不可用时使用半透明效果 */
+    background-color: rgba(30, 30, 50, 0.9);
 }
 
 .modal-header,
@@ -879,6 +901,92 @@ body {
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 1rem;
+}
+
+/* 亚克力效果样式 - 支持检测和回退机制 */
+.acrylic-effect {
+    /* 亚克力效果 - 现代浏览器支持 */
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    
+    /* 回退机制 - 当亚克力效果不可用时使用半透明效果 */
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* 亚克力效果应用类 - 通过JavaScript动态添加 */
+.acrylic-support .acrylic-effect,
+.acrylic-support .chat-header,
+.acrylic-support .user-input-container,
+.acrylic-support .dialog-box,
+.acrylic-support .control-buttons,
+.acrylic-support .modal-content,
+.acrylic-support .history-content,
+.acrylic-support .character-card,
+.acrylic-support .option-buttons-container,
+.acrylic-support .story-container,
+.acrylic-support .custom-character-form,
+.acrylic-support .settings-container,
+.acrylic-support .loading-container,
+.acrylic-support .error-container {
+    /* 确保支持亚克力效果时正确应用样式 */
+    backdrop-filter: blur(10px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.no-acrylic-support .acrylic-effect,
+.no-acrylic-support .chat-header,
+.no-acrylic-support .user-input-container,
+.no-acrylic-support .dialog-box,
+.no-acrylic-support .control-buttons,
+.no-acrylic-support .modal-content,
+.no-acrylic-support .history-content,
+.no-acrylic-support .character-card,
+.no-acrylic-support .option-buttons-container,
+.no-acrylic-support .story-container,
+.no-acrylic-support .custom-character-form,
+.no-acrylic-support .settings-container,
+.no-acrylic-support .loading-container,
+.no-acrylic-support .error-container {
+    /* 禁用亚克力效果，使用回退的半透明样式 */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.no-acrylic-support .acrylic-effect,
+.no-acrylic-support .dialog-box,
+.no-acrylic-support .chat-header {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.no-acrylic-support .user-input-container {
+    background-color: rgba(0, 0, 0, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.no-acrylic-support .control-buttons {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.no-acrylic-support .modal-content,
+.no-acrylic-support .history-content,
+.no-acrylic-support .character-card,
+.no-acrylic-support .option-buttons-container,
+.no-acrylic-support .story-container,
+.no-acrylic-support .custom-character-form,
+.no-acrylic-support .settings-container,
+.no-acrylic-support .loading-container {
+    background-color: rgba(30, 30, 50, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.no-acrylic-support .error-container {
+    background-color: rgba(183, 28, 28, 0.9) !important;
 }
 
 /* 错误提示样式 */
@@ -1047,6 +1155,11 @@ body {
     .control-buttons {
         padding: 0.6rem;
         gap: 0.6rem;
+        backdrop-filter: blur(5px) saturate(160%);
+        -webkit-backdrop-filter: blur(5px) saturate(160%);
+        background-color: rgba(0, 0, 0, 0.2); /* 移动端深色亚克力效果背景 */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
     }
 
     .btn {
@@ -1231,6 +1344,13 @@ body {
     flex-direction: column;
     gap: 10px;
     max-width: 300px;
+    background-color: rgba(0, 0, 0, 0.7); /* 亚克力效果不可用时的回退背景 */
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    background-color: rgba(0, 0, 0, 0.3); /* 深色半透明背景 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
 }
 
 .option-buttons-container.show {
