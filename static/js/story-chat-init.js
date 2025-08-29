@@ -267,7 +267,9 @@ async function sendStoryMessage() {
                 enableUserInput();
                 setIsPaused(false);
                 
-                if (window.pendingOptions && window.pendingOptions.length > 0) {
+                // 检查是否启用选项生成
+                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+                if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
                     if (showOptionButtons) {
                         showOptionButtons(window.pendingOptions);
                     }
@@ -278,7 +280,9 @@ async function sendStoryMessage() {
                 enableUserInput();
                 setIsPaused(false);
                 
-                if (window.pendingOptions && window.pendingOptions.length > 0) {
+                // 检查是否启用选项生成
+                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+                if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
                     if (showOptionButtons) {
                         showOptionButtons(window.pendingOptions);
                     }
@@ -323,7 +327,8 @@ async function sendStoryMessage() {
             },
             body: JSON.stringify({ 
                 message: message,
-                story_id: window.storyId
+                story_id: window.storyId,
+                optionGenerationEnabled: localStorage.getItem('optionGenerationEnabled') !== 'false'
             })
         });
 
@@ -385,7 +390,11 @@ async function sendStoryMessage() {
                             // 处理选项数据
                             if (data.options && Array.isArray(data.options)) {
                                 console.log('收到选项数据:', data.options);
-                                window.pendingOptions = data.options;
+                                // 检查是否启用选项生成
+                                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+                                if (optionGenerationEnabled) {
+                                    window.pendingOptions = data.options;
+                                }
                             }
                             
                             // 处理故事进度更新

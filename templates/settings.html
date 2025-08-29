@@ -209,6 +209,16 @@
                 </div>
                 
                 <div class="settings-section">
+                    <h3>对话设置</h3>
+                    <div class="setting-item">
+                        <label for="optionGenerationToggle">
+                            <input type="checkbox" id="optionGenerationToggle">
+                            <span>启用选项生成</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
                     <h3>页面背景音乐设置</h3>
                     <div id="pageBgmConfigs">
                         <!-- 页面BGM配置将通过JavaScript动态生成 -->
@@ -250,6 +260,7 @@
             const ttsVolumeValue = document.getElementById('ttsVolumeValue');
             const pageBgmConfigs = document.getElementById('pageBgmConfigs');
             const acrylicEffectToggle = document.getElementById('acrylicEffectToggle');
+            const optionGenerationToggle = document.getElementById('optionGenerationToggle');
             
             // 从localStorage加载设置
             const showLogo = localStorage.getItem('showLogoSplash') !== 'false';
@@ -258,6 +269,7 @@
             const ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
             const savedTtsVolume = localStorage.getItem('ttsVolume') || '80';
             const useAcrylic = localStorage.getItem('useAcrylic') !== 'false'; // 默认启用亚克力效果
+            const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false'; // 默认启用选项生成
             
             showLogoToggle.checked = showLogo;
             bgmToggle.checked = bgmEnabled;
@@ -267,6 +279,7 @@
             ttsVolume.value = savedTtsVolume;
             ttsVolumeValue.textContent = savedTtsVolume + '%';
             acrylicEffectToggle.checked = useAcrylic; // 设置亚克力效果开关状态
+            optionGenerationToggle.checked = optionGenerationEnabled; // 设置选项生成开关状态
             
             // 应用保存的效果样式
             // applyVisualEffects(useAcrylic);
@@ -372,6 +385,12 @@
                 console.log('TTS音量设置:', volume + '%');
             });
             
+            optionGenerationToggle.addEventListener('change', function() {
+                localStorage.setItem('optionGenerationEnabled', this.checked);
+                window.optionGenerationEnabled = this.checked;
+                console.log('选项生成开关状态:', this.checked);
+            });
+            
             // 初始化BGM设置
             if (window.bgmService) {
                 // 等待BGM服务加载完成
@@ -391,6 +410,10 @@
             window.ttsEnabled = ttsEnabled;
             window.ttsVolume = savedTtsVolume / 100;
             console.log('初始化TTS设置 - 启用:', ttsEnabled, '音量:', savedTtsVolume + '%');
+            
+            // 初始化选项生成设置
+            window.optionGenerationEnabled = optionGenerationEnabled;
+            console.log('初始化选项生成设置 - 启用:', optionGenerationEnabled);
         });
     </script>
     <script>

@@ -130,7 +130,9 @@ export async function sendMessage() {
                 hideContinuePrompt();
                 enableUserInput();
                 setIsPaused(false);
-                if (window.pendingOptions && window.pendingOptions.length > 0) {
+                // 检查是否启用选项生成
+                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+                if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
                     if (window.showOptionButtons) {
                         window.showOptionButtons(window.pendingOptions);
                     }
@@ -140,7 +142,9 @@ export async function sendMessage() {
                 hideContinuePrompt();
                 enableUserInput();
                 setIsPaused(false);
-                if (window.pendingOptions && window.pendingOptions.length > 0) {
+                // 检查是否启用选项生成
+                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+                if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
                     if (window.showOptionButtons) {
                         window.showOptionButtons(window.pendingOptions);
                     }
@@ -185,7 +189,10 @@ export async function sendMessage() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ 
+                message,
+                optionGenerationEnabled: localStorage.getItem('optionGenerationEnabled') !== 'false'
+            })
         });
 
         if (!response.ok) {
@@ -243,7 +250,11 @@ export async function sendMessage() {
 
                             // 处理选项数据
                             if (data.options) {
-                                window.pendingOptions = data.options;
+                                // 检查是否启用选项生成
+                                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+                                if (optionGenerationEnabled) {
+                                    window.pendingOptions = data.options;
+                                }
                             }
                         } catch (e) {
                             console.error('解析JSON失败:', e, jsonStr);

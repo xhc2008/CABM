@@ -128,6 +128,7 @@ def chat():
 def chat_stream():
     try:
         message = request.json.get('message', '')
+        option_generation_enabled = request.json.get('optionGenerationEnabled', True)
         if not message:
             return jsonify({'success': False, 'error': '消息不能为空'}), 400
         chat_service.add_message("user", message)

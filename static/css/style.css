@@ -963,9 +963,13 @@ body {
 }
 
 .no-acrylic-support .modal-content,
-.no-acrylic-support .option-buttons-container,
 .no-acrylic-support .history-content{
     background-color: rgba(30, 30, 50, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.no-acrylic-support .option-buttons-container{
+    background-color: rgba(0, 0, 0, 0.6) !important;
     border: 1px solid rgba(255, 255, 255, 0.18) !important;
 }
 
@@ -1985,23 +1989,6 @@ body {
     background-color: rgba(183, 28, 28, 0.9);
     backdrop-filter: none;
     border: none;
-}
-
-/* 确保选项按钮保持传统样式 */
-.option-button {
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
-    backdrop-filter: blur(10px);
-}
-
-.option-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
-    transform: translateX(5px);
-    box-shadow: none;
 }
 
 /* 用户输入框
