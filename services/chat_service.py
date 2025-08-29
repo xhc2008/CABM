@@ -234,7 +234,7 @@ class ChatService:
                 
                 # 获取故事进度信息
                 offset = story_service.get_offset()
-                current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()
+                _, current_chapter, next_chapter = story_service.get_current_chapter_info()
                 
                 # 根据偏移值添加引导内容
                 guidance = f"当前章节：`{current_chapter}`"
