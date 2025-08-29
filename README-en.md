@@ -73,13 +73,13 @@ CABM (Code Afflatus & Beyond Matter) is an immersive dialogue application that i
 ## Installation Instructions
 
 ### 🎮Method 1: Simple Installation (Windows only)
-1. [Click to download the installation package](https://github.com/leletxh/CABM-run/releases/download/v1.0.3/-v1.0.3-win-x64.zip)
+1. [Click to download the installation package](https://github.com/leletxh/CABM-run/releases/download/v1.1.0/-v1.1.0-win-x64.zip)
 2. Extract
-3. Double-click "Launcher.exe"
+3. Double-click "启动器.exe"
 4. Go to the [SiliconFlow platform](https://cloud.siliconflow.cn/i/mVqMyTZk) to apply for your API key
 5. Fill in your API key in the appearing window (5 places in total)
 6. Click confirm
-7. Double-click "Launcher.exe" again
+7. Double-click "启动器.exe" again
 
 > Detailed steps for step **4**:
 >1.  [Click here](https://cloud.siliconflow.cn/i/mVqMyTZk), then register an account

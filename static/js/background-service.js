@@ -434,6 +434,7 @@ class BackgroundService {
     
         if (hasCustomBackground) {
             console.log('已有自定义背景，跳过初始背景加载');
+            // 修复：不要隐藏默认背景，因为已经有自定义背景了
             return;
         }
     
@@ -476,6 +477,11 @@ class BackgroundService {
                 }
             } else {
                 console.warn('未获取到初始背景，使用默认背景');
+                // 确保默认背景可见
+                const defaultBackground = document.querySelector('.default-background');
+                if (defaultBackground) {
+                    defaultBackground.style.opacity = '1';
+                }
             }
         } catch (error) {
             console.error('加载初始背景失败:', error);

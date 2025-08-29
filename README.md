@@ -12,6 +12,7 @@
 ## 开发状态
 **待修复的bug：**
 - （重要）自定义角色头像模糊
+- （特性）进入聊天页面时背景变暗
 - （特性）话说一半查看历史会显示完整对话
 - （特性）bgm禁忌二重奏
 - （特性）剧情模式重新进入不会显示上一次的对话
@@ -75,7 +76,7 @@ CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式
 ## 安装说明
 
 ### 🎮方法一：无脑安装（仅限Windows）
-1. [点击下载安装包](https://github.com/leletxh/CABM-run/releases/download/v1.0.3/-v1.0.3-win-x64.zip)
+1. [点击下载安装包](https://github.com/leletxh/CABM-run/releases/download/v1.1.0/-v1.1.0-win-x64.zip)
 2. 解压
 3. 双击“启动器.exe”
 4. 去[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API密钥
