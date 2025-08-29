@@ -611,8 +611,9 @@ body {
     background-color: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    border: none;/*1px solid rgba(255, 255, 255, 0.2);*/
+    border-radius: 0px;
+    border-top: none;
 }
 
 /* 按钮样式 */
@@ -922,14 +923,7 @@ body {
 .acrylic-support .dialog-box,
 .acrylic-support .control-buttons,
 .acrylic-support .modal-content,
-.acrylic-support .history-content,
-.acrylic-support .character-card,
-.acrylic-support .option-buttons-container,
-.acrylic-support .story-container,
-.acrylic-support .custom-character-form,
-.acrylic-support .settings-container,
-.acrylic-support .loading-container,
-.acrylic-support .error-container {
+.acrylic-support .history-content{
     /* 确保支持亚克力效果时正确应用样式 */
     backdrop-filter: blur(10px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
@@ -943,14 +937,7 @@ body {
 .no-acrylic-support .dialog-box,
 .no-acrylic-support .control-buttons,
 .no-acrylic-support .modal-content,
-.no-acrylic-support .history-content,
-.no-acrylic-support .character-card,
-.no-acrylic-support .option-buttons-container,
-.no-acrylic-support .story-container,
-.no-acrylic-support .custom-character-form,
-.no-acrylic-support .settings-container,
-.no-acrylic-support .loading-container,
-.no-acrylic-support .error-container {
+.no-acrylic-support .history-content {
     /* 禁用亚克力效果，使用回退的半透明样式 */
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -974,13 +961,7 @@ body {
 }
 
 .no-acrylic-support .modal-content,
-.no-acrylic-support .history-content,
-.no-acrylic-support .character-card,
-.no-acrylic-support .option-buttons-container,
-.no-acrylic-support .story-container,
-.no-acrylic-support .custom-character-form,
-.no-acrylic-support .settings-container,
-.no-acrylic-support .loading-container {
+.no-acrylic-support .history-content{
     background-color: rgba(30, 30, 50, 0.9) !important;
     border: 1px solid rgba(255, 255, 255, 0.18) !important;
 }
