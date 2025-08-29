@@ -85,43 +85,43 @@
     
     <!-- 关于页面内容 -->
     <div class="page active" id="aboutPage">
-        <div class="container" style="max-width: 1300px; margin: 0 auto; padding: 1rem 0.5rem;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0rem 0.5rem;">
             <!-- 头部标题 -->
-            <div class="home-header" style="margin-top: 0.5rem;">
+            <div class="home-header" style="margin-top: 0rem;">
                 <h1 class="sci-fi-title">CABM</h1>
                 <p class="sci-fi-subtitle">Code Afflatus & Beyond Matter</p>
             </div>
             
             <!-- 主要内容区域 -->
-            <div class="glass-panel" style="margin: 1rem auto; padding: 1.5rem;">
+            <div class="glass-panel" style="margin: 1rem auto; padding: 0.8rem;">
                 <!-- 版本信息 -->
                 <div style="text-align: center; margin-bottom: 2.5rem;">
-                    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.5rem;">版本号：v0.4-0829-dev</p>
-                    <p style="color: var(--primary-cyan); font-style: italic; margin-top: 1rem; line-height: 1.6;">
+                    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.4rem;">版本号：v0.4-0829-dev</p>
+                    <p style="color: var(--primary-cyan); font-style: italic; margin-top: 0.8rem; line-height: 1.5;">
                         「当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。」
                     </p>
                 </div>
                 
                 <!-- 项目介绍 -->
-                <div style="margin-bottom: 0.5rem;">
-                    <p style="line-height: 1.7; margin-bottom: 1rem; color: var(--text-primary); text-indent: 2em;">
+                <div style="margin-bottom: 0rem;">
+                    <p style="line-height: 1.5; margin-bottom: 0.8rem; color: var(--text-primary); text-indent: 2em;">
                         这是一次笨拙的尝试，诞生于某次心血来潮。
                     </p>
-                    <p style="line-height: 1.7; margin-bottom: 1rem; color: var(--text-primary); text-indent: 2em;">
+                    <p style="line-height: 1.5; margin-bottom: 0.8rem; color: var(--text-primary); text-indent: 2em;">
                         我们并非专业，只是想借助AI，让某个瞬间的情感，跨越代码与屏幕的界限，真实地传递给你。它不完美，甚至漏洞百出，但每一个字节都源于热爱。
                     </p>
-                    <p style="line-height: 1.7; margin-bottom: 1rem; color: var(--text-primary); text-indent: 2em;">
+                    <p style="line-height: 1.5; margin-bottom: 0.8rem; color: var(--text-primary); text-indent: 2em;">
                         这不是商业产品，也不会是。它只是一个兴趣的出口，一个我们与你共同构建的、小小的次元之门。
                     </p>
-                    <p style="line-height: 1.7; margin-bottom: 1rem; color: var(--text-primary); text-indent: 2em;">
+                    <p style="line-height: 1.5; margin-bottom: 0.8rem; color: var(--text-primary); text-indent: 2em;">
                         感谢你愿意推开这扇门，走进来坐一坐。
                     </p>
                     <p style="text-align: right; color: var(--text-secondary); margin-top: 2rem;">—— CABM 开发组</p>
                 </div>
                 
                 <!-- 回声洞部分 -->
-                <div style="margin: 3.5rem 0;">
-                    <h3 style="color: var(--accent-green); margin-bottom: 1.2rem; text-align: center;">回声洞</h3>
+                <div style="margin: 1.5rem 0;">
+                    <h3 style="color: var(--accent-green); margin-bottom: 1.0rem; text-align: center;">回声洞</h3>
                     <div class="sci-fi-card" style="background: rgba(0, 255, 255, 0.05); padding: 1.8rem;">
                         <p id="echo-message" style="font-style: italic; color: var(--text-primary); line-height: 1.6; margin: 0; text-align: left;">
                             "加载中..."
@@ -183,7 +183,7 @@
                         </div>
                         
                     </div>
-                    <p style="text-align: center; color: var(--text-secondary); margin-top: 1.5rem;">* 由衷感谢所有为项目做出贡献的伙伴，对于未能逐一列出的贡献者，我们深表歉意。</p>
+                    <p style="text-align: center; color: var(--text-secondary); margin-top: 1.5rem;">* 由衷感谢所有为项目做出贡献的伙伴。以上并非全部贡献者，对于未能逐一列出的贡献者，我们深表歉意。</p>
                 </div>
                 
                 
@@ -213,8 +213,8 @@
                 }
             } catch (error) {
                 console.error('获取回声洞内容失败:', error);
-                document.getElementById('echo-message').textContent = '"代码改变世界！"';
-                document.getElementById('echo-author').textContent = '—— 程序员';
+                document.getElementById('echo-message').textContent = '"技术宅拯救世界！"';
+                document.getElementById('echo-author').textContent = '—— miHoYo';
             }
         }
         
