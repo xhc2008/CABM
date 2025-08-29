@@ -80,6 +80,22 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMessage?.addEventListener('click', continueOutput);
         clickToContinue?.addEventListener('click', continueOutput);
         
+        // 确保面板样式正确应用
+        requestAnimationFrame(() => {
+            // 强制触发一次面板样式更新
+            const panels = document.querySelectorAll('.chat-header, .user-input-container, .dialog-box, .control-buttons');
+            panels.forEach(panel => {
+                panel.style.opacity = '0.99';
+                panel.offsetHeight; // 触发重排
+                panel.style.opacity = '';
+            });
+            
+            // 如果亚克力检测器已存在，强制触发一次重绘
+            if (window.acrylicDetector) {
+                window.acrylicDetector.forceRepaint();
+            }
+        });
+        
         console.log('对话页面初始化完成');
     } catch (error) {
         console.error('初始化失败:', error);
@@ -131,4 +147,3 @@ window.updateBackground = updateBackground;
 window.updateCurrentMessage = updateCurrentMessage;
 window.playAudio = (autoPlay = false) => playAudio(getCurrentCharacter(), autoPlay);
 window.stopCurrentAudio = stopCurrentAudio;
-window.showError = showError;

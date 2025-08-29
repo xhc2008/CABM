@@ -40,13 +40,33 @@ class AcrylicEffectDetector {
      * 初始化检测和回退处理
      */
     init() {
+        // 确保DOM加载完成后再进行初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.applyAcrylicEffects();
+            });
+        } else {
+            // DOM已经加载完成
+            this.applyAcrylicEffects();
+        }
+    }
+
+    /**
+     * 应用亚克力效果或回退效果
+     */
+    applyAcrylicEffects() {
         if (!this.supportsAcrylic) {
             this.fallbackToTransparent();
             this.addNoAcrylicClass();
+        } else {
+            this.addAcrylicClass();
         }
         
         // 监听性能问题导致的回退
         this.monitorPerformance();
+        
+        // 强制重绘以确保样式正确应用
+        this.forceRepaint();
     }
 
     /**
@@ -56,12 +76,19 @@ class AcrylicEffectDetector {
         console.log('浏览器不支持亚克力效果，已回退到半透明效果');
         
         // 移除所有亚克力效果相关的样式
-        const elements = document.querySelectorAll('.acrylic-effect');
+        const elements = document.querySelectorAll('.acrylic-effect, .chat-header, .user-input-container, .dialog-box, .control-buttons, .modal-content, .history-content');
         elements.forEach(element => {
             element.style.backdropFilter = 'none';
             element.style.webkitBackdropFilter = 'none';
             element.style.backgroundColor = ''; // 让CSS回退机制生效
         });
+    }
+
+    /**
+     * 添加支持亚克力的CSS类
+     */
+    addAcrylicClass() {
+        document.documentElement.classList.add('acrylic-support');
     }
 
     /**
@@ -92,6 +119,8 @@ class AcrylicEffectDetector {
                     if (lowFpsCount >= 3) {
                         console.warn('检测到性能不足，禁用亚克力效果以提升性能');
                         this.fallbackToTransparent();
+                        this.addNoAcrylicClass();
+                        document.documentElement.classList.remove('acrylic-support');
                         return; // 停止监控
                     }
                 } else {
@@ -113,11 +142,28 @@ class AcrylicEffectDetector {
     }
 
     /**
+     * 强制重绘以确保样式正确应用
+     */
+    forceRepaint() {
+        // 使用requestAnimationFrame确保在下一帧强制重绘
+        requestAnimationFrame(() => {
+            const elements = document.querySelectorAll('.acrylic-effect, .chat-header, .user-input-container, .dialog-box, .control-buttons');
+            elements.forEach(element => {
+                // 强制重绘
+                element.style.display = 'none';
+                element.offsetHeight; // 触发重排
+                element.style.display = '';
+            });
+        });
+    }
+
+    /**
      * 手动触发回退（用于测试或其他情况）
      */
     forceFallback() {
         this.fallbackToTransparent();
         this.addNoAcrylicClass();
+        document.documentElement.classList.remove('acrylic-support');
     }
 
     /**

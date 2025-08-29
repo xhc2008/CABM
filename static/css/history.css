@@ -24,9 +24,9 @@
     display: flex;
     flex-direction: column;
     /* 应用亚克力效果 */
+    background-color: rgba(0, 20, 40, 0.7); /* 亚克力效果背景色 */
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
-    background-color: rgba(0, 20, 40, 0.7); /* 亚克力效果背景色 */
 }
 
 .history-header {

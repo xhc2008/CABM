@@ -322,13 +322,15 @@ body {
     left: 0;
     right: 0;
     height: 60px;
-    background-color: rgba(0, 0, 0, 0.7); /* 亚克力效果不可用时的回退背景 */
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
-    background-color: rgba(0, 0, 0, 0.3); /* 深色半透明背景 */
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
+    background-color: rgba(0, 0, 0, 0.7);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 50;
     padding: 0 1rem;
+    /* 为支持亚克力效果的浏览器设置默认样式 */
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
 }
 
 .chat-header h2 {
@@ -435,6 +437,8 @@ body {
     border-radius: 12px;
     z-index: 10;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
+    background-color: rgba(0, 0, 0, 0.75);
     /* 应用亚克力效果 */
     backdrop-filter: blur(15px) saturate(180%);
     -webkit-backdrop-filter: blur(15px) saturate(180%);
@@ -546,14 +550,13 @@ body {
     max-height: 120px;
     overflow: hidden;
     position: relative;
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
+    background-color: rgba(0, 0, 0, 0.7);
     /* 应用亚克力效果 */
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    
-    /* 回退机制 - 当亚克力效果不可用时使用半透明效果 */
-    background-color: rgba(0, 0, 0, 0.7);
 }
 
 /* 移除科幻边框动画 */
@@ -601,12 +604,13 @@ body {
     gap: 0.5rem;
     margin-top: 0.5rem;
     padding: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.5); /* 回退背景色 */
+    /* 默认使用半透明背景，确保在JS检测完成前正确显示 */
+    background-color: rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 21;
+    background-color: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
-    background-color: rgba(0, 0, 0, 0.3); /* 深色半透明背景 */
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
 }
@@ -912,11 +916,26 @@ body {
 }
 
 /* 亚克力效果检测类 - 通过JavaScript动态添加 */
-.no-acrylic-support .acrylic-effect {
+.no-acrylic-support .acrylic-effect,
+.no-acrylic-support .chat-header,
+.no-acrylic-support .user-input-container,
+.no-acrylic-support .dialog-box,
+.no-acrylic-support .control-buttons {
     /* 禁用亚克力效果，使用回退的半透明样式 */
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.acrylic-support .chat-header,
+.acrylic-support .user-input-container,
+.acrylic-support .dialog-box,
+.acrylic-support .control-buttons {
+    /* 确保支持亚克力效果时正确应用样式 */
+    backdrop-filter: blur(10px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
 }
 
 /* 错误提示样式 */
