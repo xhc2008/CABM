@@ -25,7 +25,7 @@ class BGMService {
         
         // 新增：防重复播放机制
         this.lastPlayTime = 0;
-        this.playCooldown = 2000; // 2秒冷却时间
+        this.playCooldown = 5000; // 5秒冷却时间
         
         // 存储单例实例
         window.bgmServiceInstance = this;
