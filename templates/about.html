@@ -66,6 +66,29 @@
             font-size: 0.9rem;
         }
         
+        /* 返回按钮样式 */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--primary-cyan);
+            color: var(--primary-cyan);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-button:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: translateX(-2px);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
         /* 响应式调整 */
         @media (max-width: 768px) {
             .container {
@@ -74,6 +97,13 @@
             
             .glass-panel {
                 padding: 1.5rem !important;
+            }
+            
+            .back-button {
+                top: 10px;
+                left: 10px;
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -86,6 +116,11 @@
     <!-- 关于页面内容 -->
     <div class="page active" id="aboutPage">
         <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0rem 0.5rem;">
+            <!-- 返回按钮 -->
+            <a href="/" class="back-button">
+                ← 返回
+            </a>
+            
             <!-- 头部标题 -->
             <div class="home-header" style="margin-top: 0rem;">
                 <h1 class="sci-fi-title">CABM</h1>
@@ -96,7 +131,7 @@
             <div class="glass-panel" style="margin: 1rem auto; padding: 0.8rem;">
                 <!-- 版本信息 -->
                 <div style="text-align: center; margin-bottom: 2.5rem;">
-                    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.4rem;">版本号：v0.4-0829-dev</p>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.4rem;">版本号：v0.4-0830-dev</p>
                     <p style="color: var(--primary-cyan); font-style: italic; margin-top: 0.8rem; line-height: 1.5;">
                         「当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。」
                     </p>
@@ -132,7 +167,7 @@
 
                 <!-- 开发组成员 -->
                 <div style="margin: 3rem 0;">
-                    <h2 style="color: var(--primary-cyan); margin-bottom: 1.5rem; text-align: center;">开发团队</h2>
+                    <h2 style="color: var(--primary-cyan); margin-bottom: 1.5rem; text-align: center;">开发组</h2>
                     <div class="team-container">
                         <div class="team-member">
                             <div class="member-name">xhc2008 (reeper, Collei～(∠・ω＜)⌒☆, 赏金月桂的爬行者)</div>

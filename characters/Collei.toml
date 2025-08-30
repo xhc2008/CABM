@@ -35,6 +35,8 @@ name = "害怕"
 name = "自信"
 [[moods]]
 name = "疑惑"
+[[moods]]
+name = "害羞"
 
 # 角色对话示例
 [[examples]]
