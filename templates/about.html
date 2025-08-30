@@ -28,42 +28,46 @@
         
         /* 开发组成员卡片样式 */
         .team-container {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             gap: 1.2rem;
             margin-top: 1.5rem;
         }
-        
+
         .team-member {
             background: rgba(0, 255, 255, 0.08);
             border: 1px solid var(--glass-border);
             border-radius: 8px;
             padding: 1.5rem;
             transition: all 0.3s ease;
+            min-width: 0;
         }
-        
+
         .team-member:hover {
             background: rgba(0, 255, 255, 0.12);
             transform: translateY(-2px);
         }
-        
+
         .member-name {
             color: var(--primary-cyan);
             font-weight: bold;
             margin-bottom: 0.5rem;
             font-size: 1.1rem;
+            overflow-wrap: break-word;
         }
-        
+
         .member-role {
             color: var(--accent-green);
             margin-bottom: 0.8rem;
             font-size: 0.95rem;
+            overflow-wrap: break-word;
         }
-        
+
         .member-desc {
             color: var(--text-primary);
             line-height: 1.5;
             font-size: 0.9rem;
+            overflow-wrap: break-word;
         }
         
         /* 返回按钮样式 */
@@ -129,9 +133,13 @@
         .echo-refresh-btn svg {
             transition: inherit;
         }
-        
+
         /* 响应式调整 */
         @media (max-width: 768px) {
+            .team-container {
+                grid-template-columns: 1fr;
+            }
+            
             .container {
                 padding: 0 1rem;
             }
@@ -151,6 +159,12 @@
                 bottom: 8px;
                 left: 8px;
                 padding: 5px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .team-container {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -228,7 +242,7 @@
                     <h2 style="color: var(--primary-cyan); margin-bottom: 1.5rem; text-align: center;">开发组</h2>
                     <div class="team-container">
                         <div class="team-member">
-                            <div class="member-name">xhc2008 (reeper, Collei～(∠・ω＜)⌒☆, 赏金月桂的爬行者)</div>
+                            <div class="member-name">xhc2008 (reeper, Collei～(∠・ω＜)⌒☆)</div>
                             <div class="member-role">项目发起人 & 全栈开发</div>
                             <div class="member-desc">用一周时间独立完成了首个版本开发。目前基本啥都干。</div>
                         </div>
@@ -236,7 +250,7 @@
                         <div class="team-member">
                             <div class="member-name">受信任的安全主体 (银狼)</div>
                             <div class="member-role">█████████████</div>
-                            <div class="member-desc">████████████████████████████████████████████████████████████████</div>
+                            <div class="member-desc">████████████████████████████████████</div>
                         </div>
 
                         <div class="team-member">
@@ -260,7 +274,7 @@
                         <div class="team-member">
                             <div class="member-name">EveGlow</div>
                             <div class="member-role">前端</div>
-                            <div class="member-desc">CABM衍生作品的开发者。为原项目加入亚克力风格UI</div>
+                            <div class="member-desc">CABM衍生作品的开发者。为原项目加入亚克力风格UI。</div>
                         </div>
                 
                         <div class="team-member">
