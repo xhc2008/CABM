@@ -97,10 +97,10 @@ def setup_environment():
         os.makedirs(temp_images_dir, exist_ok=True)
         
         # 检查默认角色图片
-        character_image_path = Path("static/images/default/1.png")
-        if not character_image_path.exists():
-            logger.warning(f"默认角色图片不存在: {character_image_path}")
-            logger.warning("将使用占位符图片")
+        # character_image_path = Path("static/images/default/1.png")
+        # if not character_image_path.exists():
+        #     logger.warning(f"默认角色图片不存在: {character_image_path}")
+        #     logger.warning("将使用占位符图片")
         
         # 导入图像服务
         from services.image_service import image_service

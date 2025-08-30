@@ -70,7 +70,7 @@
         .back-button {
             position: absolute;
             top: 20px;
-            left: 20px;
+            left: 0px;
             z-index: 1000;
             background: rgba(0, 255, 255, 0.1);
             border: 1px solid var(--primary-cyan);
@@ -85,8 +85,49 @@
         
         .back-button:hover {
             background: rgba(0, 255, 255, 0.2);
-            transform: translateX(-2px);
+            transform: translateX(-3px);
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
+        /* 回声洞容器样式 */
+        .echo-container {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 1.8rem;
+            position: relative;
+            min-height: 80px;
+        }
+        
+        /* 回声洞刷新按钮样式 */
+        .echo-refresh-btn {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--primary-cyan);
+            color: var(--primary-cyan);
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .echo-refresh-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            /*transform: rotate(180deg);*/
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            
+        }
+        .echo-refresh-btn:active {
+            transform: rotate(360deg) scale(0.95);
+        }
+        .echo-refresh-btn svg {
+            transition: inherit;
         }
         
         /* 响应式调整 */
@@ -104,6 +145,12 @@
                 left: 10px;
                 padding: 0.4rem 0.8rem;
                 font-size: 0.8rem;
+            }
+            
+            .echo-refresh-btn {
+                bottom: 8px;
+                left: 8px;
+                padding: 5px;
             }
         }
     </style>
@@ -131,7 +178,9 @@
             <div class="glass-panel" style="margin: 1rem auto; padding: 0.8rem;">
                 <!-- 版本信息 -->
                 <div style="text-align: center; margin-bottom: 2.5rem;">
-                    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.4rem;">版本号：v0.4-0830-dev</p>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.4rem;">
+                    版本号：v0.4-0830-dev
+                    </p>
                     <p style="color: var(--primary-cyan); font-style: italic; margin-top: 0.8rem; line-height: 1.5;">
                         「当灵性注入载体，它便挣脱物质躯壳，抵达超验之境。」
                     </p>
@@ -157,11 +206,20 @@
                 <!-- 回声洞部分 -->
                 <div style="margin: 1.5rem 0;">
                     <h3 style="color: var(--accent-green); margin-bottom: 1.0rem; text-align: center;">回声洞</h3>
-                    <div class="sci-fi-card" style="background: rgba(0, 255, 255, 0.05); padding: 1.8rem;">
+                    <div class="sci-fi-card" style="background: rgba(0, 255, 255, 0.05); padding: 1.8rem; position: relative;">
                         <p id="echo-message" style="font-style: italic; color: var(--text-primary); line-height: 1.6; margin: 0; text-align: left;">
                             "加载中..."
                         </p>
                         <p id="echo-author" style="text-align: right; color: var(--text-secondary); margin: 1.2rem 0 0 0;">—— 加载中...</p>
+                        
+                        <!-- 刷新按钮 -->
+                        <button id="refresh-echo" class="echo-refresh-btn" onclick="refreshEchoContent()" title="刷新回声洞内容">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -172,7 +230,7 @@
                         <div class="team-member">
                             <div class="member-name">xhc2008 (reeper, Collei～(∠・ω＜)⌒☆, 赏金月桂的爬行者)</div>
                             <div class="member-role">项目发起人 & 全栈开发</div>
-                            <div class="member-desc">用一周独立完成了首个版本开发。目前基本啥都干。</div>
+                            <div class="member-desc">用一周时间独立完成了首个版本开发。目前基本啥都干。</div>
                         </div>
                         
                         <div class="team-member">
@@ -233,7 +291,18 @@
             </div>
         </div>
     </div>
-    
+    <script>
+        // 设置当前页面
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化TTS设置
+            window.ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+            window.ttsVolume = parseFloat(localStorage.getItem('ttsVolume') || '80') / 100;
+            
+            if (window.bgmService) {
+                window.bgmService.setCurrentPage('about');
+            }
+        });
+    </script>
     <script>
         // 获取回声洞内容
         async function fetchEchoContent() {
@@ -241,20 +310,42 @@
                 const response = await fetch('https://echo.furinasdog.top/api/reply');
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('echo-message').textContent = `"${data.message}"`;
+                    document.getElementById('echo-message').textContent = `${data.message}`;
                     document.getElementById('echo-author').textContent = `—— ${data.author}`;
                 } else {
                     throw new Error('网络请求失败');
                 }
             } catch (error) {
                 console.error('获取回声洞内容失败:', error);
-                document.getElementById('echo-message').textContent = '"技术宅拯救世界！"';
+                document.getElementById('echo-message').textContent = '技术宅拯救世界！';
                 document.getElementById('echo-author').textContent = '—— miHoYo';
+            }
+        }
+        
+        // 刷新回声洞内容
+        async function refreshEchoContent() {
+            const refreshBtn = document.getElementById('refresh-echo');
+            const echoMessage = document.getElementById('echo-message');
+            const echoAuthor = document.getElementById('echo-author');
+            
+            // 禁用按钮并显示加载状态
+            refreshBtn.disabled = true;
+            echoMessage.textContent = '刷新中...';
+            echoAuthor.textContent = '—— 请稍候';
+            
+            try {
+                await fetchEchoContent();
+            } finally {
+                // 重新启用按钮
+                setTimeout(() => {
+                    refreshBtn.disabled = false;
+                }, 500); // 防止频繁点击
             }
         }
         
         // 页面加载完成后获取内容
         document.addEventListener('DOMContentLoaded', fetchEchoContent);
     </script>
+    <script type="module" src="/static/js/bgm-service.js"></script>
 </body>
 </html>

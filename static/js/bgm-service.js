@@ -23,6 +23,10 @@ class BGMService {
         this.pageConfigs = {};
         this.currentPage = null;
         
+        // 新增：防重复播放机制
+        this.lastPlayTime = 0;
+        this.playCooldown = 2000; // 2秒冷却时间
+        
         // 存储单例实例
         window.bgmServiceInstance = this;
         
@@ -136,7 +140,7 @@ class BGMService {
     }
 
     getAvailablePages() {
-        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings'];
+        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings','about'];
     }
 
     getPageDisplayName(page) {
@@ -147,7 +151,8 @@ class BGMService {
             'story_chat': '故事聊天',
             'custom_character': '自定义角色',
             'select_character': '选择角色',
-            'settings': '设置页面'
+            'settings': '设置页面',
+            'about': '关于页面'
         };
         return names[page] || page;
     }
@@ -161,6 +166,13 @@ class BGMService {
 
     async playTrack(trackName) {
         if (!this.enabled) return;
+        
+        // 新增：防重复播放检查
+        const now = Date.now();
+        if (now - this.lastPlayTime < this.playCooldown) {
+            console.log(`BGM播放冷却中，跳过: ${trackName}`);
+            return;
+        }
         
         // 确保停止当前播放
         this.stop();
@@ -178,6 +190,7 @@ class BGMService {
             this.source.start();
             this.isPlaying = true;
             this.currentTrack = trackName;
+            this.lastPlayTime = now; // 记录播放时间
             console.log(`Playing BGM: ${trackName}`);
         } catch (error) {
             console.error('播放BGM失败:', error);
