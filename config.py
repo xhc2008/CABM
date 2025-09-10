@@ -151,6 +151,33 @@ def get_story_prompts(character_name,character_prompt,character_details,seed):
     {seed}
     ```
 """
+
+def get_multi_character_story_prompts(character_names, character_prompts, seed):
+    character_names_str = "、".join(character_names)
+    return f"""
+你是一个专业的RPG故事生成器，你需要生成玩家和多个角色（{character_names_str}）的故事，要求内容新颖、逻辑闭环。根据以下提供的设定，严格输出一个JSON对象。该JSON对象必须且仅包含以下两个属性：
+
+1.  `summary`: <string>
+    *   值：一个**简短**的故事开头梗概（约1-3句话）。**仅描述故事的起始情境、主要冲突的引入或主角的初始目标，不要包含故事中后期的情节或结局。**
+2.  `outline`: <array of string>
+    *   值：一个由字符串组成的数组，表示分解后的故事内容大纲。
+    *   **条目数量：** 40 到 60 条。
+    *   **格式：** 每条是一个短句，作为一个小章节，以总结性的语言描述一个关键情节节点、场景转换、重要决策点或角色互动。条目应按故事发生的**时间顺序**排列。
+    *   **范围：** 大纲应覆盖从故事开头（允许包含`summary`的内容）直到最终结局。
+    *   **注意！！！：所有角色（{character_names_str}）和玩家必须从第一条开始就同时登场，严禁任何一个条目出现玩家或任何角色的单独行动。这是一个多角色群体故事。**
+> 注意!字段值中的任何双引号（无论中英文）均替换为「」以防止json解析错误。
+**角色信息：**
+
+*   **角色设定：**
+    ```markdown
+    {character_prompts}
+    ```
+
+**故事导向/核心主题/初始目标等补充信息：**
+    ```markdown
+    {seed}
+    ```
+"""
 # 图像提示词配置
 IMAGE_PROMPTS = [
     "繁星点缀的夜空下，一片宁静的湖泊倒映着群山和森林，远处有篝火和小屋",

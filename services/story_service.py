@@ -82,9 +82,14 @@ class StoryService:
             with open(story_path, 'r', encoding='utf-8') as f:
                 data = rtoml.load(f)
             
-            # 获取角色信息
+            # 获取角色信息（支持多角色）
             characters = []
-            for char_id in data.get('characters', {}).get('list', []):
+            character_list = data.get('characters', {}).get('list', [])
+            # 兼容旧格式：如果是字符串，转换为列表
+            if isinstance(character_list, str):
+                character_list = [character_list]
+            
+            for char_id in character_list:
                 char_config = self.config_service.get_character_config(char_id)
                 if char_config:
                     characters.append({
@@ -340,7 +345,7 @@ class StoryService:
             self.logger.error(f"调用导演模型失败: {e}")
             return 1  # 出错时返回默认值
     
-    def create_story(self, story_id: str, title: str, character_id: str, 
+    def create_story(self, story_id: str, title: str, character_ids: List[str], 
                     story_direction: str, background_images: List[str] = None) -> bool:
         """
         创建新故事
@@ -348,7 +353,7 @@ class StoryService:
         Args:
             story_id: 故事ID
             title: 故事标题
-            character_id: 角色ID
+            character_ids: 角色ID列表（支持单个或多个角色）
             story_direction: 故事导向
             background_images: 背景图片路径列表
             
@@ -366,13 +371,16 @@ class StoryService:
             # 创建故事目录
             story_dir.mkdir(parents=True, exist_ok=True)
             
-            # 获取角色配置
-            character_config = self.config_service.get_character_config(character_id)
-            if not character_config:
-                raise ValueError(f"未找到角色: {character_id}")
+            # 验证所有角色配置
+            character_configs = {}
+            for char_id in character_ids:
+                char_config = self.config_service.get_character_config(char_id)
+                if not char_config:
+                    raise ValueError(f"未找到角色: {char_id}")
+                character_configs[char_id] = char_config
             
             # 生成故事大纲
-            story_content = self._generate_story_content(character_config, story_direction)
+            story_content = self._generate_story_content(character_configs, story_direction)
             
             # 创建故事配置文件
             story_data = {
@@ -394,7 +402,7 @@ class StoryService:
                     'outline': story_content['outline']
                 },
                 'characters': {
-                    'list': [character_id]
+                    'list': character_ids
                 }
             }
             
@@ -422,23 +430,42 @@ class StoryService:
                 shutil.rmtree(story_dir, ignore_errors=True)
             return False
     
-    def _generate_story_content(self, character_config: Dict[str, Any], story_direction: str) -> Dict[str, Any]:
+    def _generate_story_content(self, character_configs: Dict[str, Dict[str, Any]], story_direction: str) -> Dict[str, Any]:
         """
         使用AI生成故事内容
         
         Args:
-            character_config: 角色配置
+            character_configs: 角色配置字典
             story_direction: 故事导向
             
         Returns:
             包含summary和outline的字典
         """
-        # 获取角色提示词
-        character_name = character_config.get('name', '角色')
-        character_prompt = character_config.get('prompt', character_config.get('description', ''))
-        
-        # 构建生成提示词
-        user_prompt = get_story_prompts(character_name, character_prompt, story_direction)
+        # 根据角色数量选择不同的提示词格式
+        if len(character_configs) == 1:
+            # 单角色
+            char_id = list(character_configs.keys())[0]
+            character_config = character_configs[char_id]
+            character_name = character_config.get('name', '角色')
+            character_prompt = character_config.get('prompt', character_config.get('description', ''))
+            
+            # 构建生成提示词
+            from config import get_story_prompts
+            user_prompt = get_story_prompts(character_name, character_prompt, "", story_direction)
+        else:
+            # 多角色
+            character_names = [config.get('name', char_id) for char_id, config in character_configs.items()]
+            character_prompts = []
+            for char_id, config in character_configs.items():
+                char_name = config.get('name', char_id)
+                char_prompt = config.get('prompt', config.get('description', ''))
+                character_prompts.append(f"{char_name}: {char_prompt}")
+            
+            combined_character_prompt = "\n".join(character_prompts)
+            
+            # 构建生成提示词
+            from config import get_multi_character_story_prompts
+            user_prompt = get_multi_character_story_prompts(character_names, combined_character_prompt, story_direction)
         
         # 获取API配置
         option_config = get_option_config()
@@ -492,11 +519,21 @@ class StoryService:
             
             # 如果AI生成失败，使用默认模板
             self.logger.warning("AI生成故事内容失败，使用默认模板")
-            return self._get_default_story_template(character_config.get('name', '角色'))
+            if len(character_configs) == 1:
+                char_name = list(character_configs.values())[0].get('name', '角色')
+            else:
+                char_names = [config.get('name', char_id) for char_id, config in character_configs.items()]
+                char_name = "、".join(char_names)
+            return self._get_default_story_template(char_name)
             
         except Exception as e:
             self.logger.error(f"生成故事内容失败: {e}")
-            return self._get_default_story_template(character_config.get('name', '角色'))
+            if len(character_configs) == 1:
+                char_name = list(character_configs.values())[0].get('name', '角色')
+            else:
+                char_names = [config.get('name', char_id) for char_id, config in character_configs.items()]
+                char_name = "、".join(char_names)
+            return self._get_default_story_template(char_name)
     
     def _get_default_story_template(self, character_name: str) -> Dict[str, Any]:
         """获取默认故事模板"""

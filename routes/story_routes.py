@@ -175,12 +175,12 @@ def create_story():
         import rtoml
         from PIL import Image
         from utils.env_utils import get_env_var
-        from config import get_story_prompts
+        from config import get_story_prompts, get_multi_character_story_prompts
         from utils.api_utils import make_api_request
 
         story_id = request.form.get('storyId')
         story_title = request.form.get('storyTitle')
-        character_id = request.form.get('selectedCharacterId')
+        character_ids_raw = request.form.get('selectedCharacterId')
         story_direction = request.form.get('storyDirection')
         reference_info_count_raw = request.form.get('referenceInfoCount', '0')
         try:
@@ -189,18 +189,39 @@ def create_story():
             reference_info_count = 0
         background_images = request.files.getlist('backgroundImages')
 
-        if not all([story_id, story_title, character_id, story_direction]):
+        if not all([story_id, story_title, character_ids_raw, story_direction]):
             return jsonify({'success': False, 'error': '缺少必填字段'}), 400
         if not re.fullmatch(r'^[a-zA-Z0-9_]+$', story_id):
             return jsonify({'success': False, 'error': '故事ID格式不正确'}), 400
+
+        # 解析角色ID（支持单个或多个）
+        try:
+            if character_ids_raw.startswith('[') and character_ids_raw.endswith(']'):
+                # 多角色JSON格式
+                character_ids = json.loads(character_ids_raw)
+                if not isinstance(character_ids, list) or len(character_ids) == 0:
+                    return jsonify({'success': False, 'error': '角色列表格式错误'}), 400
+            else:
+                # 单角色字符串格式
+                character_ids = [character_ids_raw]
+        except json.JSONDecodeError:
+            return jsonify({'success': False, 'error': '角色数据格式错误'}), 400
 
         story_dir = project_root / 'data' / 'saves' / story_id
         if story_dir.exists():
             return jsonify({'success': False, 'error': f'故事ID "{story_id}" 已存在'}), 400
 
-        character_config = config_service.get_character_config(character_id)
-        if not character_config:
-            return jsonify({'success': False, 'error': f'角色 "{character_id}" 不存在'}), 400
+        # 验证所有角色是否存在
+        character_configs = {}
+        for char_id in character_ids:
+            char_config = config_service.get_character_config(char_id)
+            if not char_config:
+                return jsonify({'success': False, 'error': f'角色 "{char_id}" 不存在'}), 400
+            character_configs[char_id] = char_config
+
+        # 多角色时强制参考信息数量为0
+        if len(character_ids) > 1:
+            reference_info_count = 0
 
         story_dir.mkdir(parents=True, exist_ok=True)
         backgrounds_dir = story_dir / 'backgrounds'
@@ -230,41 +251,76 @@ def create_story():
 
         (story_dir / 'history.log').touch()
 
-        memory_source = project_root / 'data' / 'memory' / character_id / f'{character_id}_memory.json'
-        memory_target = story_dir / f'{story_id}_memory.json'
-        if memory_source.exists():
-            shutil.copy2(str(memory_source), str(memory_target))
+        # 处理记忆和场景数据
+        if len(character_ids) == 1:
+            # 单角色：复制记忆和场景数据
+            character_id = character_ids[0]
+            memory_source = project_root / 'data' / 'memory' / character_id / f'{character_id}_memory.json'
+            memory_target = story_dir / f'{story_id}_memory.json'
+            if memory_source.exists():
+                shutil.copy2(str(memory_source), str(memory_target))
+            else:
+                memory_target.write_text('[]', encoding='utf-8')
+
+            # 复制场景数据
+            from services.scene_service import scene_service
+            scene_service.copy_scenes_for_story(character_id, story_id)
         else:
+            # 多角色：创建空的记忆和场景文件
+            memory_target = story_dir / f'{story_id}_memory.json'
             memory_target.write_text('[]', encoding='utf-8')
+            
+            # 为多角色创建空的场景文件
+            from services.scene_service import scene_service
+            scene_service.create_empty_scenes_for_story(story_id)
 
-        # 复制场景数据
-        from services.scene_service import scene_service
-        scene_service.copy_scenes_for_story(character_id, story_id)
-
-        character_prompt = character_config.get('prompt', '')
+        # 构建角色提示词和详细信息
+        character_prompts = []
         character_details_text = ""
-        if reference_info_count > 0:
-            details_file = project_root / 'data' / 'details' / f"{character_id}.json"
-            if details_file.exists():
-                with open(details_file, 'r', encoding='utf-8') as f:
-                    details_data = json.load(f)
-                id_to_doc = details_data.get('rag', {}).get('retriever', {}).get('id_to_doc', {})
-                docs = [str(v) for v in id_to_doc.values() if isinstance(v, str) and v.strip()]
-                if docs:
-                    k = min(reference_info_count, len(docs))
-                    import random
-                    sampled = random.sample(docs, k)
-                    character_details_text = "\n\n".join(sampled)
+        
+        for char_id in character_ids:
+            char_config = character_configs[char_id]
+            char_name = char_config.get('name', char_id)
+            char_prompt = char_config.get('prompt', '')
+            character_prompts.append(f"{char_name}: {char_prompt}")
+            
+            # 单角色时才获取详细信息
+            if len(character_ids) == 1 and reference_info_count > 0:
+                details_file = project_root / 'data' / 'details' / f"{char_id}.json"
+                if details_file.exists():
+                    with open(details_file, 'r', encoding='utf-8') as f:
+                        details_data = json.load(f)
+                    id_to_doc = details_data.get('rag', {}).get('retriever', {}).get('id_to_doc', {})
+                    docs = [str(v) for v in id_to_doc.values() if isinstance(v, str) and v.strip()]
+                    if docs:
+                        k = min(reference_info_count, len(docs))
+                        import random
+                        sampled = random.sample(docs, k)
+                        character_details_text = "\n\n".join(sampled)
 
         api_base_url = get_env_var("CHAT_API_BASE_URL")
         api_key = get_env_var("CHAT_API_KEY")
         model = get_env_var("CHAT_MODEL")
-        story_prompt = get_story_prompts(
-            character_config.get('name', character_id),
-            character_prompt,
-            character_details_text,
-            story_direction
-        )
+        
+        # 根据角色数量选择不同的提示词格式
+        if len(character_ids) == 1:
+            # 单角色
+            character_config = character_configs[character_ids[0]]
+            story_prompt = get_story_prompts(
+                character_config.get('name', character_ids[0]),
+                character_config.get('prompt', ''),
+                character_details_text,
+                story_direction
+            )
+        else:
+            # 多角色
+            character_names = [character_configs[char_id].get('name', char_id) for char_id in character_ids]
+            combined_character_prompt = "\n".join(character_prompts)
+            story_prompt = get_multi_character_story_prompts(
+                character_names,
+                combined_character_prompt,
+                story_direction
+            )
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         request_data = {
             "model": model,
@@ -316,7 +372,7 @@ def create_story():
             'progress': {'current': 0, 'offset': 0},
             'summary': {'text': summary},
             'structure': {'outline': outline},
-            'characters': {'list': [character_id]}
+            'characters': {'list': character_ids}
         }
         with open(story_dir / 'story.toml', 'w', encoding='utf-8') as f:
             rtoml.dump(story_toml_data, f)

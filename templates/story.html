@@ -358,6 +358,13 @@
             document.getElementById('backgroundPreview').innerHTML = '';
             document.getElementById('selectedCharacter').textContent = '请选择角色';
             document.getElementById('selectedCharacterId').value = '';
+            
+            // 清空角色选择状态
+            selectedCharacters = [];
+            document.querySelectorAll('.character-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            updateReferenceInfoState();
         }
 
         // 加载角色列表
@@ -395,17 +402,68 @@
             });
         }
 
-        // 选择角色
+        // 选择角色（支持多选）
+        let selectedCharacters = [];
+        
         function selectCharacter(id, name, color) {
-            document.getElementById('selectedCharacter').textContent = name;
-            document.getElementById('selectedCharacter').style.color = color;
-            document.getElementById('selectedCharacterId').value = id;
+            const characterItem = event.target.closest('.character-item');
+            const isSelected = characterItem.classList.contains('selected');
             
-            // 高亮选中的角色
-            document.querySelectorAll('.character-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            event.target.closest('.character-item').classList.add('selected');
+            if (isSelected) {
+                // 取消选择
+                characterItem.classList.remove('selected');
+                selectedCharacters = selectedCharacters.filter(char => char.id !== id);
+            } else {
+                // 添加选择
+                characterItem.classList.add('selected');
+                selectedCharacters.push({ id, name, color });
+            }
+            
+            updateSelectedCharactersDisplay();
+            updateReferenceInfoState();
+        }
+        
+        function updateSelectedCharactersDisplay() {
+            const selectedCharacterDiv = document.getElementById('selectedCharacter');
+            const selectedCharacterIdInput = document.getElementById('selectedCharacterId');
+            
+            if (selectedCharacters.length === 0) {
+                selectedCharacterDiv.textContent = '请选择角色';
+                selectedCharacterDiv.style.color = 'white';
+                selectedCharacterIdInput.value = '';
+            } else if (selectedCharacters.length === 1) {
+                const char = selectedCharacters[0];
+                selectedCharacterDiv.textContent = char.name;
+                selectedCharacterDiv.style.color = char.color;
+                selectedCharacterIdInput.value = char.id;
+            } else {
+                selectedCharacterDiv.innerHTML = selectedCharacters.map(char => 
+                    `<span style="color: ${char.color}; margin-right: 8px;">${char.name}</span>`
+                ).join('');
+                selectedCharacterIdInput.value = JSON.stringify(selectedCharacters.map(char => char.id));
+            }
+        }
+        
+        function updateReferenceInfoState() {
+            const numInput = document.getElementById('referenceInfoCount');
+            const rangeInput = document.getElementById('referenceInfoCountRange');
+            const isMultiCharacter = selectedCharacters.length > 1;
+            
+            if (isMultiCharacter) {
+                // 多角色时禁用参考信息数量并置0
+                numInput.value = 0;
+                rangeInput.value = 0;
+                numInput.disabled = true;
+                rangeInput.disabled = true;
+                numInput.style.opacity = '0.5';
+                rangeInput.style.opacity = '0.5';
+            } else {
+                // 单角色时启用参考信息数量
+                numInput.disabled = false;
+                rangeInput.disabled = false;
+                numInput.style.opacity = '1';
+                rangeInput.style.opacity = '1';
+            }
         }
 
         // 处理背景图片上传
@@ -465,7 +523,7 @@
             const storyDirection = formData.get('storyDirection');
             
             // 验证必填字段
-            if (!storyId || !storyTitle || !characterId || !storyDirection) {
+            if (!storyId || !storyTitle || !characterId || !storyDirection || selectedCharacters.length === 0) {
                 alert('请填写所有必填字段');
                 return;
             }
@@ -552,7 +610,7 @@
 
                     <div class="form-group required">
                         <label>选择角色 <span class="required-mark">*</span></label>
-                        <div class="form-description">选择故事的主要角色（目前只支持单个角色）</div>
+                        <div class="form-description">选择故事的角色，支持多选</div>
                         <div id="selectedCharacter" class="selected-character">请选择角色</div>
                         <input type="hidden" id="selectedCharacterId" name="selectedCharacterId" required>
                         <div id="characterList" class="character-list"></div>
@@ -567,7 +625,7 @@
 
                     <div class="form-group">
                         <label for="referenceInfoCount">参考信息数量</label>
-                        <div class="form-description">从角色详细信息获取的信息块的数量（如果你有这么多的话）。可在输入框中填写，或通过滑杆调节。滑杆范围：0-20；输入框最大值：100。</div>
+                        <div class="form-description">从角色详细信息获取的信息块的数量（如果你有这么多的话）。可在输入框中填写，或通过滑杆调节。滑杆范围：0-20；输入框最大值：100。<strong>多角色模式下无法使用。</strong></div>
                         <input type="number" id="referenceInfoCount" name="referenceInfoCount" class="form-input" min="0" max="100" step="1" value="0">
                         <input type="range" id="referenceInfoCountRange" min="0" max="20" step="1" value="0" style="width: 100%; margin-top: 8px;">
                     </div>

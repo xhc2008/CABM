@@ -209,6 +209,24 @@ class SceneService:
             default_scenes = self._create_default_scenes()
             self.save_scenes(default_scenes, story_id=story_id)
     
+    def create_empty_scenes_for_story(self, story_id: str):
+        """
+        为多角色故事创建空的场景数据
+        
+        Args:
+            story_id: 故事ID
+        """
+        try:
+            # 创建默认场景数据
+            default_scenes = self._create_default_scenes()
+            
+            # 保存到故事目录
+            self.save_scenes(default_scenes, story_id=story_id)
+            
+            print(f"已为多角色故事 {story_id} 创建空的场景数据")
+        except Exception as e:
+            print(f"创建空场景数据失败: {e}")
+    
     def select_random_background(self, character_id: str = None, story_id: str = None) -> Optional[str]:
         """
         随机选择一个背景

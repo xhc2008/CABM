@@ -246,8 +246,28 @@ class ChatService:
                     elif offset >= 30:
                         guidance += f"。请制造突发事件以引导用户向`{next_chapter}`方向推进故事"
                 
+                # 获取故事角色信息
+                story_data = story_service.get_current_story_data()
+                characters = story_data.get('characters', {}).get('list', [])
+                
+                # 兼容旧格式
+                if isinstance(characters, str):
+                    characters = [characters]
+                
                 # 构建剧情模式提示词
-                story_prompt = f"你是一个视听小说中的角色，你需要为用户制造沉浸式的剧情体验。{guidance}{base_prompt}"
+                if len(characters) > 1:
+                    # 多角色故事
+                    character_names = []
+                    for char_id in characters:
+                        char_config = self.config_service.get_character_config(char_id)
+                        if char_config:
+                            character_names.append(char_config.get('name', char_id))
+                    
+                    story_prompt = f"你是一个视听小说中的多角色故事的主要角色，故事中还有其他角色：{', '.join(character_names[1:])}。你需要为用户制造沉浸式的剧情体验，适时让其他角色参与对话和互动。{guidance}{base_prompt}"
+                else:
+                    # 单角色故事
+                    story_prompt = f"你是一个视听小说中的角色，你需要为用户制造沉浸式的剧情体验。{guidance}{base_prompt}"
+                
                 base_prompt = story_prompt
                 
                 self.logger.info(f"剧情模式提示词已构建，偏移值: {offset}, 当前章节: {current_chapter}")
@@ -414,7 +434,11 @@ class ChatService:
             if not characters:
                 return False
             
-            # 设置第一个角色为当前角色
+            # 兼容旧格式：如果是字符串，转换为列表
+            if isinstance(characters, str):
+                characters = [characters]
+            
+            # 设置第一个角色为当前角色（多角色故事仍以第一个角色为主）
             character_id = characters[0]
             if not self.config_service.set_character(character_id):
                 return False
