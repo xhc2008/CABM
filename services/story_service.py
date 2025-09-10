@@ -323,7 +323,6 @@ class StoryService:
         
         # 获取故事角色信息
         characters = self.get_story_characters()
-        characters="1.灵音 2.玩家"
         # 构建提示词
         user_prompt = get_director_prompts(chat_history, current_chapter, next_chapter, characters)
         
