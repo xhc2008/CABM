@@ -323,7 +323,7 @@ class StoryService:
         
         # 获取故事角色信息
         characters = self.get_story_characters()
-        
+        characters="1.灵音 2.玩家"
         # 构建提示词
         user_prompt = get_director_prompts(chat_history, current_chapter, next_chapter, characters)
         
@@ -371,8 +371,18 @@ class StoryService:
                     content = message["content"].strip()
                     
                     try:
+                        # 处理可能的```json```包裹
+                        json_content = content.strip()
+                        if json_content.startswith('```json'):
+                            json_content = json_content[7:]
+                        elif json_content.startswith('```'):
+                            json_content = json_content[3:]
+                        if json_content.endswith('```'):
+                            json_content = json_content[:-3]
+                        json_content = json_content.strip()
+                        
                         # 解析JSON
-                        result_json = json.loads(content)
+                        result_json = json.loads(json_content)
                         offset = result_json.get("offset", 1)
                         next_speaker = result_json.get("next", 0)
                         
@@ -382,8 +392,8 @@ class StoryService:
                             return offset, next_speaker
                         else:
                             self.logger.warning(f"导演模型返回超出范围的结果: offset={offset}, next={next_speaker}")
-                    except json.JSONDecodeError:
-                        self.logger.warning(f"导演模型返回非JSON格式: {content}")
+                    except json.JSONDecodeError as e:
+                        self.logger.warning(f"导演模型返回非JSON格式: {content}, 错误: {e}")
                     
                     # 解析失败，随机选择
                     import random

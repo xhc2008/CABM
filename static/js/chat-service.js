@@ -256,6 +256,56 @@ export async function sendMessage() {
                                     window.pendingOptions = data.options;
                                 }
                             }
+                            
+                            // 处理故事进度更新
+                            if (data.storyProgress) {
+                                console.log('故事进度更新:', data.storyProgress);
+                                // 可以在这里添加进度显示逻辑
+                            }
+                            
+                            // 处理故事结束
+                            if (data.storyFinished) {
+                                console.log('故事已结束');
+                                // 可以在这里添加故事结束的处理逻辑
+                            }
+                            
+                            // 处理下一个说话者
+                            if (data.nextSpeaker) {
+                                if (data.nextSpeaker === 'player') {
+                                    console.log('下次轮到玩家说话');
+                                } else {
+                                    console.log(`下次轮到角色说话: ${data.nextSpeakerName || data.nextSpeaker}`);
+                                    // 可以在这里添加角色切换的视觉效果
+                                    if (window.switchToCharacter) {
+                                        window.switchToCharacter(data.nextSpeaker, data.nextSpeakerName);
+                                    }
+                                }
+                            }
+                            
+                            // 处理角色回复开始
+                            if (data.characterResponse) {
+                                console.log(`${data.characterName} 开始回复...`);
+                                // 显示角色回复状态
+                                if (window.showCharacterResponse) {
+                                    window.showCharacterResponse(data.characterName);
+                                }
+                            }
+                            
+                            // 处理角色回复内容
+                            if (data.characterContent) {
+                                // 显示角色回复内容
+                                if (window.updateCharacterResponse) {
+                                    window.updateCharacterResponse(data.characterContent);
+                                }
+                            }
+                            
+                            // 处理角色回复完成
+                            if (data.characterResponseComplete) {
+                                console.log('角色回复完成');
+                                if (window.completeCharacterResponse) {
+                                    window.completeCharacterResponse();
+                                }
+                            }
                         } catch (e) {
                             console.error('解析JSON失败:', e, jsonStr);
                         }

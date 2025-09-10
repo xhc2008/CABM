@@ -27,7 +27,7 @@ STREAM_CONFIG = {
 # 选项生成配置
 OPTION_CONFIG = {
     "enable_option_generation": True,  # 启用选项生成
-    "model": get_env_var("OPTION_MODEL", "deepseek-ai/DeepSeek-V3"),  # 选项生成模型
+    "model": get_env_var("OPTION_MODEL"),  # 选项生成模型
     "max_tokens": 100,            # 最大生成token数
     "temperature": 0.7,           # 温度参数
     "stream": False,              # 选项生成不使用流式

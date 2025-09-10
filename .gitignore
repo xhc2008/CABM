@@ -107,7 +107,7 @@ deployment-package/
 release/
 一键包点我.bat
 CABM.zip
-
+examples/
 # 模型文件
 *.safetensors
 model.safetensors
