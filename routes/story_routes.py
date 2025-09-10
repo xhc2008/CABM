@@ -602,6 +602,19 @@ def story_chat_stream():
             return jsonify({'success': False, 'error': '故事ID不能为空'}), 400
         if not story_service.load_story(story_id):
             return jsonify({'success': False, 'error': f'故事 {story_id} 不存在'}), 404
+        
+        # 检查是否为多角色故事，如果是则重定向到多角色服务
+        story_data = story_service.get_current_story_data()
+        characters = story_data.get('characters', {}).get('list', [])
+        if isinstance(characters, str):
+            characters = [characters]
+        
+        if len(characters) > 1:
+            # 多角色故事，重定向到多角色路由
+            from routes.multi_character_routes import multi_character_chat_stream
+            return multi_character_chat_stream()
+        
+        # 单角色故事，继续使用原有逻辑
         chat_service.set_story_mode(story_id)
         chat_service.add_message("user", message)
 

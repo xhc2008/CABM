@@ -152,30 +152,15 @@ class ChatService:
         # 如果不是系统消息，保存到持久化历史记录
         if role != "system":
             if self.story_mode and self.current_story_id:
-                # 剧情模式：保存到故事目录
+                # 剧情模式：保存到故事目录（单角色模式简化版）
                 from services.story_service import story_service
                 history_path = story_service.get_story_history_path()
                 
-                # 检查是否为多角色故事
-                story_data = story_service.get_current_story_data()
-                characters = story_data.get('characters', {}).get('list', []) if story_data else []
-                if isinstance(characters, str):
-                    characters = [characters]
-                is_multi_character = len(characters) > 1
-                
-                # 确定说话角色ID（仅在assistant消息且多角色模式下需要）
-                final_speaker_character_id = None
-                if role == "assistant" and is_multi_character:
-                    # 优先使用传入的speaker_character_id，否则使用当前设置的角色ID
-                    final_speaker_character_id = speaker_character_id or self.config_service.current_character_id
-                elif role in characters and is_multi_character:
-                    # 如果role本身就是角色ID，直接使用
-                    final_speaker_character_id = role
-                
+                # 单角色模式下不需要复杂的多角色逻辑
                 self.history_manager.save_message_to_file(
                     history_path, role, content, 
-                    is_multi_character=is_multi_character,
-                    speaker_character_id=final_speaker_character_id
+                    is_multi_character=False,
+                    speaker_character_id=None
                 )
             else:
                 # 普通模式：保存到角色目录
@@ -223,7 +208,7 @@ class ChatService:
     
     def format_messages_for_character(self, target_character_id: str) -> List[Dict[str, str]]:
         """
-        为特定角色格式化消息，确保每个角色只看到自己说的话作为assistant消息
+        为特定角色格式化消息（单角色模式简化版）
         
         Args:
             target_character_id: 目标角色ID
@@ -231,89 +216,9 @@ class ChatService:
         Returns:
             格式化后的消息列表
         """
-        if not self.story_mode or not self.current_story_id:
-            # 非剧情模式，使用普通格式
-            return self.format_messages()
-        
-        try:
-            from services.story_service import story_service
-            
-            # 获取故事角色信息
-            story_data = story_service.get_current_story_data()
-            characters = story_data.get('characters', {}).get('list', [])
-            if isinstance(characters, str):
-                characters = [characters]
-            
-            # 如果不是多角色故事，使用普通格式
-            if len(characters) <= 1:
-                return self.format_messages()
-            
-            # 构建角色专用的消息格式
-            formatted_messages = []
-            current_user_content = ""
-            
-            for msg in self.history:
-                if msg.role == "system":
-                    # 系统消息保持不变
-                    formatted_messages.append(msg.to_dict())
-                elif msg.role == "user":
-                    # 用户消息：累积到当前用户内容中
-                    if current_user_content:
-                        current_user_content += f"\n玩家：{msg.content}"
-                    else:
-                        current_user_content = f"玩家：{msg.content}"
-                elif msg.role == target_character_id:
-                    # 目标角色的消息：作为assistant消息（包含完整JSON）
-                    if current_user_content:
-                        formatted_messages.append({"role": "user", "content": current_user_content})
-                        current_user_content = ""
-                    formatted_messages.append({"role": "assistant", "content": msg.content})
-                elif msg.role in characters:
-                    # 其他角色的消息：提取content并添加到用户内容中
-                    try:
-                        # 解析JSON获取content
-                        msg_data = json.loads(msg.content)
-                        content = msg_data.get('content', msg.content)
-                        
-                        # 获取角色名
-                        char_config = self.config_service.get_character_config(msg.role)
-                        char_name = char_config.get('name', msg.role) if char_config else msg.role
-                        
-                        if current_user_content:
-                            current_user_content += f"\n{char_name}：{content}"
-                        else:
-                            current_user_content = f"{char_name}：{content}"
-                    except (json.JSONDecodeError, KeyError):
-                        # 解析失败，使用原始内容
-                        char_config = self.config_service.get_character_config(msg.role)
-                        char_name = char_config.get('name', msg.role) if char_config else msg.role
-                        
-                        if current_user_content:
-                            current_user_content += f"\n{char_name}：{msg.content}"
-                        else:
-                            current_user_content = f"{char_name}：{msg.content}"
-                else:
-                    # 旧格式的assistant消息：作为assistant消息
-                    if current_user_content:
-                        formatted_messages.append({"role": "user", "content": current_user_content})
-                        current_user_content = ""
-                    formatted_messages.append({"role": "assistant", "content": msg.content})
-            
-            # 如果还有未处理的用户内容，添加到最后
-            if current_user_content:
-                formatted_messages.append({"role": "user", "content": current_user_content})
-            
-            # 确保消息列表不以assistant结尾（避免prefix与json_object冲突）
-            if formatted_messages and formatted_messages[-1].get("role") == "assistant":
-                # 如果最后一个消息是assistant，添加一个空的user消息
-                formatted_messages.append({"role": "user", "content": "请继续对话。"})
-            
-            return formatted_messages
-            
-        except Exception as e:
-            self.logger.error(f"格式化角色消息失败: {e}")
-            # 出错时回退到普通格式
-            return self.format_messages()
+        # 单角色模式下直接使用普通格式
+        # 多角色逻辑已移至 multi_character_service.py
+        return self.format_messages()
     
     def set_system_prompt(self, prompt_type: str = "default") -> None:
         """
@@ -670,16 +575,8 @@ class ChatService:
         
         # 准备请求数据
         if messages is None:
-            # 使用内存中的历史记录（已经包含了从持久化存储加载的记录）
-            if self.story_mode and self.current_story_id:
-                # 剧情模式：使用当前角色的专用消息格式
-                current_character_id = self.config_service.current_character_id
-                if current_character_id:
-                    messages = self.format_messages_for_character(current_character_id)
-                else:
-                    messages = self.format_messages()
-            else:
-                messages = self.format_messages()
+            # 使用内存中的历史记录（单角色模式简化版）
+            messages = self.format_messages()
         
         # 如果有用户查询，构建包含上下文的系统提示词
         if user_query:
