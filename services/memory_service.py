@@ -355,6 +355,36 @@ class MemoryService:
             self.logger.error(f"保存故事记忆数据库失败: {e}")
             traceback.print_exc()
     
+    def add_story_message(self, speaker_name: str, message: str, story_id: str = None):
+        """
+        添加单条消息到故事记忆数据库（用于多角色对话）
+        
+        参数:
+            speaker_name: 说话者名称
+            message: 消息内容
+            story_id: 故事ID，如果为None则使用当前故事
+        """
+        if story_id is None:
+            story_id = self.current_story
+        
+        if not story_id:
+            self.logger.warning("没有指定故事，无法添加消息记录")
+            return
+        
+        # 确保故事记忆数据库已初始化
+        if not self.initialize_story_memory(story_id):
+            return
+        
+        memory_db = self.story_databases[story_id]
+        memory_db.add_single_message(speaker_name, message)
+        
+        # 保存到文件
+        try:
+            memory_db.save_to_file()
+        except Exception as e:
+            self.logger.error(f"保存故事记忆数据库失败: {e}")
+            traceback.print_exc()
+    
     def set_current_character(self, character_name: str) -> bool:
         """
         设置当前角色

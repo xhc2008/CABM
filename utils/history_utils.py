@@ -102,26 +102,32 @@ class HistoryManager:
         cleaned_content = re.sub(r'【[^】]*】', '', content)
         return cleaned_content
     
-    def save_message(self, character_id: str, role: str, content: str) -> None:
+    def save_message(self, character_id: str, role: str, content: str, is_multi_character: bool = False, speaker_character_id: str = None) -> None:
         """
         保存消息到历史记录
         
         Args:
-            character_id: 角色ID
+            character_id: 角色ID（用于确定文件路径）
             role: 消息角色
             content: 消息内容
+            is_multi_character: 是否为多角色模式
+            speaker_character_id: 说话角色的ID（多角色模式下使用）
         """
-        # 注意：在新的JSON格式下，我们直接存储原始响应内容，不再清理【】标记
-        # 因为JSON格式的响应已经将mood和content分离，历史记录中存储的是完整的原始响应
-        # clean_assistant_history配置已弃用
-        
         # 获取当前时间戳
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 根据模式决定role字段
+        if is_multi_character and role == "assistant" and speaker_character_id:
+            # 多角色模式：assistant变成角色ID
+            actual_role = speaker_character_id
+        else:
+            # 单角色模式或user消息：保持原样
+            actual_role = role
         
         # 创建消息记录
         message_record = {
             "timestamp": timestamp,
-            "role": role,
+            "role": actual_role,
             "content": content
         }
         
@@ -136,7 +142,7 @@ class HistoryManager:
         if character_id in self.history_cache:
             self.history_cache[character_id].append(message_record)
     
-    def save_message_to_file(self, file_path: str, role: str, content: str) -> None:
+    def save_message_to_file(self, file_path: str, role: str, content: str, is_multi_character: bool = False, speaker_character_id: str = None) -> None:
         """
         保存消息到指定文件
         
@@ -144,6 +150,8 @@ class HistoryManager:
             file_path: 历史记录文件路径
             role: 消息角色
             content: 消息内容
+            is_multi_character: 是否为多角色模式
+            speaker_character_id: 说话角色的ID（多角色模式下使用）
         """
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -151,10 +159,18 @@ class HistoryManager:
         # 获取当前时间戳
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        # 根据模式决定role字段
+        if is_multi_character and role == "assistant" and speaker_character_id:
+            # 多角色模式：assistant变成角色ID
+            actual_role = speaker_character_id
+        else:
+            # 单角色模式或user消息：保持原样
+            actual_role = role
+        
         # 创建消息记录
         message_record = {
             "timestamp": timestamp,
-            "role": role,
+            "role": actual_role,
             "content": content
         }
         

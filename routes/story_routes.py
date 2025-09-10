@@ -487,11 +487,40 @@ def story_chat_stream():
                     chat_service.add_message("assistant", full_response)
                     # 添加到记忆数据库（存储原始响应内容）
                     try:
-                        chat_service.memory_service.add_story_conversation(
-                            user_message=message,
-                            assistant_message=full_response,
-                            story_id=story_id
-                        )
+                        # 检查是否为多角色故事
+                        story_data = story_service.get_current_story_data()
+                        characters = story_data.get('characters', {}).get('list', []) if story_data else []
+                        if isinstance(characters, str):
+                            characters = [characters]
+                        is_multi_character = len(characters) > 1
+                        
+                        if is_multi_character:
+                            # 多角色模式：分别添加用户和角色消息
+                            chat_service.memory_service.add_story_message(
+                                speaker_name="玩家",
+                                message=message,
+                                story_id=story_id
+                            )
+                            
+                            # 获取当前角色名
+                            if characters:
+                                char_config = config_service.get_character_config(characters[0])
+                                character_name = char_config.get('name', characters[0]) if char_config else characters[0]
+                            else:
+                                character_name = "角色"
+                            
+                            chat_service.memory_service.add_story_message(
+                                speaker_name=character_name,
+                                message=full_response,
+                                story_id=story_id
+                            )
+                        else:
+                            # 单角色模式：使用原有方法
+                            chat_service.memory_service.add_story_conversation(
+                                user_message=message,
+                                assistant_message=full_response,
+                                story_id=story_id
+                            )
                     except Exception as e:
                         print(f"添加对话到记忆数据库失败: {e}")
                         traceback.print_exc()
@@ -522,11 +551,11 @@ def story_chat_stream():
                                 chat_history_text += f"{character_name}：{content}\n"
                         
                         # 调用导演模型
-                        director_result = story_service.call_director_model(chat_history_text)
+                        director_offset, next_speaker = story_service.call_director_model(chat_history_text)
                         
                         # 处理导演结果
                         story_finished = False
-                        if director_result == 0:
+                        if director_offset == 0:
                             # 推进到下一章节
                             story_service.update_progress(advance_chapter=True)
                             
@@ -536,7 +565,21 @@ def story_chat_stream():
                                 story_finished = True
                         else:
                             # 增加偏移值
-                            story_service.update_progress(offset_increment=director_result)
+                            story_service.update_progress(offset_increment=director_offset)
+                        
+                        # 处理下次说话角色
+                        characters = story_service.get_story_characters()
+                        if 0 <= next_speaker < len(characters):
+                            next_character = characters[next_speaker]
+                            if next_character['is_player']:
+                                # 下次是玩家说话，正常等待用户输入
+                                print(f"下次说话：{next_character['name']}")
+                            else:
+                                # 下次是角色说话，需要触发角色自动回复
+                                print(f"下次说话：{next_character['name']} (角色自动回复)")
+                                # TODO: 这里可以实现角色自动回复逻辑
+                        else:
+                            print(f"无效的角色序号: {next_speaker}")
                         
                         # 获取更新后的故事进度
                         current_idx, current_chapter, next_chapter = story_service.get_current_chapter_info()

@@ -154,7 +154,25 @@ class ChatService:
                 # 剧情模式：保存到故事目录
                 from services.story_service import story_service
                 history_path = story_service.get_story_history_path()
-                self.history_manager.save_message_to_file(history_path, role, content)
+                
+                # 检查是否为多角色故事
+                story_data = story_service.get_current_story_data()
+                characters = story_data.get('characters', {}).get('list', []) if story_data else []
+                if isinstance(characters, str):
+                    characters = [characters]
+                is_multi_character = len(characters) > 1
+                
+                # 确定说话角色ID（仅在assistant消息且多角色模式下需要）
+                speaker_character_id = None
+                if role == "assistant" and is_multi_character:
+                    # 这里暂时使用第一个角色，实际应该由导演模型决定
+                    speaker_character_id = characters[0] if characters else None
+                
+                self.history_manager.save_message_to_file(
+                    history_path, role, content, 
+                    is_multi_character=is_multi_character,
+                    speaker_character_id=speaker_character_id
+                )
             else:
                 # 普通模式：保存到角色目录
                 character_id = self.config_service.current_character_id or "default"

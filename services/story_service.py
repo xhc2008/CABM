@@ -262,15 +262,51 @@ class StoryService:
         
         return current >= len(outline) - 1
     
-    def call_director_model(self, chat_history: str) -> int:
+    def get_story_characters(self) -> List[Dict[str, Any]]:
         """
-        调用导演模型判断剧情进度
+        获取故事中的角色信息
+        
+        Returns:
+            角色信息列表，包含玩家和所有角色
+        """
+        if not self.story_data:
+            return []
+        
+        characters = []
+        
+        # 添加玩家（序号0）
+        characters.append({
+            'id': 'player',
+            'name': '玩家',
+            'is_player': True
+        })
+        
+        # 添加故事角色
+        character_list = self.story_data.get('characters', {}).get('list', [])
+        # 兼容旧格式：如果是字符串，转换为列表
+        if isinstance(character_list, str):
+            character_list = [character_list]
+        
+        for char_id in character_list:
+            char_config = self.config_service.get_character_config(char_id)
+            if char_config:
+                characters.append({
+                    'id': char_id,
+                    'name': char_config.get('name', char_id),
+                    'is_player': False
+                })
+        
+        return characters
+    
+    def call_director_model(self, chat_history: str) -> Tuple[int, int]:
+        """
+        调用导演模型判断剧情进度和下次说话角色
         
         Args:
             chat_history: 聊天历史记录
             
         Returns:
-            导演模型的判断结果 (0-9的整数)
+            (偏移值, 下次说话角色序号) 的元组
         """
         if not self.story_data:
             raise ValueError("未加载任何故事")
@@ -279,11 +315,17 @@ class StoryService:
         _, current_chapter, next_chapter = self.get_current_chapter_info()
         
         if next_chapter is None:
-            # 已经是最后一章，返回0表示故事结束
-            return 0
+            # 已经是最后一章，返回0表示故事结束，随机选择角色
+            import random
+            characters = self.get_story_characters()
+            next_speaker = random.randint(0, len(characters) - 1)
+            return 0, next_speaker
+        
+        # 获取故事角色信息
+        characters = self.get_story_characters()
         
         # 构建提示词
-        user_prompt = get_director_prompts(chat_history, current_chapter, next_chapter)
+        user_prompt = get_director_prompts(chat_history, current_chapter, next_chapter, characters)
         
         # 获取API配置
         option_config = get_option_config()
@@ -305,11 +347,12 @@ class StoryService:
             "model": os.getenv("OPTION_MODEL"),
             "messages": messages,
             "extra_body":{
-                "max_tokens": 10,  # 只需要一个数字
+                "max_tokens": 50,  # 增加token数以支持JSON输出
                 "temperature": 0.1,  # 低温度确保稳定输出
                 "enable_reasoning": False  
             },
-            "stream": False
+            "stream": False,
+            "response_format": {"type": "json_object"}
         }
         
         try:
@@ -327,23 +370,37 @@ class StoryService:
                 if message and "content" in message:
                     content = message["content"].strip()
                     
-                    # 提取数字
-                    numbers = re.findall(r'\d+', content)
-                    if numbers:
-                        result = int(numbers[0])
-                        if 0 <= result <= 9:
-                            self.logger.info(f"导演模型判断结果: {result}")
-                            return result
+                    try:
+                        # 解析JSON
+                        result_json = json.loads(content)
+                        offset = result_json.get("offset", 1)
+                        next_speaker = result_json.get("next", 0)
+                        
+                        # 验证范围
+                        if 0 <= offset <= 9 and 0 <= next_speaker < len(characters):
+                            self.logger.info(f"导演模型判断结果: offset={offset}, next={next_speaker}")
+                            return offset, next_speaker
+                        else:
+                            self.logger.warning(f"导演模型返回超出范围的结果: offset={offset}, next={next_speaker}")
+                    except json.JSONDecodeError:
+                        self.logger.warning(f"导演模型返回非JSON格式: {content}")
                     
-                    self.logger.warning(f"导演模型返回无效结果: {content}")
-                    return 1  # 默认返回1
+                    # 解析失败，随机选择
+                    import random
+                    next_speaker = random.randint(0, len(characters) - 1)
+                    self.logger.info(f"解析失败，随机选择角色: {next_speaker}")
+                    return 1, next_speaker
             
             self.logger.error("导演模型返回格式错误")
-            return 1
+            import random
+            characters = self.get_story_characters()
+            return 1, random.randint(0, len(characters) - 1)
             
         except Exception as e:
             self.logger.error(f"调用导演模型失败: {e}")
-            return 1  # 出错时返回默认值
+            import random
+            characters = self.get_story_characters()
+            return 1, random.randint(0, len(characters) - 1)  # 出错时返回默认值
     
     def create_story(self, story_id: str, title: str, character_ids: List[str], 
                     story_direction: str, background_images: List[str] = None) -> bool:

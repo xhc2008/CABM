@@ -208,7 +208,7 @@ class ChatHistoryVectorDB:
     
     def add_chat_turn(self, user_message: str, assistant_message: str, timestamp: str = None):
         """
-        添加一轮对话到向量数据库
+        添加一轮对话到向量数据库（新格式：每条记录一个角色的话）
         
         参数:
             user_message: 用户消息
@@ -218,11 +218,81 @@ class ChatHistoryVectorDB:
         if timestamp is None:
             timestamp = datetime.now().isoformat()
         
-        # 将用户消息和助手回复组合成一个对话单元（用于向量化）
-        conversation_text = f"用户: {user_message}\{self.character_name}: {assistant_message}"
+        # 新格式：分别添加用户和角色的消息
+        user_text = f"玩家：{user_message}"
+        
+        # 处理助手消息：如果是JSON格式，只取content部分
+        try:
+            import json
+            assistant_data = json.loads(assistant_message)
+            assistant_content = assistant_data.get('content', assistant_message)
+        except (json.JSONDecodeError, TypeError):
+            assistant_content = assistant_message
+        
+        # 获取角色名
+        if self.is_story:
+            # 故事模式：使用故事中的主要角色名
+            try:
+                from services.config_service import config_service
+                from services.story_service import story_service
+                story_data = story_service.get_current_story_data()
+                if story_data:
+                    characters = story_data.get('characters', {}).get('list', [])
+                    if isinstance(characters, str):
+                        characters = [characters]
+                    if characters:
+                        char_config = config_service.get_character_config(characters[0])
+                        character_name = char_config.get('name', characters[0]) if char_config else characters[0]
+                    else:
+                        character_name = self.character_name
+                else:
+                    character_name = self.character_name
+            except:
+                character_name = self.character_name
+        else:
+            # 普通模式：使用角色配置中的名称
+            try:
+                from services.config_service import config_service
+                char_config = config_service.get_character_config(self.character_name)
+                character_name = char_config.get('name', self.character_name) if char_config else self.character_name
+            except:
+                character_name = self.character_name
+        
+        assistant_text = f"{character_name}：{assistant_content}"
+        
+        # 分别添加两条记录
+        self.add_text(user_text)
+        self.add_text(assistant_text)
+        
+        self.logger.info(f"添加对话记录到向量数据库: 玩家={user_message[:30]}..., {character_name}={assistant_content[:30]}...")
     
-        self.add_text(conversation_text)
-        self.logger.info(f"添加对话记录到向量数据库: {user_message[:50]}...")
+    def add_single_message(self, speaker_name: str, message: str, timestamp: str = None):
+        """
+        添加单条消息到向量数据库（用于多角色对话）
+        
+        参数:
+            speaker_name: 说话者名称
+            message: 消息内容
+            timestamp: 时间戳，如果为None则使用当前时间
+        """
+        if timestamp is None:
+            timestamp = datetime.now().isoformat()
+        
+        # 处理消息内容：如果是JSON格式，只取content部分
+        try:
+            import json
+            message_data = json.loads(message)
+            content = message_data.get('content', message)
+        except (json.JSONDecodeError, TypeError):
+            content = message
+        
+        # 格式化为记忆文本
+        memory_text = f"{speaker_name}：{content}"
+        
+        # 添加到向量数据库
+        self.add_text(memory_text)
+        
+        self.logger.info(f"添加单条消息到向量数据库: {speaker_name}={content[:30]}...")
     
     def initialize_database(self):
         """
