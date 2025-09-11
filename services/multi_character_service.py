@@ -252,24 +252,21 @@ class MultiCharacterService:
     
     def build_character_system_prompt(self, character_id: str, story_id: str, user_query: str = None) -> str:
         """
-        构建角色专用的系统提示词
-        
+        构建角色专用的系统提示词，包含剧情引导、记忆和角色详细信息上下文
+
         Args:
             character_id: 角色ID
             story_id: 故事ID
-            user_query: 用户查询，用于记忆检索
-            
+            user_query: 用户查询，用于记忆和详细信息检索
+
         Returns:
             完整的系统提示词
         """
         try:
             # 获取基础角色提示词
             char_config = self.config_service.get_character_config(character_id)
-            if not char_config:
-                return "你是一个AI助手。"
-            
-            base_prompt = char_config.get('prompt', '')
-            
+
+            base_prompt = self.config_service.get_system_prompt("character")
             # 获取故事信息
             story_data = self.story_service.get_current_story_data()
             
@@ -315,6 +312,9 @@ class MultiCharacterService:
             else:
                 story_prompt = f"你是一个视听小说中的角色{char_name}，你需要为用户制造沉浸式的剧情体验。{guidance}\n\n{base_prompt}"
             
+            # 初始化上下文部分
+            context_parts = []
+            
             # 添加记忆上下文
             if user_query:
                 try:
@@ -322,18 +322,38 @@ class MultiCharacterService:
                         query=user_query,
                         story_id=story_id
                     )
-                    
                     if memory_context:
-                        story_prompt = f"{story_prompt}\n\n{memory_context}"
-                        
+                        context_parts.append(memory_context)
                 except Exception as e:
                     self.logger.error(f"记忆检索失败: {e}")
             
-            return story_prompt
+            # 添加角色详细信息上下文
+            if user_query:
+                try:
+                    # 假设有 character_details_service 可用
+                    from services.character_details_service import character_details_service
+                    details_context = character_details_service.search_character_details(
+                        character_id=character_id,
+                        query=user_query,
+                        top_k=3
+                    )
+                    if details_context:
+                        context_parts.append(details_context)
+                except Exception as e:
+                    self.logger.error(f"角色详细信息检索失败: {e}")
+            
+            # 如果有上下文信息，添加到系统提示词
+            if context_parts:
+                context_str = "\n\n".join(context_parts)
+                full_prompt = f"{story_prompt}\n\n{context_str}"
+            else:
+                full_prompt = story_prompt
+            
+            return full_prompt
             
         except Exception as e:
             self.logger.error(f"构建角色系统提示词失败: {e}")
-            return "你是一个AI助手。"
+            return "你是一个AI助手."
     
     def chat_completion_for_character(
         self, 
@@ -379,7 +399,7 @@ class MultiCharacterService:
             try:
                 character_id = self.config_service.current_character_id or "default"
                 prompt_logger.log_prompt(
-                    messages=messages,
+                    messages=formatted_messages,
                     character_name=character_id,
                     user_query=user_query
                 )
