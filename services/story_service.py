@@ -298,15 +298,15 @@ class StoryService:
         
         return characters
     
-    def call_director_model(self, chat_history: str) -> Tuple[int, int]:
+    def call_director_model(self, chat_history: str):
         """
-        调用导演模型判断剧情进度和下次说话角色
+        调用导演模型判断剧情进
         
         Args:
             chat_history: 聊天历史记录
             
         Returns:
-            (偏移值, 下次说话角色序号) 的元组
+            偏移值
         """
         if not self.story_data:
             raise ValueError("未加载任何故事")
@@ -315,16 +315,11 @@ class StoryService:
         _, current_chapter, next_chapter = self.get_current_chapter_info()
         
         if next_chapter is None:
-            # 已经是最后一章，返回0表示故事结束，随机选择角色
-            import random
-            characters = self.get_story_characters()
-            next_speaker = random.randint(0, len(characters) - 1)
-            return 0, next_speaker
+            # 已经是最后一章，返回0表示故事结束
+            return 0
         
-        # 获取故事角色信息
-        characters = self.get_story_characters()
         # 构建提示词
-        user_prompt = get_director_prompts(chat_history, current_chapter, next_chapter, characters)
+        user_prompt = get_director_prompts(chat_history, current_chapter, next_chapter)
         
         # 获取API配置
         option_config = get_option_config()
@@ -351,7 +346,6 @@ class StoryService:
                 "enable_reasoning": False  
             },
             "stream": False,
-            "response_format": {"type": "json_object"}
         }
         
         try:
@@ -368,48 +362,22 @@ class StoryService:
                 message = data["choices"][0].get("message", {})
                 if message and "content" in message:
                     content = message["content"].strip()
-                    
                     try:
-                        # 处理可能的```json```包裹
-                        json_content = content.strip()
-                        if json_content.startswith('```json'):
-                            json_content = json_content[7:]
-                        elif json_content.startswith('```'):
-                            json_content = json_content[3:]
-                        if json_content.endswith('```'):
-                            json_content = json_content[:-3]
-                        json_content = json_content.strip()
-                        
-                        # 解析JSON
-                        result_json = json.loads(json_content)
-                        offset = result_json.get("offset", 1)
-                        next_speaker = result_json.get("next", 0)
-                        
-                        # 验证范围
-                        if 0 <= offset <= 9 and 0 <= next_speaker < len(characters):
-                            self.logger.info(f"导演模型判断结果: offset={offset}, next={next_speaker}")
-                            return offset, next_speaker
+                        offset=int(content)
+                            # 验证范围
+                        if 0 <= offset <= 9:
+                            self.logger.info(f"导演模型判断结果: offset={offset}")
+                            return offset
                         else:
-                            self.logger.warning(f"导演模型返回超出范围的结果: offset={offset}, next={next_speaker}")
-                    except json.JSONDecodeError as e:
-                        self.logger.warning(f"导演模型返回非JSON格式: {content}, 错误: {e}")
+                            self.logger.warning(f"导演模型返回超出范围的结果: offset={offset}")
                     
-                    # 解析失败，随机选择
-                    import random
-                    next_speaker = random.randint(0, len(characters) - 1)
-                    self.logger.info(f"解析失败，随机选择角色: {next_speaker}")
-                    return 1, next_speaker
-            
-            self.logger.error("导演模型返回格式错误")
-            import random
-            characters = self.get_story_characters()
-            return 1, random.randint(0, len(characters) - 1)
+                    except:
+                        self.logger.info(f"解析失败")
+                        return 1
             
         except Exception as e:
             self.logger.error(f"调用导演模型失败: {e}")
-            import random
-            characters = self.get_story_characters()
-            return 1, random.randint(0, len(characters) - 1)  # 出错时返回默认值
+            return 1# 出错时返回默认值
     
     def create_story(self, story_id: str, title: str, character_ids: List[str], 
                     story_direction: str, background_images: List[str] = None) -> bool:

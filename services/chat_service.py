@@ -653,42 +653,7 @@ class ChatService:
                                 ifreasoning = False
                         print(x, end="", flush=True)
                         yield x
-                # def stream_generator__():
-                #     response.encoding = "utf-8"
-                    
-                #     for line in response.iter_lines(decode_unicode=True):
-                #         if line:
-                #             parsed_data = parse_stream_data(line)
-                #             if parsed_data:                             
-                #                 yield parsed_data
-                    
-                #     # 注意：记忆添加逻辑已移至app.py中处理，避免重复添加
                 return stream_generator()
-            
-            ### 以下代码应该弃用! 在app.py中, 只接收流式返回!
-            # else:
-            #     # 处理非流式响应
-            #     if "choices" in data and len(data["choices"]) > 0:
-            #         message = data["choices"][0].get("message", {})
-            #         if message and "content" in message:
-            #             assistant_message = message["content"]
-            #             # 将助手回复添加到历史记录
-            #             self.add_message("assistant", assistant_message)
-                        
-            #             # 添加到记忆数据库
-            #             if user_query:
-            #                 try:
-            #                     character_id = self.config_service.current_character_id or "default"
-            #                     self.memory_service.add_conversation(
-            #                         user_message=user_query,
-            #                         assistant_message=assistant_message,
-            #                         character_name=character_id
-            #                     )
-            #                 except Exception as e:
-            #                     print(f"添加对话到记忆数据库失败: {e}")
-                
-            #     return data
-            
         except APIError as e:
             # 处理API错误
             error_info = handle_api_error(e)

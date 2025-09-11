@@ -68,7 +68,7 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                 chat_history_text += f"{character_name}：{content}\n"
         
         # 调用导演模型
-        director_offset, next_speaker = multi_character_service.handle_director_decision(story_id, chat_history_text)
+        director_offset, next_speaker = multi_character_service.call_director_model(chat_history_text)
         
         # 处理导演结果
         if director_offset == 0:

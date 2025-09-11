@@ -10,6 +10,7 @@ import os
 from typing import List, Dict, Any, Optional, Iterator, Union, Tuple
 from pathlib import Path
 import logging
+from config import get_director_prompts_mult, DIRECTOR_SYSTEM_PROMPTS_MULT, get_story_prompts, get_option_config
 
 # 添加项目根目录到系统路径
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -385,25 +386,120 @@ class MultiCharacterService:
         except Exception as e:
             self.logger.error(f"保存角色消息失败: {e}")
     
-    def handle_director_decision(self, story_id: str, chat_history: str) -> Tuple[int, int]:
+
+    def call_director_model(self, chat_history: str) -> Tuple[int, int]:
         """
-        处理导演模型决策
+        调用导演模型判断剧情进度和下次说话角色
         
         Args:
-            story_id: 故事ID
-            chat_history: 聊天历史
+            chat_history: 聊天历史记录
             
         Returns:
-            (偏移值, 下次说话角色序号)
+            (偏移值, 下次说话角色序号) 的元组
         """
-        try:
-            return self.story_service.call_director_model(chat_history)
-        except Exception as e:
-            self.logger.error(f"导演模型决策失败: {e}")
-            # 出错时随机选择角色
+        # if not self.story_data:
+        #     raise ValueError("未加载任何故事")
+        
+        # 获取章节信息
+        _, current_chapter, next_chapter = self.story_service.get_current_chapter_info()
+        
+        if next_chapter is None:
+            # 已经是最后一章，返回0表示故事结束，随机选择角色
             import random
-            characters = self.get_story_characters(story_id)
+            characters = self.story_service.get_story_characters()
+            next_speaker = random.randint(0, len(characters) - 1)
+            return 0, next_speaker
+        
+        # 获取故事角色信息
+        characters = self.story_service.get_story_characters()
+        self.logger.info("变量值: " + str(characters))
+        # 构建提示词
+        user_prompt = get_director_prompts_mult(chat_history, current_chapter, next_chapter, characters)
+        
+        # 获取API配置
+        option_config = get_option_config()
+        url = self.config_service.get_option_api_url()
+        api_key = self.config_service.get_option_api_key()
+        
+        # 准备请求数据
+        messages = [
+            {"role": "system", "content": DIRECTOR_SYSTEM_PROMPTS_MULT},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        request_data = {
+            "model": os.getenv("OPTION_MODEL"),
+            "messages": messages,
+            "extra_body":{
+                "max_tokens": 50,  # 增加token数以支持JSON输出
+                "temperature": 0.1,  # 低温度确保稳定输出
+                "enable_reasoning": False  
+            },
+            "stream": False,
+            "response_format": {"type": "json_object"}
+        }
+        
+        try:
+            self.logger.info(f"导演正在决策...")
+            response, data = make_api_request(
+                url=url+"/chat/completions",
+                method="POST",
+                headers=headers,
+                json_data=request_data,
+                stream=False
+            )
+            # 提取回复内容
+            if "choices" in data and len(data["choices"]) > 0:
+                message = data["choices"][0].get("message", {})
+                if message and "content" in message:
+                    content = message["content"].strip()
+                    
+                    try:
+                        # 处理可能的```json```包裹
+                        json_content = content.strip()
+                        if json_content.startswith('```json'):
+                            json_content = json_content[7:]
+                        elif json_content.startswith('```'):
+                            json_content = json_content[3:]
+                        if json_content.endswith('```'):
+                            json_content = json_content[:-3]
+                        json_content = json_content.strip()
+                        
+                        # 解析JSON
+                        result_json = json.loads(json_content)
+                        offset = result_json.get("offset", 1)
+                        next_speaker = result_json.get("next", 0)
+                        
+                        # 验证范围
+                        if 0 <= offset <= 9 and 0 <= next_speaker < len(characters):
+                            self.logger.info(f"导演模型判断结果: offset={offset}, next={next_speaker}")
+                            return offset, next_speaker
+                        else:
+                            self.logger.warning(f"导演模型返回超出范围的结果: offset={offset}, next={next_speaker}")
+                    except json.JSONDecodeError as e:
+                        self.logger.warning(f"导演模型返回非JSON格式: {content}, 错误: {e}")
+                    
+                    # 解析失败，随机选择
+                    import random
+                    next_speaker = random.randint(0, len(characters) - 1)
+                    self.logger.info(f"解析失败，随机选择角色: {next_speaker}")
+                    return 1, next_speaker
+            
+            self.logger.error("导演模型返回格式错误")
+            import random
+            characters = self.story_service.get_story_characters()
             return 1, random.randint(0, len(characters) - 1)
+            
+        except Exception as e:
+            self.logger.error(f"调用导演模型失败: {e}")
+            import random
+            characters = self.story_service.get_story_characters()
+            return 1, random.randint(0, len(characters) - 1)  # 出错时返回默认值
 
 # 创建全局多角色服务实例
 multi_character_service = MultiCharacterService()
