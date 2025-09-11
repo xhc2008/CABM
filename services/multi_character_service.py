@@ -10,6 +10,7 @@ import os
 from typing import List, Dict, Any, Optional, Iterator, Union, Tuple
 from pathlib import Path
 import logging
+from utils.prompt_logger import prompt_logger
 from config import get_director_prompts_mult, DIRECTOR_SYSTEM_PROMPTS_MULT, get_story_prompts, get_option_config
 
 # 添加项目根目录到系统路径
@@ -89,19 +90,18 @@ class MultiCharacterService:
             if not story_data:
                 return False
             
-            # 正确处理字符列表格式
-            characters = story_data.get('characters', [])
-            if isinstance(characters, dict):
-                # 如果characters是字典，尝试获取list字段
-                characters = characters.get('list', [])
-            elif isinstance(characters, str):
-                # 如果characters是字符串，尝试解析
-                try:
-                    characters = json.loads(characters)
-                    if isinstance(characters, dict):
-                        characters = characters.get('list', [])
-                except json.JSONDecodeError:
-                    characters = [characters]
+            # 安全地获取角色列表
+            characters = []
+            if 'characters' in story_data:
+                characters_data = story_data['characters']
+                if isinstance(characters_data, dict) and 'list' in characters_data:
+                    characters = characters_data['list']
+                elif isinstance(characters_data, list):
+                    characters = characters_data
+            
+            # 确保characters是一个列表
+            if isinstance(characters, str):
+                characters = [characters]
             
             return len(characters) > 1
             
@@ -122,6 +122,7 @@ class MultiCharacterService:
         if not self.story_service.load_story(story_id):
             return []
         
+        # 使用故事服务的方法获取角色信息
         return self.story_service.get_story_characters()
 
     def format_messages_for_character(self, messages: List[Dict[str, str]], target_character_id: str, story_id: str) -> List[Dict[str, str]]:
@@ -137,31 +138,34 @@ class MultiCharacterService:
             格式化后的消息列表
         """
         try:
-            # 获取故事角色信息
+            # 获取故事角色信息 - 修复这里的问题
             story_data = self.story_service.get_current_story_data()
+            characters = []
             
-            # 正确处理字符列表格式
-            characters = story_data.get('characters', [])
-            if isinstance(characters, dict):
-                characters = characters.get('list', [])
-            elif isinstance(characters, str):
+            # 安全地获取角色列表
+            if 'characters' in story_data:
+                characters_data = story_data['characters']
+                if isinstance(characters_data, dict) and 'list' in characters_data:
+                    characters = characters_data['list']
+                elif isinstance(characters_data, list):
+                    characters = characters_data
+            # 如果characters是字符串，尝试解析
+            elif isinstance(story_data.get('characters'), str):
                 try:
-                    characters = json.loads(characters)
-                    if isinstance(characters, dict):
-                        characters = characters.get('list', [])
+                    characters = json.loads(story_data['characters'])
                 except json.JSONDecodeError:
-                    characters = [characters]
+                    characters = [story_data['characters']]
             
-            # 确保characters是列表
-            if not isinstance(characters, list):
-                characters = []
+            # 确保characters是一个列表
+            if isinstance(characters, str):
+                characters = [characters]
             
             # 构建角色专用的消息格式
             formatted_messages = []
             current_user_content = ""
             
             for msg in messages:
-                role = msg.get("role")
+                role = msg.get("role", "")
                 content = msg.get("content", "")
                 
                 if role == "system":
@@ -184,16 +188,16 @@ class MultiCharacterService:
                     try:
                         # 解析JSON获取content
                         msg_data = json.loads(content)
-                        character_content = msg_data.get('content', content)
+                        extracted_content = msg_data.get('content', content)
                         
                         # 获取角色名
                         char_config = self.config_service.get_character_config(role)
                         char_name = char_config.get('name', role) if char_config else role
                         
                         if current_user_content:
-                            current_user_content += f"\n{char_name}：{character_content}"
+                            current_user_content += f"\n{char_name}：{extracted_content}"
                         else:
-                            current_user_content = f"{char_name}：{character_content}"
+                            current_user_content = f"{char_name}：{extracted_content}"
                     except (json.JSONDecodeError, KeyError):
                         # 解析失败，使用原始内容
                         char_config = self.config_service.get_character_config(role)
@@ -211,9 +215,7 @@ class MultiCharacterService:
                             formatted_messages.append({"role": "user", "content": current_user_content})
                             current_user_content = ""
                         # 将非标准角色的消息内容添加到用户消息中
-                        char_config = self.config_service.get_character_config(role)
-                        char_name = char_config.get('name', role) if char_config else role
-                        current_user_content = f"{char_name}：{content}"
+                        current_user_content = f"{role}：{content}"
                     else:
                         # 标准角色，直接添加
                         if current_user_content:
@@ -238,14 +240,11 @@ class MultiCharacterService:
             safe_messages = []
             for msg in messages:
                 role = msg.get("role")
-                content = msg.get("content", "")
                 if role not in ["system", "user", "assistant", "tool"]:
                     # 将非标准角色转换为用户消息
-                    char_config = self.config_service.get_character_config(role)
-                    char_name = char_config.get('name', role) if char_config else role
                     safe_messages.append({
                         "role": "user",
-                        "content": f"{char_name}：{content}"
+                        "content": f"{role}：{msg.get('content', '')}"
                     })
                 else:
                     safe_messages.append(msg)
@@ -273,7 +272,17 @@ class MultiCharacterService:
             
             # 获取故事信息
             story_data = self.story_service.get_current_story_data()
-            characters = story_data.get('characters', {}).get('list', [])
+            
+            # 安全地获取角色列表
+            characters = []
+            if 'characters' in story_data:
+                characters_data = story_data['characters']
+                if isinstance(characters_data, dict) and 'list' in characters_data:
+                    characters = characters_data['list']
+                elif isinstance(characters_data, list):
+                    characters = characters_data
+            
+            # 确保characters是一个列表
             if isinstance(characters, str):
                 characters = [characters]
             
@@ -366,7 +375,17 @@ class MultiCharacterService:
                     del chat_config[key]
             
             self.logger.info(f"为角色 {character_id} 发送对话请求")
-            
+
+            try:
+                character_id = self.config_service.current_character_id or "default"
+                prompt_logger.log_prompt(
+                    messages=messages,
+                    character_name=character_id,
+                    user_query=user_query
+                )
+            except Exception as e:
+                self.logger.error(f"记录提示词日志失败: {e}")
+
             # 调用API
             stream_ans = self.client.chat.completions.create(
                 model=os.getenv("CHAT_MODEL"),
