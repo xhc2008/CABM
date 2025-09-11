@@ -113,8 +113,8 @@ DIRECTOR_SYSTEM_PROMPTS="""
 DIRECTOR_SYSTEM_PROMPTS_MULT="""
 你是一个专业的RPG编剧，你需要根据当前的聊天内容判断是否已经处于**下一个章节**，并决定下次说话的角色。
 你必须输出一个JSON对象，包含以下字段：
-- "offset": 整数，0-9之间。如果已经处于**下一个章节**输出0；否则输出1-9表示当前内容脱离大纲的增量
-- "next": 整数，下次说话的角色序号（从角色列表中选择）
+- "offset": <int>，0-9之间。如果已经处于**下一个章节**输出0；否则输出1-9表示当前内容脱离大纲的增量
+- "next": <int>，下次说话的角色序号（从角色列表中选择）
 /no_think
 """
 def get_director_prompts(chat_history, current_chapter, next_chapter):
@@ -126,8 +126,8 @@ def get_director_prompts(chat_history, current_chapter, next_chapter):
 当前所在章节：{current_chapter}
 下一个章节：{next_chapter}"""
 
-def get_director_prompts_mult(chat_history, current_chapter, next_chapter, characters):
-    character_list = "\n".join([f"{i}: {char['name']}" for i, char in enumerate(characters)])
+def get_director_prompts_mult(chat_history, current_chapter, next_chapter, characters, isPlayer):
+    character_list = "\n".join([f"{i+1 if isPlayer and i > 0 else i}: {char['name']}" for i, char in enumerate(characters)])
     return f"""
 最近的几条聊天内容：
 ```

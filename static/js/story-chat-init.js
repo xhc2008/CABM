@@ -361,19 +361,57 @@ async function sendStoryMessage() {
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const jsonStr = line.slice(6);
-
+                    
                         if (jsonStr === '[DONE]') {
                             globalStreamProcessor.markEnd();
                             break;
                         }
-
+                    
                         try {
                             const data = JSON.parse(jsonStr);
-
+                    
                             if (data.error) {
                                 throw new Error(data.error);
                             }
-
+                    
+                            // 处理多角色对话的特定字段
+                            if (data.characterContent) {
+                                // 这是角色自动回复的内容
+                                console.log('收到角色回复内容:', data.characterContent);
+                                globalStreamProcessor.addData(data.characterContent);
+                            }
+                            
+                            // 处理角色回复开始信号
+                            if (data.characterResponse) {
+                                console.log('角色开始回复:', data.characterName);
+                                // 切换到回复的角色
+                                if (window.switchToCharacter) {
+                                    // 需要先获取角色ID，这里假设角色名可以映射到ID
+                                    // 实际实现可能需要从角色列表查找
+                                    window.switchToCharacter(data.characterName.toLowerCase(), data.characterName);
+                                }
+                                if (window.showCharacterResponse) {
+                                    window.showCharacterResponse(data.characterName);
+                                }
+                            }
+                            
+                            // 处理角色回复完成信号
+                            if (data.characterResponseComplete) {
+                                console.log('角色回复完成');
+                                if (window.completeCharacterResponse) {
+                                    window.completeCharacterResponse();
+                                }
+                            }
+                    
+                            // 处理下一个说话者信息
+                            if (data.nextSpeaker) {
+                                console.log('下一个说话者:', data.nextSpeaker);
+                                if (data.nextSpeakerName) {
+                                    console.log('下一个说话者名称:', data.nextSpeakerName);
+                                    // 可以在这里更新UI提示下一个说话者
+                                }
+                            }
+                    
                             // 处理mood字段
                             if (data.mood !== undefined) {
                                 console.log('收到mood数据:', data.mood);
@@ -381,16 +419,15 @@ async function sendStoryMessage() {
                                     handleMoodChange(data.mood);
                                 }
                             }
-
-                            // 处理content字段
+                    
+                            // 处理普通content字段（单角色模式）
                             if (data.content) {
                                 globalStreamProcessor.addData(data.content);
                             }
-
+                    
                             // 处理选项数据
                             if (data.options && Array.isArray(data.options)) {
                                 console.log('收到选项数据:', data.options);
-                                // 检查是否启用选项生成
                                 const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
                                 if (optionGenerationEnabled) {
                                     window.pendingOptions = data.options;
@@ -406,7 +443,6 @@ async function sendStoryMessage() {
                             // 处理故事结束信号
                             if (data.storyFinished) {
                                 console.log('故事已结束');
-                                // 触发故事结束事件
                                 window.dispatchEvent(new CustomEvent('storyFinished'));
                             }
                         } catch (e) {

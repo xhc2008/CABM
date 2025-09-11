@@ -89,16 +89,26 @@ class MultiCharacterService:
             if not story_data:
                 return False
             
-            characters = story_data.get('characters', {}).get('list', [])
-            if isinstance(characters, str):
-                characters = [characters]
+            # 正确处理字符列表格式
+            characters = story_data.get('characters', [])
+            if isinstance(characters, dict):
+                # 如果characters是字典，尝试获取list字段
+                characters = characters.get('list', [])
+            elif isinstance(characters, str):
+                # 如果characters是字符串，尝试解析
+                try:
+                    characters = json.loads(characters)
+                    if isinstance(characters, dict):
+                        characters = characters.get('list', [])
+                except json.JSONDecodeError:
+                    characters = [characters]
             
             return len(characters) > 1
             
         except Exception as e:
             self.logger.error(f"检查多角色故事失败: {e}")
             return False
-    
+
     def get_story_characters(self, story_id: str) -> List[Dict[str, Any]]:
         """
         获取故事中的角色信息
@@ -113,7 +123,7 @@ class MultiCharacterService:
             return []
         
         return self.story_service.get_story_characters()
-    
+
     def format_messages_for_character(self, messages: List[Dict[str, str]], target_character_id: str, story_id: str) -> List[Dict[str, str]]:
         """
         为特定角色格式化消息，确保每个角色只看到自己说的话作为assistant消息
@@ -129,60 +139,87 @@ class MultiCharacterService:
         try:
             # 获取故事角色信息
             story_data = self.story_service.get_current_story_data()
-            characters = story_data.get('characters', {}).get('list', [])
-            if isinstance(characters, str):
-                characters = [characters]
+            
+            # 正确处理字符列表格式
+            characters = story_data.get('characters', [])
+            if isinstance(characters, dict):
+                characters = characters.get('list', [])
+            elif isinstance(characters, str):
+                try:
+                    characters = json.loads(characters)
+                    if isinstance(characters, dict):
+                        characters = characters.get('list', [])
+                except json.JSONDecodeError:
+                    characters = [characters]
+            
+            # 确保characters是列表
+            if not isinstance(characters, list):
+                characters = []
             
             # 构建角色专用的消息格式
             formatted_messages = []
             current_user_content = ""
             
             for msg in messages:
-                if msg.get("role") == "system":
+                role = msg.get("role")
+                content = msg.get("content", "")
+                
+                if role == "system":
                     # 系统消息保持不变
                     formatted_messages.append(msg)
-                elif msg.get("role") == "user":
+                elif role == "user":
                     # 用户消息：累积到当前用户内容中
                     if current_user_content:
-                        current_user_content += f"\n玩家：{msg['content']}"
+                        current_user_content += f"\n玩家：{content}"
                     else:
-                        current_user_content = f"玩家：{msg['content']}"
-                elif msg.get("role") == target_character_id:
+                        current_user_content = f"玩家：{content}"
+                elif role == target_character_id:
                     # 目标角色的消息：作为assistant消息（包含完整JSON）
                     if current_user_content:
                         formatted_messages.append({"role": "user", "content": current_user_content})
                         current_user_content = ""
-                    formatted_messages.append({"role": "assistant", "content": msg["content"]})
-                elif msg.get("role") in characters:
+                    formatted_messages.append({"role": "assistant", "content": content})
+                elif role in characters:
                     # 其他角色的消息：提取content并添加到用户内容中
                     try:
                         # 解析JSON获取content
-                        msg_data = json.loads(msg["content"])
-                        content = msg_data.get('content', msg["content"])
+                        msg_data = json.loads(content)
+                        character_content = msg_data.get('content', content)
                         
                         # 获取角色名
-                        char_config = self.config_service.get_character_config(msg["role"])
-                        char_name = char_config.get('name', msg["role"]) if char_config else msg["role"]
+                        char_config = self.config_service.get_character_config(role)
+                        char_name = char_config.get('name', role) if char_config else role
+                        
+                        if current_user_content:
+                            current_user_content += f"\n{char_name}：{character_content}"
+                        else:
+                            current_user_content = f"{char_name}：{character_content}"
+                    except (json.JSONDecodeError, KeyError):
+                        # 解析失败，使用原始内容
+                        char_config = self.config_service.get_character_config(role)
+                        char_name = char_config.get('name', role) if char_config else role
                         
                         if current_user_content:
                             current_user_content += f"\n{char_name}：{content}"
                         else:
                             current_user_content = f"{char_name}：{content}"
-                    except (json.JSONDecodeError, KeyError):
-                        # 解析失败，使用原始内容
-                        char_config = self.config_service.get_character_config(msg["role"])
-                        char_name = char_config.get('name', msg["role"]) if char_config else msg["role"]
-                        
-                        if current_user_content:
-                            current_user_content += f"\n{char_name}：{msg['content']}"
-                        else:
-                            current_user_content = f"{char_name}：{msg['content']}"
                 else:
-                    # 旧格式的assistant消息：作为assistant消息
-                    if current_user_content:
-                        formatted_messages.append({"role": "user", "content": current_user_content})
-                        current_user_content = ""
-                    formatted_messages.append({"role": "assistant", "content": msg["content"]})
+                    # 处理其他可能的消息类型，确保它们使用标准角色
+                    if role not in ["system", "user", "assistant", "tool"]:
+                        # 非标准角色，转换为用户消息
+                        if current_user_content:
+                            formatted_messages.append({"role": "user", "content": current_user_content})
+                            current_user_content = ""
+                        # 将非标准角色的消息内容添加到用户消息中
+                        char_config = self.config_service.get_character_config(role)
+                        char_name = char_config.get('name', role) if char_config else role
+                        current_user_content = f"{char_name}：{content}"
+                    else:
+                        # 标准角色，直接添加
+                        if current_user_content:
+                            formatted_messages.append({"role": "user", "content": current_user_content})
+                            current_user_content = ""
+                        formatted_messages.append(msg)
             
             # 如果还有未处理的用户内容，添加到最后
             if current_user_content:
@@ -197,8 +234,22 @@ class MultiCharacterService:
             
         except Exception as e:
             self.logger.error(f"格式化角色消息失败: {e}")
-            # 出错时回退到原始格式
-            return messages
+            # 出错时回退到原始格式，但确保所有角色都是标准值
+            safe_messages = []
+            for msg in messages:
+                role = msg.get("role")
+                content = msg.get("content", "")
+                if role not in ["system", "user", "assistant", "tool"]:
+                    # 将非标准角色转换为用户消息
+                    char_config = self.config_service.get_character_config(role)
+                    char_name = char_config.get('name', role) if char_config else role
+                    safe_messages.append({
+                        "role": "user",
+                        "content": f"{char_name}：{content}"
+                    })
+                else:
+                    safe_messages.append(msg)
+            return safe_messages
     
     def build_character_system_prompt(self, character_id: str, story_id: str, user_query: str = None) -> str:
         """
@@ -387,12 +438,13 @@ class MultiCharacterService:
             self.logger.error(f"保存角色消息失败: {e}")
     
 
-    def call_director_model(self, chat_history: str) -> Tuple[int, int]:
+    def call_director_model(self, chat_history: str, isPlayer: bool = False) -> Tuple[int, int]:
         """
         调用导演模型判断剧情进度和下次说话角色
         
         Args:
             chat_history: 聊天历史记录
+            isPlayer: 是否为玩家回合，如果是则在角色列表中排除玩家
             
         Returns:
             (偏移值, 下次说话角色序号) 的元组
@@ -412,9 +464,14 @@ class MultiCharacterService:
         
         # 获取故事角色信息
         characters = self.story_service.get_story_characters()
+        
+        # 如果是玩家回合，过滤掉玩家角色
+        if isPlayer:
+            characters = [char for char in characters if not char.get('is_player', False)]
+
         self.logger.info("变量值: " + str(characters))
         # 构建提示词
-        user_prompt = get_director_prompts_mult(chat_history, current_chapter, next_chapter, characters)
+        user_prompt = get_director_prompts_mult(chat_history, current_chapter, next_chapter, characters,isPlayer)
         
         # 获取API配置
         option_config = get_option_config()
@@ -473,10 +530,10 @@ class MultiCharacterService:
                         # 解析JSON
                         result_json = json.loads(json_content)
                         offset = result_json.get("offset", 1)
-                        next_speaker = result_json.get("next", 0)
+                        next_speaker = result_json.get("next", 1)
                         
                         # 验证范围
-                        if 0 <= offset <= 9 and 0 <= next_speaker < len(characters):
+                        if 0 <= offset <= 9 and isPlayer <= next_speaker <= len(characters):
                             self.logger.info(f"导演模型判断结果: offset={offset}, next={next_speaker}")
                             return offset, next_speaker
                         else:
@@ -486,20 +543,20 @@ class MultiCharacterService:
                     
                     # 解析失败，随机选择
                     import random
-                    next_speaker = random.randint(0, len(characters) - 1)
+                    next_speaker = random.randint(isPlayer, len(characters) )
                     self.logger.info(f"解析失败，随机选择角色: {next_speaker}")
                     return 1, next_speaker
             
             self.logger.error("导演模型返回格式错误")
             import random
             characters = self.story_service.get_story_characters()
-            return 1, random.randint(0, len(characters) - 1)
+            return 1, random.randint(isPlayer, len(characters) )
             
         except Exception as e:
             self.logger.error(f"调用导演模型失败: {e}")
             import random
             characters = self.story_service.get_story_characters()
-            return 1, random.randint(0, len(characters) - 1)  # 出错时返回默认值
+            return 1, random.randint(isPlayer, len(characters) )  # 出错时返回默认值
 
 # 创建全局多角色服务实例
 multi_character_service = MultiCharacterService()

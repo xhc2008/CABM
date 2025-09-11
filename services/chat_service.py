@@ -206,19 +206,6 @@ class ChatService:
         """格式化消息以适应API要求"""
         return [msg.to_dict() for msg in self.history]
     
-    def format_messages_for_character(self, target_character_id: str) -> List[Dict[str, str]]:
-        """
-        为特定角色格式化消息（单角色模式简化版）
-        
-        Args:
-            target_character_id: 目标角色ID
-            
-        Returns:
-            格式化后的消息列表
-        """
-        # 单角色模式下直接使用普通格式
-        # 多角色逻辑已移至 multi_character_service.py
-        return self.format_messages()
     
     def set_system_prompt(self, prompt_type: str = "default") -> None:
         """

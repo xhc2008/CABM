@@ -23,7 +23,7 @@ if not need_config:
 
 bp = Blueprint('multi_character', __name__, url_prefix='/api/multi-character')
 
-def handle_next_speaker_recursively(story_id, max_history, characters, max_depth=5, current_depth=0):
+def handle_next_speaker_recursively(story_id, max_history, characters, max_depth, current_depth,isPlayer):
     """
     递归处理下一个说话者，避免无限循环
     
@@ -67,8 +67,8 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                 character_name = character_config.get('name', speaker_id) if character_config else speaker_id
                 chat_history_text += f"{character_name}：{content}\n"
         
-        # 调用导演模型
-        director_offset, next_speaker = multi_character_service.call_director_model(chat_history_text)
+        # 调用导演模型（玩家回合isPlayer=True）
+        director_offset, next_speaker = multi_character_service.call_director_model(chat_history_text, isPlayer=isPlayer)
         
         # 处理导演结果
         if director_offset == 0:
@@ -171,7 +171,7 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                     yield f"data: {json.dumps({'characterResponseComplete': True})}\n\n"
                     
                     # 递归处理下一个说话者
-                    yield from handle_next_speaker_recursively(story_id, max_history, characters, max_depth, current_depth + 1)
+                    yield from handle_next_speaker_recursively(story_id, max_history, characters, max_depth, current_depth + 1, False)
                     
                 except Exception as e:
                     print(f"角色自动回复失败: {e}")
@@ -237,7 +237,7 @@ def multi_character_chat_stream():
                 max_history = config_service.get_app_config()["max_history_length"]
                 
                 # 处理下一个说话者（可能触发角色自动回复）
-                yield from handle_next_speaker_recursively(story_id, max_history, characters)
+                yield from handle_next_speaker_recursively(story_id, max_history, characters,5,0,True)
                 
             except Exception as e:
                 print(f"多角色对话流处理失败: {e}")
