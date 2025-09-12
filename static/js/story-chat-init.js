@@ -320,7 +320,13 @@ async function sendStoryMessage() {
 
     try {
         // 发送API请求到剧情模式端点
-        const response = await fetch('/api/story/chat/stream', {
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
+                                window.storyData?.characters?.length > 1;
+        const endpoint = isMultiCharacter ? 
+                        '/api/multi-character/chat/stream' : 
+                        '/api/story/chat/stream';
+
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -388,7 +394,7 @@ async function sendStoryMessage() {
                                 if (window.switchToCharacter) {
                                     // 需要先获取角色ID，这里假设角色名可以映射到ID
                                     // 实际实现可能需要从角色列表查找
-                                    window.switchToCharacter(data.characterName.toLowerCase(), data.characterName);
+                                    window.switchToCharacter(data.characterID, data.characterName);
                                 }
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);

@@ -140,32 +140,51 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                         character_id=next_character['id'],
                         story_id=story_id,
                         messages=history_messages_dict,
-                        user_query=f"作为{next_character['name']}继续对话"
+                        user_query=f"{next_character['name']}"
                     )
                     
                     # 发送角色回复
-                    character_response = ""
-                    yield f"data: {json.dumps({'characterResponse': True, 'characterName': next_character['name']})}\n\n"
+                    full_response = ""
+                    parsed_content = ""
+                    yield f"data: {json.dumps({'characterResponse': True, 'characterID': next_character['id'], 'characterName': next_character['name']})}\n\n"
                     
                     for chunk in character_stream:
-                        if chunk:
-                            character_response += chunk
-                            # 实时解析并发送角色回复
+                        if chunk is not None:
+                            full_response += chunk
+                            
+                            # 实时解析JSON内容，即使不完整
                             try:
-                                content_match = re.search(r'"content":\s*"([^"]*)', character_response)
+                                # 尝试提取content字段，即使JSON不完整
+                                content_match = re.search(r'"content":\s*"([^"]*)', full_response)
                                 if content_match:
                                     current_content = content_match.group(1)
-                                    current_content = current_content.replace('\\"', '"').replace('\\\\', '\\')
-                                    yield f"data: {json.dumps({'characterContent': current_content})}\n\n"
-                            except:
+                                    
+                                    # 处理转义字符
+                                    current_content = current_content.replace('\\"', '"')
+                                    current_content = current_content.replace('\\\\', '\\')
+                                    
+                                    if current_content != parsed_content:
+                                        # 检查是否是新的响应（内容变短）
+                                        if len(current_content) < len(parsed_content):
+                                            # 新的响应开始，发送完整内容
+                                            yield f"data: {json.dumps({'characterContent': current_content})}\n\n"
+                                            parsed_content = current_content
+                                        else:
+                                            # 同一响应的增量内容
+                                            content_diff = current_content[len(parsed_content):]
+                                            if content_diff:
+                                                yield f"data: {json.dumps({'characterContent': content_diff})}\n\n"
+                                            parsed_content = current_content
+                            except Exception as e:
+                                # JSON解析失败，尝试作为普通文本发送
                                 yield f"data: {json.dumps({'characterContent': chunk})}\n\n"
                     
                     # 保存角色回复到历史记录和记忆
-                    if character_response:
+                    if full_response:
                         multi_character_service.save_character_message(
                             character_id=next_character['id'],
                             story_id=story_id,
-                            message=character_response
+                            message=full_response
                         )
                     
                     yield f"data: {json.dumps({'characterResponseComplete': True})}\n\n"

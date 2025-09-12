@@ -125,7 +125,7 @@ export function switchToCharacter(characterId, characterName) {
     console.log(`切换到角色: ${characterName} (${characterId})`);
     
     // 获取角色配置
-    fetch(`/api/character/${characterId}`)
+    fetch(`/api/characters/${characterId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -248,7 +248,7 @@ function getCharacterImageUrl(characterId, character) {
     }
     
     // 使用默认立绘路径
-    return `/static/images/characters/${characterId}.png`;
+    return `/static/images/${characterId}/1.png`;
 }
 
 /**
@@ -273,8 +273,35 @@ export function showCharacterResponse(characterName) {
  * @param {string} content - 回复内容
  */
 export function updateCharacterResponse(content) {
-    // 这里可以显示角色回复的内容，比如在角色旁边显示对话框
-    console.log('角色回复内容:', content);
+    // 注意：文本内容的显示由主流处理器(streamProcessor)处理
+    // 这里主要处理角色特定的视觉效果，如立绘高亮、对话框等
+    
+    // 找到当前说话的角色并添加视觉效果
+    const speakingCharacter = findCurrentSpeakingCharacter();
+    if (speakingCharacter) {
+        const element = characterElements[speakingCharacter.position];
+        if (element) {
+            // 添加说话时的视觉效果
+            element.style.filter = 'brightness(1.2) drop-shadow(0 0 20px rgba(255, 255, 255, 0.5))';
+        }
+    }
+    
+    console.log('角色回复视觉效果已更新:', content.substring(0, 50) + '...');
+}
+
+/**
+ * 查找当前正在说话的角色
+ * @returns {Object|null} 角色信息和位置
+ */
+function findCurrentSpeakingCharacter() {
+    // 简单实现：返回最近显示的角色
+    // 更复杂的实现可以基于角色名称匹配或其他逻辑
+    for (const [position, character] of Object.entries(currentCharacters)) {
+        if (character !== null) {
+            return { ...character, position };
+        }
+    }
+    return null;
 }
 
 /**

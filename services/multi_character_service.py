@@ -138,7 +138,7 @@ class MultiCharacterService:
             格式化后的消息列表
         """
         try:
-            # 获取故事角色信息 - 修复这里的问题
+            # 获取故事角色信息
             story_data = self.story_service.get_current_story_data()
             characters = []
             
@@ -169,16 +169,20 @@ class MultiCharacterService:
                 content = msg.get("content", "")
                 
                 if role == "system":
-                    # 系统消息保持不变
+                    # 系统消息保持不变，但先提交累积的用户内容
+                    if current_user_content:
+                        formatted_messages.append({"role": "user", "content": current_user_content})
+                        current_user_content = ""
                     formatted_messages.append(msg)
                 elif role == "user":
                     # 用户消息：累积到当前用户内容中
                     if current_user_content:
-                        current_user_content += f"\n玩家：{content}"
-                    else:
-                        current_user_content = f"玩家：{content}"
+                        formatted_messages.append({"role": "user", "content": current_user_content})
+                        current_user_content = ""
+                    current_user_content = f"玩家：{content}"
                 elif role == target_character_id:
                     # 目标角色的消息：作为assistant消息（包含完整JSON）
+                    # 先提交累积的用户内容
                     if current_user_content:
                         formatted_messages.append({"role": "user", "content": current_user_content})
                         current_user_content = ""
@@ -194,6 +198,7 @@ class MultiCharacterService:
                         char_config = self.config_service.get_character_config(role)
                         char_name = char_config.get('name', role) if char_config else role
                         
+                        # 添加到当前用户内容，而不是创建新的用户消息
                         if current_user_content:
                             current_user_content += f"\n{char_name}：{extracted_content}"
                         else:
@@ -210,7 +215,7 @@ class MultiCharacterService:
                 else:
                     # 处理其他可能的消息类型，确保它们使用标准角色
                     if role not in ["system", "user", "assistant", "tool"]:
-                        # 非标准角色，转换为用户消息
+                        # 非标准角色，先提交累积的内容
                         if current_user_content:
                             formatted_messages.append({"role": "user", "content": current_user_content})
                             current_user_content = ""

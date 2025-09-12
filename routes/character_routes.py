@@ -93,20 +93,43 @@ def list_characters():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@bp.route('/api/characters/<character_id>', methods=['POST'])
+@bp.route('/api/characters/<character_id>', methods=['GET', 'POST'])
 def set_character(character_id):
-    try:
-        if chat_service.set_character(character_id):
-            character_config = chat_service.get_character_config()
+    if request.method == 'GET':
+        # 处理GET请求 - 获取角色信息
+        try:
+            character_config = config_service.get_character_config(character_id)
+            if not character_config:
+                return jsonify({'success': False, 'error': f"未找到角色: {character_id}"}), 404
+            
+            # 添加头像URL
+            avatar_url = f"/static/images/{character_id}/avatar.png"
+            avatar_path = project_root / 'static' / 'images' / character_id / 'avatar.png'
+            if not avatar_path.exists():
+                avatar_url = "/static/images/default.svg"
+            
+            character_config['avatar_url'] = avatar_url
             return jsonify({
                 'success': True,
-                'character': character_config,
-                'message': f"角色已切换为 {character_config['name']}"
+                'character': character_config
             })
-        return jsonify({'success': False, 'error': f"未找到角色: {character_id}"}), 404
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+    else:
+        # 原有的POST逻辑
+        try:
+            if chat_service.set_character(character_id):
+                character_config = chat_service.get_character_config()
+                return jsonify({
+                    'success': True,
+                    'character': character_config,
+                    'message': f"角色已切换为 {character_config['name']}"
+                })
+            return jsonify({'success': False, 'error': f"未找到角色: {character_id}"}), 404
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 @bp.route('/api/characters/<character_id>/images', methods=['GET'])
 def get_character_images(character_id):

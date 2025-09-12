@@ -293,7 +293,10 @@ export async function sendMessage() {
                             
                             // 处理角色回复内容
                             if (data.characterContent) {
-                                // 显示角色回复内容
+                                // 将角色回复内容添加到主流处理器，保持与story-chat-init.js一致
+                                streamProcessor.addData(data.characterContent);
+                                
+                                // 同时调用角色特定的更新函数（用于角色立绘等视觉效果）
                                 if (window.updateCharacterResponse) {
                                     window.updateCharacterResponse(data.characterContent);
                                 }
