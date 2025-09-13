@@ -395,6 +395,13 @@ async function sendStoryMessage() {
         const endpoint = isMultiCharacter ?
             '/api/multi-character/chat/stream' :
             '/api/story/chat/stream';
+            
+        // 根据模式启用或禁用多角色立绘显示
+        if (isMultiCharacter && window.enableMultiCharacterMode) {
+            window.enableMultiCharacterMode();
+        } else if (!isMultiCharacter && window.disableMultiCharacterMode) {
+            window.disableMultiCharacterMode();
+        }
 
         const response = await fetch(endpoint, {
             method: 'POST',
