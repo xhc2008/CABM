@@ -1,8 +1,8 @@
 // 剧情模式聊天页面的初始化和事件绑定
-import { 
-    changeBackground, 
-    continueOutput, 
-    skipTyping 
+import {
+    changeBackground,
+    continueOutput,
+    skipTyping
 } from './chat-service.js';
 
 // 保存原始的continueOutput函数作为备用
@@ -11,7 +11,7 @@ window.originalContinueOutput = continueOutput;
 // 直接设置当前角色的函数（用于剧情模式）
 function setCurrentCharacterDirect(character) {
     console.log('直接设置角色:', character);
-    
+
     // 更新角色名称显示
     const characterNameElement = document.getElementById('characterName');
     if (characterNameElement && character.name) {
@@ -19,7 +19,7 @@ function setCurrentCharacterDirect(character) {
         characterNameElement.style.color = character.color || '#ffeb3b';
         console.log('设置角色名称:', character.name, '颜色:', character.color);
     }
-    
+
     // 更新角色图片
     const characterImage = document.getElementById('characterImage');
     if (characterImage && character.image) {
@@ -31,26 +31,26 @@ function setCurrentCharacterDirect(character) {
         if (!imagePath.endsWith('/1.png')) {
             imagePath = imagePath + '/1.png';
         }
-        
+
         console.log('设置角色图片路径:', imagePath);
         characterImage.src = imagePath;
         characterImage.alt = character.name;
-        
+
         // 处理图片加载失败的情况
         characterImage.onerror = () => {
             console.log('角色图片加载失败，使用默认图片');
             characterImage.src = '/static/images/default.svg';
         };
-        
+
         // 添加加载成功的回调
         characterImage.onload = () => {
             console.log('角色图片加载成功:', imagePath);
         };
     }
-    
+
     // 更新全局角色状态（让getCurrentCharacter能返回正确的角色）
     setCurrentCharacter(character);
-    
+
     if (window.updateCurrentCharacter) {
         window.updateCurrentCharacter(character);
     }
@@ -67,7 +67,7 @@ function updateCurrentCharacter(character) {
 function updateStoryProgress(progress) {
     console.log('=== 更新故事进度 ===');
     console.log('进度数据:', progress);
-    
+
     // 更新当前章节显示
     const currentChapterElement = document.getElementById('currentChapter');
     if (currentChapterElement && progress.currentChapter) {
@@ -77,7 +77,7 @@ function updateStoryProgress(progress) {
     } else {
         console.log('未找到章节元素或章节数据');
     }
-    
+
     // 更新偏移值显示
     const currentOffsetElement = document.getElementById('currentOffset');
     if (currentOffsetElement && progress.offset !== undefined) {
@@ -87,7 +87,7 @@ function updateStoryProgress(progress) {
     } else {
         console.log('未找到偏移值元素或偏移值数据');
     }
-    
+
     // 更新全局故事数据
     if (window.storyData && window.storyData.progress) {
         window.storyData.progress.current = progress.current;
@@ -96,7 +96,7 @@ function updateStoryProgress(progress) {
     } else {
         console.log('未找到全局故事数据');
     }
-    
+
     console.log('=== 故事进度更新完成 ===');
 }
 
@@ -113,9 +113,9 @@ import {
     setCurrentCharacter
 } from './character-service.js';
 
-import { 
-    playAudio, 
-    toggleRecording, 
+import {
+    playAudio,
+    toggleRecording,
     stopCurrentAudio,
     prefetchAndPlayAudio
 } from './audio-service.js';
@@ -136,15 +136,15 @@ let globalStreamProcessor = null;
 // 剧情模式专用的继续输出函数
 function storyContinueOutput() {
     console.log('=== storyContinueOutput called ===');
-    
+
     // 自动中断正在播放的语音
     if (window.stopCurrentAudio) {
         window.stopCurrentAudio();
     }
-    
+
     // 尝试从多个位置获取流式处理器
     const processor = globalStreamProcessor || window.globalStreamProcessor;
-    
+
     console.log('processor:', processor);
     console.log('processor isPaused:', processor ? processor.isPaused : 'N/A');
     console.log('processor isProcessing:', processor ? processor.isProcessing() : 'N/A');
@@ -152,21 +152,21 @@ function storyContinueOutput() {
     if (processor) {
         console.log('Hiding continue prompt...');
         hideContinuePrompt();
-        
+
         console.log('Calling continue() on processor...');
         processor.continue();
-        
+
         console.log('Continue() called successfully');
     } else {
         console.error('No stream processor found');
-        
+
         // 尝试备用方案：直接调用原始的continueOutput
         if (window.originalContinueOutput) {
             console.log('Trying fallback to originalContinueOutput');
             window.originalContinueOutput();
         }
     }
-    
+
     console.log('=== storyContinueOutput finished ===');
 }
 
@@ -187,7 +187,7 @@ async function sendStoryMessage() {
 
     // 创建新的流式处理器
     globalStreamProcessor = new StreamProcessor();
-    
+
     // 立即暴露给全局作用域
     window.globalStreamProcessor = globalStreamProcessor;
 
@@ -202,33 +202,45 @@ async function sendStoryMessage() {
         (fullContent) => {
             const newContent = fullContent.substring(addedToHistoryLength);
             // 在多角色模式下，使用当前说话角色的ID
-            const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
-                                    window.storyData?.characters?.length > 1;
-            const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ? 
-                             window.currentSpeakingCharacterId : 'assistant';
-            console.log("》》》》》》》》》聊天框更新：",roleToUse)
+            const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+                window.storyData?.characters?.length > 1;
+            const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ?
+                window.currentSpeakingCharacterId : 'assistant';
+            console.log("》》》》》》》》》聊天框更新：", roleToUse)
             updateCurrentMessage(roleToUse, newContent, true);
-            
+
             // 检查是否有新的完整句子需要处理
             const sentences = newContent.split(/([。？！…~])/);
             let completeSentences = '';
-            
+
             for (let i = 0; i < sentences.length - 1; i += 2) {
                 if (i + 1 < sentences.length) {
                     completeSentences += sentences[i] + sentences[i + 1];
                 }
             }
-            
+
             if (completeSentences.length > lastPlayedLength) {
                 const newSentenceContent = completeSentences.substring(lastPlayedLength);
                 if (newSentenceContent.trim()) {
-                    const currentCharacter = getCurrentCharacter();
-                    const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                    
-                    if (prefetchAndPlayAudio) {
-                        prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
-                    }
-                    
+                    let currentCharacter = getCurrentCharacter();
+                    let characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                    console.log("》》》旧版角色名", characterName)
+
+                    // 异步获取角色信息
+                    getCharacterById(roleToUse).then(newCharacter => {
+                        const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
+                        console.log("》》》新版角色名", newCharacterName)
+                        if (prefetchAndPlayAudio) {
+                            prefetchAndPlayAudio(newSentenceContent, newCharacterName, newCharacter);
+                        }
+                    }).catch(error => {
+                        console.error("获取角色信息失败:", error);
+                        // 如果获取失败，使用旧版角色信息
+                        if (prefetchAndPlayAudio) {
+                            prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
+                        }
+                    });
+
                     lastPlayedLength = completeSentences.length;
                     isFirstSentence = false;
                 }
@@ -241,18 +253,18 @@ async function sendStoryMessage() {
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                
+
                 const unplayedContent = newContent.substring(lastPlayedLength);
                 if (unplayedContent.trim() && prefetchAndPlayAudio) {
                     prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
                 }
-                
+
                 // 在多角色模式下，使用当前说话角色的ID
-                const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
-                                        window.storyData?.characters?.length > 1;
-                const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ? 
-                                 window.currentSpeakingCharacterId : 'assistant';
-                
+                const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+                    window.storyData?.characters?.length > 1;
+                const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ?
+                    window.currentSpeakingCharacterId : 'assistant';
+
                 addToHistory(roleToUse, newContent, characterName);
                 updateCurrentMessage(roleToUse, newContent);
                 addedToHistoryLength = fullContent.length;
@@ -267,23 +279,23 @@ async function sendStoryMessage() {
             const remainingContent = fullContent.substring(addedToHistoryLength);
             if (remainingContent) {
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                
+
                 const unplayedContent = remainingContent.substring(lastPlayedLength);
                 if (unplayedContent.trim() && prefetchAndPlayAudio) {
                     prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
                 }
-                
+
                 // 在多角色模式下，使用当前说话角色的ID
-                const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
-                                        window.storyData?.characters?.length > 1;
-                const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ? 
-                                 window.currentSpeakingCharacterId : 'assistant';
+                const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+                    window.storyData?.characters?.length > 1;
+                const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ?
+                    window.currentSpeakingCharacterId : 'assistant';
                 addToHistory(roleToUse, remainingContent, characterName);
                 updateCurrentMessage(roleToUse, remainingContent);
                 hideContinuePrompt();
                 enableUserInput();
                 setIsPaused(false);
-                
+
                 // 检查是否启用选项生成
                 const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
                 if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
@@ -296,7 +308,7 @@ async function sendStoryMessage() {
                 hideContinuePrompt();
                 enableUserInput();
                 setIsPaused(false);
-                
+
                 // 检查是否启用选项生成
                 const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
                 if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
@@ -306,7 +318,7 @@ async function sendStoryMessage() {
                     window.pendingOptions = null;
                 }
             }
-            
+
             lastPlayedLength = 0;
             isFirstSentence = true;
         }
@@ -325,7 +337,7 @@ async function sendStoryMessage() {
 
     // 清空输入框并更新状态
     messageInput.value = '';
-    
+
     if (window.inputEnhancements) {
         window.inputEnhancements.updateCharCount();
         window.inputEnhancements.updateSendButtonState();
@@ -336,18 +348,18 @@ async function sendStoryMessage() {
     disableUserInput();
     try {
         // 发送API请求到剧情模式端点
-        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
-                                window.storyData?.characters?.length > 1;
-        const endpoint = isMultiCharacter ? 
-                        '/api/multi-character/chat/stream' : 
-                        '/api/story/chat/stream';
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+            window.storyData?.characters?.length > 1;
+        const endpoint = isMultiCharacter ?
+            '/api/multi-character/chat/stream' :
+            '/api/story/chat/stream';
 
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 message: message,
                 story_id: window.storyId,
                 optionGenerationEnabled: localStorage.getItem('optionGenerationEnabled') !== 'false'
@@ -383,26 +395,26 @@ async function sendStoryMessage() {
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const jsonStr = line.slice(6);
-                    
+
                         if (jsonStr === '[DONE]') {
                             globalStreamProcessor.markEnd();
                             break;
                         }
-                    
+
                         try {
                             const data = JSON.parse(jsonStr);
-                    
+
                             if (data.error) {
                                 throw new Error(data.error);
                             }
-                    
+
                             // 处理多角色对话的特定字段
                             if (data.characterContent) {
                                 // 这是角色自动回复的内容
                                 console.log('收到角色回复内容:', data.characterContent);
                                 globalStreamProcessor.addData(data.characterContent);
                             }
-                            
+
                             // 处理角色回复开始信号
                             if (data.characterResponse) {
                                 console.log('角色开始回复2:', data.characterName);
@@ -416,7 +428,7 @@ async function sendStoryMessage() {
                                 // 设置当前回复的角色ID，供updateCurrentMessage使用
                                 window.currentSpeakingCharacterId = data.characterID;
                             }
-                            
+
                             // 处理角色回复完成信号
                             if (data.characterResponseComplete) {
                                 console.log('角色回复完成2');
@@ -426,7 +438,7 @@ async function sendStoryMessage() {
                                 // 清除当前说话角色ID
                                 //window.currentSpeakingCharacterId = null;
                             }
-                    
+
                             // 处理下一个说话者信息
                             if (data.nextSpeaker) {
                                 console.log('下一个说话者:', data.nextSpeaker);
@@ -435,7 +447,7 @@ async function sendStoryMessage() {
                                     // 可以在这里更新UI提示下一个说话者
                                 }
                             }
-                    
+
                             // 处理mood字段
                             if (data.mood !== undefined) {
                                 console.log('收到mood数据:', data.mood);
@@ -443,12 +455,12 @@ async function sendStoryMessage() {
                                     handleMoodChange(data.mood);
                                 }
                             }
-                    
+
                             // 处理普通content字段（单角色模式）
                             if (data.content) {
                                 globalStreamProcessor.addData(data.content);
                             }
-                    
+
                             // 处理选项数据
                             if (data.options && Array.isArray(data.options)) {
                                 console.log('收到选项数据:', data.options);
@@ -457,13 +469,13 @@ async function sendStoryMessage() {
                                     window.pendingOptions = data.options;
                                 }
                             }
-                            
+
                             // 处理故事进度更新
                             if (data.storyProgress) {
                                 console.log('收到故事进度更新:', data.storyProgress);
                                 updateStoryProgress(data.storyProgress);
                             }
-                            
+
                             // 处理故事结束信号
                             if (data.storyFinished) {
                                 console.log('故事已结束');
@@ -495,7 +507,7 @@ async function sendStoryMessage() {
 document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log('开始初始化剧情聊天页面...');
-        
+
         // 如果有当前角色信息，直接设置
         if (window.currentCharacter) {
             console.log('剧情模式 - 当前角色信息:', window.currentCharacter);
@@ -504,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             console.log('剧情模式 - 未找到当前角色信息');
         }
-        
+
         // 加载角色数据（用于角色选择模态框）
         loadCharacters();
 
@@ -533,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
         continueButton?.addEventListener('click', storyContinueOutput);
         micButton?.addEventListener('click', () => toggleRecording(messageInput, micButton, showError));
         errorCloseButton?.addEventListener('click', hideError);
-        
+
         // 绑定剧情模式专用的发送消息事件
         sendButton?.addEventListener('click', sendStoryMessage);
 
@@ -542,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         backButtons.forEach(button => {
             button.addEventListener('click', async (e) => {
                 e.preventDefault();
-                
+
                 try {
                     // 调用退出剧情模式API
                     const response = await fetch('/api/story/exit', {
@@ -551,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     const data = await response.json();
                     if (data.success) {
                         console.log('已退出剧情模式');
@@ -582,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 绑定点击事件继续输出
         currentMessage?.addEventListener('click', storyContinueOutput);
         clickToContinue?.addEventListener('click', storyContinueOutput);
-        
+
         console.log('剧情聊天页面初始化完成');
     } catch (error) {
         console.error('初始化失败:', error);
@@ -614,20 +626,20 @@ registrationShortcuts({
 
 // TTS开关控制函数
 window.ttsEnabled = true;
-window.toggleTTS = function() {
+window.toggleTTS = function () {
     window.ttsEnabled = !window.ttsEnabled;
     console.log(`TTS已${window.ttsEnabled ? '开启' : '关闭'}`);
     return window.ttsEnabled;
 };
 
-window.setTTS = function(enabled) {
+window.setTTS = function (enabled) {
     window.ttsEnabled = !!enabled;
     console.log(`TTS已${window.ttsEnabled ? '开启' : '关闭'}`);
     return window.ttsEnabled;
 };
 
 // 导入UI服务函数
-import { 
+import {
     showOptionButtons,
     updateCurrentMessage,
     addToHistory,
