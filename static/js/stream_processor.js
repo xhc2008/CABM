@@ -35,9 +35,20 @@ class StreamProcessor {
      * 添加数据到缓冲区
      */
     addData(data) {
-        // 将数据逐字符添加到缓冲区
-        for (const char of data) {
-            this.buffer.push(char);
+        // 检查是否是角色切换标记
+        const switchMarkerMatch = data.match(/^<SWITCH_CHARACTER:([^:]+):([^>]+)>$/);
+        if (switchMarkerMatch) {
+            // 这是角色切换标记，添加特殊标记到缓冲区
+            this.buffer.push({
+                type: 'SWITCH_CHARACTER',
+                characterID: switchMarkerMatch[1],
+                characterName: switchMarkerMatch[2]
+            });
+        } else {
+            // 将数据逐字符添加到缓冲区
+            for (const char of data) {
+                this.buffer.push(char);
+            }
         }
 
         // 如果没有在处理且没有暂停，开始处理
@@ -72,8 +83,27 @@ class StreamProcessor {
             return;
         }
 
-        // 取出一个字符
-        const char = this.buffer.shift();
+        // 取出一个字符或特殊标记
+        const item = this.buffer.shift();
+
+        // 如果是角色切换标记
+        if (typeof item === 'object' && item.type === 'SWITCH_CHARACTER') {
+            console.log('StreamProcessor: 处理角色切换标记:', item.characterName);
+            // 设置当前说话角色ID
+            window.currentSpeakingCharacterId = item.characterID;
+            // 执行角色切换
+            if (window.switchToCharacter) {
+                window.switchToCharacter(item.characterID, item.characterName);
+            }
+            // 继续处理下一个项目
+            this.processingTimeout = setTimeout(() => {
+                this.processingTimeout = null;
+                this.processBuffer();
+            }, 0); // 立即处理下一个项目
+            return;
+        }
+
+        const char = item;
 
         // 如果是结束标记
         if (char === END_MARKER) {

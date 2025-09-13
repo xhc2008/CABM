@@ -191,6 +191,9 @@ async function sendStoryMessage() {
     // 立即暴露给全局作用域
     window.globalStreamProcessor = globalStreamProcessor;
 
+    // 初始化角色状态
+    window.currentSpeakingCharacterId = null;
+
     // 跟踪已添加到历史记录的内容长度
     let addedToHistoryLength = 0;
     let lastPlayedLength = 0;
@@ -224,23 +227,31 @@ async function sendStoryMessage() {
                 if (newSentenceContent.trim()) {
                     let currentCharacter = getCurrentCharacter();
                     let characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                    console.log("》》》旧版角色名", characterName)
-
-                    // 异步获取角色信息
-                    getCharacterById(roleToUse).then(newCharacter => {
-                        const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
-                        console.log("》》》新版角色名", newCharacterName)
-                        if (prefetchAndPlayAudio) {
-                            prefetchAndPlayAudio(newSentenceContent, newCharacterName, newCharacter);
-                        }
-                    }).catch(error => {
-                        console.error("获取角色信息失败:", error);
-                        // 如果获取失败，使用旧版角色信息
+                    
+                    if(roleToUse=='assistant')
+                    {
                         if (prefetchAndPlayAudio) {
                             prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
                         }
-                    });
-
+                    }
+                    else
+                    {
+                        // 异步获取角色信息
+                        getCharacterById(roleToUse).then(newCharacter => {
+                            const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
+                            console.log("TTS角色名", newCharacterName)
+                            if (prefetchAndPlayAudio) {
+                                prefetchAndPlayAudio(newSentenceContent, newCharacterName, newCharacter);
+                            }
+                        }).catch(error => {
+                            console.error("获取角色信息失败:", error);
+                            // 如果获取失败，使用旧版角色信息
+                            if (prefetchAndPlayAudio) {
+                                prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
+                            }
+                        });
+                    }
+                   
                     lastPlayedLength = completeSentences.length;
                     isFirstSentence = false;
                 }
@@ -249,24 +260,54 @@ async function sendStoryMessage() {
         // 暂停回调
         (fullContent) => {
             setIsPaused(true);
-            const currentCharacter = getCurrentCharacter();
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
-                const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-
-                const unplayedContent = newContent.substring(lastPlayedLength);
-                if (unplayedContent.trim() && prefetchAndPlayAudio) {
-                    prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
-                }
-
                 // 在多角色模式下，使用当前说话角色的ID
                 const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
                     window.storyData?.characters?.length > 1;
                 const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ?
                     window.currentSpeakingCharacterId : 'assistant';
 
-                addToHistory(roleToUse, newContent, characterName);
-                updateCurrentMessage(roleToUse, newContent);
+                if (roleToUse === 'assistant') {
+                    const currentCharacter = getCurrentCharacter();
+                    const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                    
+                    const unplayedContent = newContent.substring(lastPlayedLength);
+                    if (unplayedContent.trim() && prefetchAndPlayAudio) {
+                        prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
+                    }
+                    
+                    addToHistory(roleToUse, newContent, characterName);
+                    updateCurrentMessage(roleToUse, newContent);
+                } else {
+                    // 异步获取角色信息
+                    getCharacterById(roleToUse).then(newCharacter => {
+                        const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
+                        console.log("TTS角色名", newCharacterName);
+                        
+                        const unplayedContent = newContent.substring(lastPlayedLength);
+                        if (unplayedContent.trim() && prefetchAndPlayAudio) {
+                            prefetchAndPlayAudio(unplayedContent, newCharacterName, newCharacter);
+                        }
+                        
+                        addToHistory(roleToUse, newContent, newCharacterName);
+                        updateCurrentMessage(roleToUse, newContent);
+                    }).catch(error => {
+                        console.error("获取角色信息失败:", error);
+                        // 如果获取失败，使用默认角色信息
+                        const currentCharacter = getCurrentCharacter();
+                        const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                        
+                        const unplayedContent = newContent.substring(lastPlayedLength);
+                        if (unplayedContent.trim() && prefetchAndPlayAudio) {
+                            prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
+                        }
+                        
+                        addToHistory(roleToUse, newContent, characterName);
+                        updateCurrentMessage(roleToUse, newContent);
+                    });
+                }
+                
                 addedToHistoryLength = fullContent.length;
             }
             showContinuePrompt();
@@ -418,15 +459,13 @@ async function sendStoryMessage() {
                             // 处理角色回复开始信号
                             if (data.characterResponse) {
                                 console.log('角色开始回复2:', data.characterName);
-                                // 切换到回复的角色
-                                if (window.switchToCharacter) {
-                                    window.switchToCharacter(data.characterID, data.characterName);
-                                }
+                                // 向StreamProcessor添加角色切换标记
+                                const switchMarker = `<SWITCH_CHARACTER:${data.characterID}:${data.characterName}>`;
+                                globalStreamProcessor.addData(switchMarker);
+                                
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);
                                 }
-                                // 设置当前回复的角色ID，供updateCurrentMessage使用
-                                window.currentSpeakingCharacterId = data.characterID;
                             }
 
                             // 处理角色回复完成信号
@@ -435,8 +474,6 @@ async function sendStoryMessage() {
                                 if (window.completeCharacterResponse) {
                                     window.completeCharacterResponse();
                                 }
-                                // 清除当前说话角色ID
-                                //window.currentSpeakingCharacterId = null;
                             }
 
                             // 处理下一个说话者信息
@@ -500,6 +537,8 @@ async function sendStoryMessage() {
         if (globalStreamProcessor) {
             globalStreamProcessor.reset();
         }
+        // 清除角色状态
+        window.currentSpeakingCharacterId = null;
     }
 }
 
