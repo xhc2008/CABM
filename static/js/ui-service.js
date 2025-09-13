@@ -28,6 +28,10 @@ let currentTypingTimeout = null;
 let currentConfirmCallback = null;
 let currentScreenClickHandler = null;
 
+// 角色显示缓存，避免流式输出时重复更新相同角色
+let lastDisplayedRole = null;
+let lastDisplayedCharacterName = null;
+
 // 获取状态
 export function getIsProcessing() {
     return isProcessing;
@@ -79,23 +83,25 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
         currentTypingTimeout = null;
     }
 
+    // 流式输出时，如果角色没有变化，跳过角色名称更新以避免重复请求
+    if (isStreaming && lastDisplayedRole === role && lastDisplayedCharacterName) {
+        currentMessage.textContent = content;
+        return;
+    }
+
     // 更新角色名称
     if (role === 'user') {
-        characterName.textContent = '你';
-        characterName.style.color = '#90caf9';
+        updateCharacterDisplay('你', '#90caf9', role);
     } else if (role === 'assistant') {
         // 需要从角色服务获取当前角色
         const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
         if (currentCharacter) {
-            characterName.textContent = currentCharacter.name;
-            characterName.style.color = currentCharacter.color;
+            updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
         } else {
-            characterName.textContent = 'AI';
-            characterName.style.color = '#ffeb3b';
+            updateCharacterDisplay('AI', '#ffeb3b', role);
         }
     } else if (role === 'system') {
-        characterName.textContent = '系统';
-        characterName.style.color = '#4caf50';
+        updateCharacterDisplay('系统', '#4caf50', role);
     } else {
         // 处理多角色模式：role可能是角色ID
         // 检查是否为多角色模式
@@ -108,16 +114,15 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
             const basicCharacter = window.getCharacterBasicInfo ? window.getCharacterBasicInfo(role) : null;
             
             if (basicCharacter && basicCharacter.name) {
-                characterName.textContent = basicCharacter.name;
-                characterName.style.color = basicCharacter.color || '#ffeb3b';
+                updateCharacterDisplay(basicCharacter.name, basicCharacter.color || '#ffeb3b', role);
                 console.log("多角色模式 - 角色：", basicCharacter.name);
             } else {
                 // 如果基本信息中没有名称，尝试异步获取完整信息
-                if (window.getCharacterById) {
+                if (window.getCharacterById && (!isStreaming || lastDisplayedRole !== role)) {
+                    // 只在非流式输出或角色变化时才发起异步请求
                     window.getCharacterById(role).then(targetCharacter => {
                         if (targetCharacter && targetCharacter.name) {
-                            characterName.textContent = targetCharacter.name;
-                            characterName.style.color = targetCharacter.color || '#ffeb3b';
+                            updateCharacterDisplay(targetCharacter.name, targetCharacter.color || '#ffeb3b', role);
                             console.log("多角色模式 - 异步获取角色：", targetCharacter.name);
                         }
                     }).catch(error => {
@@ -128,27 +133,33 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
                 // 使用当前角色或默认值作为临时显示
                 const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
                 if (currentCharacter) {
-                    characterName.textContent = currentCharacter.name;
-                    characterName.style.color = currentCharacter.color;
+                    updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
                 } else {
-                    characterName.textContent = 'AI';
-                    characterName.style.color = '#ffeb3b';
+                    updateCharacterDisplay('AI', '#ffeb3b', role);
                 }
             }
         } else {
             // 非多角色模式，使用默认处理
             const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
             if (currentCharacter) {
-                characterName.textContent = currentCharacter.name;
-                characterName.style.color = currentCharacter.color;
+                updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
             } else {
-                characterName.textContent = 'AI';
-                characterName.style.color = '#ffeb3b';
+                updateCharacterDisplay('AI', '#ffeb3b', role);
             }
         }
     }
     
     currentMessage.textContent = content;
+}
+
+// 辅助函数：更新角色显示信息并缓存
+function updateCharacterDisplay(name, color, role) {
+    characterName.textContent = name;
+    characterName.style.color = color;
+    
+    // 更新缓存
+    lastDisplayedRole = role;
+    lastDisplayedCharacterName = name;
 }
 
 // 添加消息到历史记录
@@ -452,5 +463,15 @@ function selectOption(option) {
     }
 }
 
+/**
+ * 重置角色显示缓存（在开始新对话或切换角色时调用）
+ */
+export function resetCharacterDisplayCache() {
+    lastDisplayedRole = null;
+    lastDisplayedCharacterName = null;
+    console.log('角色显示缓存已重置');
+}
+
 // 暴露给全局使用
 window.hideOptionButtons = hideOptionButtons;
+window.resetCharacterDisplayCache = resetCharacterDisplayCache;

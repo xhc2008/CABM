@@ -17,6 +17,12 @@ let characterElements = {
     center: null
 };
 
+// 角色信息缓存
+let characterCache = new Map();
+
+// 正在进行的请求缓存，避免重复请求
+let pendingRequests = new Map();
+
 /**
  * 初始化多角色服务
  */
@@ -333,25 +339,56 @@ function findCharacterByName(characterName) {
 }
 
 /**
- * 根据ID获取角色完整信息（从后端API获取）
+ * 根据ID获取角色完整信息（从后端API获取，带缓存优化）
  * @param {string} characterId - 角色ID
  * @returns {Promise<Object|null>} 角色完整信息
  */
 export async function getCharacterById(characterId) {
-    try {
-        const response = await fetch(`/api/characters/${characterId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            return data.character;
-        } else {
-            console.error('获取角色信息失败:', data.error);
-            return null;
-        }
-    } catch (error) {
-        console.error('获取角色信息时发生错误:', error);
+    if (!characterId) {
         return null;
     }
+    
+    // 检查缓存
+    if (characterCache.has(characterId)) {
+        console.log(`从缓存获取角色信息: ${characterId}`);
+        return characterCache.get(characterId);
+    }
+    
+    // 检查是否有正在进行的请求
+    if (pendingRequests.has(characterId)) {
+        console.log(`等待正在进行的请求: ${characterId}`);
+        return await pendingRequests.get(characterId);
+    }
+    
+    // 创建新的请求
+    const requestPromise = (async () => {
+        try {
+            console.log(`发起API请求获取角色信息: ${characterId}`);
+            const response = await fetch(`/api/characters/${characterId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // 缓存结果
+                characterCache.set(characterId, data.character);
+                console.log(`角色信息已缓存: ${characterId} - ${data.character.name}`);
+                return data.character;
+            } else {
+                console.error('获取角色信息失败:', data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('获取角色信息时发生错误:', error);
+            return null;
+        } finally {
+            // 清除正在进行的请求记录
+            pendingRequests.delete(characterId);
+        }
+    })();
+    
+    // 记录正在进行的请求
+    pendingRequests.set(characterId, requestPromise);
+    
+    return await requestPromise;
 }
 
 /**
@@ -395,6 +432,34 @@ export function clearAllCharacters() {
     console.log('已清除所有角色');
 }
 
+/**
+ * 清除角色信息缓存
+ * @param {string} characterId - 可选，指定要清除的角色ID，不传则清除所有缓存
+ */
+export function clearCharacterCache(characterId = null) {
+    if (characterId) {
+        characterCache.delete(characterId);
+        pendingRequests.delete(characterId);
+        console.log(`已清除角色缓存: ${characterId}`);
+    } else {
+        characterCache.clear();
+        pendingRequests.clear();
+        console.log('已清除所有角色缓存');
+    }
+}
+
+/**
+ * 获取缓存统计信息
+ * @returns {Object} 缓存统计
+ */
+export function getCacheStats() {
+    return {
+        cachedCharacters: characterCache.size,
+        pendingRequests: pendingRequests.size,
+        cachedIds: Array.from(characterCache.keys())
+    };
+}
+
 // 暴露给全局使用
 window.switchToCharacter = switchToCharacter;
 window.showCharacterResponse = showCharacterResponse;
@@ -402,6 +467,8 @@ window.updateCharacterResponse = updateCharacterResponse;
 window.completeCharacterResponse = completeCharacterResponse;
 window.getCharacterById = getCharacterById;
 window.getCharacterBasicInfo = getCharacterBasicInfo;
+window.clearCharacterCache = clearCharacterCache;
+window.getCacheStats = getCacheStats;
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', initMultiCharacterService);
