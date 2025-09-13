@@ -206,7 +206,7 @@ export async function sendMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        updateCurrentMessage('assistant', '\n');
+        updateCurrentMessage('assistant', '...\n');
 
         // 读取流式响应
         while (true) {
@@ -254,59 +254,6 @@ export async function sendMessage() {
                                 const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
                                 if (optionGenerationEnabled) {
                                     window.pendingOptions = data.options;
-                                }
-                            }
-                            
-                            // 处理故事进度更新
-                            if (data.storyProgress) {
-                                console.log('故事进度更新:', data.storyProgress);
-                                // 可以在这里添加进度显示逻辑
-                            }
-                            
-                            // 处理故事结束
-                            if (data.storyFinished) {
-                                console.log('故事已结束');
-                                // 可以在这里添加故事结束的处理逻辑
-                            }
-                            
-                            // 处理下一个说话者
-                            if (data.nextSpeaker) {
-                                if (data.nextSpeaker === 'player') {
-                                    console.log('下次轮到玩家说话');
-                                } else {
-                                    console.log(`下次轮到角色说话: ${data.nextSpeakerName || data.nextSpeaker}`);
-                                    // 可以在这里添加角色切换的视觉效果
-                                    if (window.switchToCharacter) {
-                                        window.switchToCharacter(data.nextSpeaker, data.nextSpeakerName);
-                                    }
-                                }
-                            }
-                            
-                            // 处理角色回复开始
-                            if (data.characterResponse) {
-                                console.log(`${data.characterName} 开始回复...`);
-                                // 显示角色回复状态
-                                if (window.showCharacterResponse) {
-                                    window.showCharacterResponse(data.characterName);
-                                }
-                            }
-                            
-                            // 处理角色回复内容
-                            if (data.characterContent) {
-                                // 将角色回复内容添加到主流处理器，保持与story-chat-init.js一致
-                                streamProcessor.addData(data.characterContent);
-                                
-                                // 同时调用角色特定的更新函数（用于角色立绘等视觉效果）
-                                if (window.updateCharacterResponse) {
-                                    window.updateCharacterResponse(data.characterContent);
-                                }
-                            }
-                            
-                            // 处理角色回复完成
-                            if (data.characterResponseComplete) {
-                                console.log('角色回复完成');
-                                if (window.completeCharacterResponse) {
-                                    window.completeCharacterResponse();
                                 }
                             }
                         } catch (e) {

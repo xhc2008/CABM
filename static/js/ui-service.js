@@ -96,8 +96,58 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
     } else if (role === 'system') {
         characterName.textContent = '系统';
         characterName.style.color = '#4caf50';
+    } else {
+        // 处理多角色模式：role可能是角色ID
+        // 检查是否为多角色模式
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
+                                window.storyData?.characters?.length > 1;
+        
+        if (isMultiCharacter) {
+            // 在多角色模式下，role参数可能是角色ID
+            // 先尝试从基本信息中获取角色名称，如果需要完整信息再异步获取
+            const basicCharacter = window.getCharacterBasicInfo ? window.getCharacterBasicInfo(role) : null;
+            
+            if (basicCharacter && basicCharacter.name) {
+                characterName.textContent = basicCharacter.name;
+                characterName.style.color = basicCharacter.color || '#ffeb3b';
+                console.log("多角色模式 - 角色：", basicCharacter.name);
+            } else {
+                // 如果基本信息中没有名称，尝试异步获取完整信息
+                if (window.getCharacterById) {
+                    window.getCharacterById(role).then(targetCharacter => {
+                        if (targetCharacter && targetCharacter.name) {
+                            characterName.textContent = targetCharacter.name;
+                            characterName.style.color = targetCharacter.color || '#ffeb3b';
+                            console.log("多角色模式 - 异步获取角色：", targetCharacter.name);
+                        }
+                    }).catch(error => {
+                        console.error('获取角色信息失败:', error);
+                    });
+                }
+                
+                // 使用当前角色或默认值作为临时显示
+                const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
+                if (currentCharacter) {
+                    characterName.textContent = currentCharacter.name;
+                    characterName.style.color = currentCharacter.color;
+                } else {
+                    characterName.textContent = 'AI';
+                    characterName.style.color = '#ffeb3b';
+                }
+            }
+        } else {
+            // 非多角色模式，使用默认处理
+            const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
+            if (currentCharacter) {
+                characterName.textContent = currentCharacter.name;
+                characterName.style.color = currentCharacter.color;
+            } else {
+                characterName.textContent = 'AI';
+                characterName.style.color = '#ffeb3b';
+            }
+        }
     }
-
+    
     currentMessage.textContent = content;
 }
 
@@ -122,8 +172,31 @@ export function addToHistory(role, content, customName = null) {
         const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
         roleName = customName || (currentCharacter ? currentCharacter.name : 'AI');
         roleSpan.textContent = roleName;
-    } else {
+    } else if (role === 'system') {
         roleName = '系统';
+        roleSpan.textContent = roleName;
+    } else {
+        // 处理多角色模式：role可能是角色ID
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
+                                window.storyData?.characters?.length > 1;
+        
+        if (isMultiCharacter) {
+            // 在多角色模式下，role参数可能是角色ID
+            // 先尝试从基本信息中获取角色名称
+            const basicCharacter = window.getCharacterBasicInfo ? window.getCharacterBasicInfo(role) : null;
+            
+            if (basicCharacter && basicCharacter.name) {
+                roleName = basicCharacter.name;
+            } else {
+                // 如果没找到对应角色，使用自定义名称或当前角色
+                const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
+                roleName = customName || (currentCharacter ? currentCharacter.name : 'AI');
+            }
+        } else {
+            // 非多角色模式，使用自定义名称或当前角色
+            const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
+            roleName = customName || (currentCharacter ? currentCharacter.name : 'AI');
+        }
         roleSpan.textContent = roleName;
     }
 

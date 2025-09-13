@@ -333,6 +333,48 @@ function findCharacterByName(characterName) {
 }
 
 /**
+ * 根据ID获取角色完整信息（从后端API获取）
+ * @param {string} characterId - 角色ID
+ * @returns {Promise<Object|null>} 角色完整信息
+ */
+export async function getCharacterById(characterId) {
+    try {
+        const response = await fetch(`/api/characters/${characterId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.character;
+        } else {
+            console.error('获取角色信息失败:', data.error);
+            return null;
+        }
+    } catch (error) {
+        console.error('获取角色信息时发生错误:', error);
+        return null;
+    }
+}
+
+/**
+ * 根据ID查找角色基本信息（从故事数据中，仅用于快速查找）
+ * @param {string} characterId - 角色ID
+ * @returns {Object|null} 角色基本信息
+ */
+export function getCharacterBasicInfo(characterId) {
+    if (!window.storyData?.characters) {
+        return null;
+    }
+    
+    // 尝试从角色列表中找到对应的角色
+    if (window.storyData.characters.list) {
+        return window.storyData.characters.list.find(char => char.id === characterId);
+    } else if (Array.isArray(window.storyData.characters)) {
+        return window.storyData.characters.find(char => char.id === characterId);
+    }
+    
+    return null;
+}
+
+/**
  * 清除所有角色
  */
 export function clearAllCharacters() {
@@ -358,6 +400,8 @@ window.switchToCharacter = switchToCharacter;
 window.showCharacterResponse = showCharacterResponse;
 window.updateCharacterResponse = updateCharacterResponse;
 window.completeCharacterResponse = completeCharacterResponse;
+window.getCharacterById = getCharacterById;
+window.getCharacterBasicInfo = getCharacterBasicInfo;
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', initMultiCharacterService);

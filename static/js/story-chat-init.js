@@ -201,7 +201,13 @@ async function sendStoryMessage() {
         // 字符回调
         (fullContent) => {
             const newContent = fullContent.substring(addedToHistoryLength);
-            updateCurrentMessage('assistant', newContent, true);
+            // 在多角色模式下，使用当前说话角色的ID
+            const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
+                                    window.storyData?.characters?.length > 1;
+            const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ? 
+                             window.currentSpeakingCharacterId : 'assistant';
+            console.log("》》》》》》》》》聊天框更新：",roleToUse)
+            updateCurrentMessage(roleToUse, newContent, true);
             
             // 检查是否有新的完整句子需要处理
             const sentences = newContent.split(/([。？！…~])/);
@@ -241,8 +247,14 @@ async function sendStoryMessage() {
                     prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
                 }
                 
-                addToHistory('assistant', newContent, characterName);
-                updateCurrentMessage('assistant', newContent);
+                // 在多角色模式下，使用当前说话角色的ID
+                const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
+                                        window.storyData?.characters?.length > 1;
+                const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ? 
+                                 window.currentSpeakingCharacterId : 'assistant';
+                
+                addToHistory(roleToUse, newContent, characterName);
+                updateCurrentMessage(roleToUse, newContent);
                 addedToHistoryLength = fullContent.length;
             }
             showContinuePrompt();
@@ -261,8 +273,13 @@ async function sendStoryMessage() {
                     prefetchAndPlayAudio(unplayedContent, characterName, currentCharacter);
                 }
                 
-                addToHistory('assistant', remainingContent, characterName);
-                updateCurrentMessage('assistant', remainingContent);
+                // 在多角色模式下，使用当前说话角色的ID
+                const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
+                                        window.storyData?.characters?.length > 1;
+                const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ? 
+                                 window.currentSpeakingCharacterId : 'assistant';
+                addToHistory(roleToUse, remainingContent, characterName);
+                updateCurrentMessage(roleToUse, remainingContent);
                 hideContinuePrompt();
                 enableUserInput();
                 setIsPaused(false);
@@ -317,7 +334,6 @@ async function sendStoryMessage() {
 
     // 禁用用户输入
     disableUserInput();
-
     try {
         // 发送API请求到剧情模式端点
         const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
@@ -349,7 +365,7 @@ async function sendStoryMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        updateCurrentMessage('assistant', '\n');
+        updateCurrentMessage('assistant', '...\n');
 
         // 读取流式响应
         while (true) {
@@ -389,24 +405,26 @@ async function sendStoryMessage() {
                             
                             // 处理角色回复开始信号
                             if (data.characterResponse) {
-                                console.log('角色开始回复:', data.characterName);
+                                console.log('角色开始回复2:', data.characterName);
                                 // 切换到回复的角色
                                 if (window.switchToCharacter) {
-                                    // 需要先获取角色ID，这里假设角色名可以映射到ID
-                                    // 实际实现可能需要从角色列表查找
                                     window.switchToCharacter(data.characterID, data.characterName);
                                 }
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);
                                 }
+                                // 设置当前回复的角色ID，供updateCurrentMessage使用
+                                window.currentSpeakingCharacterId = data.characterID;
                             }
                             
                             // 处理角色回复完成信号
                             if (data.characterResponseComplete) {
-                                console.log('角色回复完成');
+                                console.log('角色回复完成2');
                                 if (window.completeCharacterResponse) {
                                     window.completeCharacterResponse();
                                 }
+                                // 清除当前说话角色ID
+                                //window.currentSpeakingCharacterId = null;
                             }
                     
                             // 处理下一个说话者信息
