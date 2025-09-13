@@ -193,6 +193,7 @@ async function sendStoryMessage() {
 
     // 初始化角色状态
     window.currentSpeakingCharacterId = null;
+    window.pendingCharacterSwitch = null;
 
     // 跟踪已添加到历史记录的内容长度
     let addedToHistoryLength = 0;
@@ -449,23 +450,33 @@ async function sendStoryMessage() {
                                 throw new Error(data.error);
                             }
 
-                            // 处理多角色对话的特定字段
-                            if (data.characterContent) {
-                                // 这是角色自动回复的内容
-                                console.log('收到角色回复内容:', data.characterContent);
-                                globalStreamProcessor.addData(data.characterContent);
-                            }
-
-                            // 处理角色回复开始信号
+                            // 处理角色回复开始信号（仅记录，不立即切换）
                             if (data.characterResponse) {
                                 console.log('角色开始回复2:', data.characterName);
-                                // 向StreamProcessor添加角色切换标记
-                                const switchMarker = `<SWITCH_CHARACTER:${data.characterID}:${data.characterName}>`;
-                                globalStreamProcessor.addData(switchMarker);
+                                // 记录待切换的角色信息，但不立即添加切换标记
+                                window.pendingCharacterSwitch = {
+                                    characterID: data.characterID,
+                                    characterName: data.characterName
+                                };
                                 
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);
                                 }
+                            }
+
+                            // 处理多角色对话的特定字段
+                            if (data.characterContent) {
+                                // 这是角色自动回复的内容
+                                // console.log('收到角色回复内容:', data.characterContent);
+                                
+                                // 如果有待切换的角色，先添加切换标记
+                                if (window.pendingCharacterSwitch) {
+                                    const switchMarker = `<SWITCH_CHARACTER:${window.pendingCharacterSwitch.characterID}:${window.pendingCharacterSwitch.characterName}>`;
+                                    globalStreamProcessor.addData(switchMarker);
+                                    window.pendingCharacterSwitch = null; // 清除待切换状态
+                                }
+                                
+                                globalStreamProcessor.addData(data.characterContent);
                             }
 
                             // 处理角色回复完成信号
@@ -539,6 +550,7 @@ async function sendStoryMessage() {
         }
         // 清除角色状态
         window.currentSpeakingCharacterId = null;
+        window.pendingCharacterSwitch = null;
     }
 }
 

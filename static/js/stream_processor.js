@@ -83,25 +83,39 @@ class StreamProcessor {
             return;
         }
 
-        // 取出一个字符或特殊标记
-        const item = this.buffer.shift();
+        // 预览下一个项目，但不立即取出
+        const nextItem = this.buffer[0];
 
-        // 如果是角色切换标记
-        if (typeof item === 'object' && item.type === 'SWITCH_CHARACTER') {
-            console.log('StreamProcessor: 处理角色切换标记:', item.characterName);
-            // 设置当前说话角色ID
-            window.currentSpeakingCharacterId = item.characterID;
-            // 执行角色切换
-            if (window.switchToCharacter) {
-                window.switchToCharacter(item.characterID, item.characterName);
+        // 如果下一个项目是角色切换标记，需要特殊处理
+        if (typeof nextItem === 'object' && nextItem.type === 'SWITCH_CHARACTER') {
+            console.log('StreamProcessor: 发现角色切换标记，等待暂停后执行:', nextItem.characterName);
+            
+            // 检查当前段落是否有内容需要暂停
+            if (this.currentParagraph && this.lastCharWasPauseMarker) {
+                // 有内容且上一个字符是暂停标记，触发暂停
+                this.handlePause();
+                return; // 暂停处理，等待用户继续
+            } else {
+                // 没有内容需要暂停，立即执行角色切换
+                const item = this.buffer.shift(); // 现在才真正取出
+                console.log('StreamProcessor: 立即执行角色切换:', item.characterName);
+                // 设置当前说话角色ID
+                window.currentSpeakingCharacterId = item.characterID;
+                // 执行角色切换
+                if (window.switchToCharacter) {
+                    window.switchToCharacter(item.characterID, item.characterName);
+                }
+                // 继续处理下一个项目
+                this.processingTimeout = setTimeout(() => {
+                    this.processingTimeout = null;
+                    this.processBuffer();
+                }, 0); // 立即处理下一个项目
+                return;
             }
-            // 继续处理下一个项目
-            this.processingTimeout = setTimeout(() => {
-                this.processingTimeout = null;
-                this.processBuffer();
-            }, 0); // 立即处理下一个项目
-            return;
         }
+
+        // 正常处理：取出一个字符
+        const item = this.buffer.shift();
 
         const char = item;
 
@@ -181,6 +195,19 @@ class StreamProcessor {
         if (this.isPaused) {
             this.isPaused = false;
             console.log('Unpaused, continuing processing...');
+
+            // 检查是否有待处理的角色切换标记
+            const nextItem = this.buffer[0];
+            if (typeof nextItem === 'object' && nextItem.type === 'SWITCH_CHARACTER') {
+                console.log('StreamProcessor: 继续时执行角色切换:', nextItem.characterName);
+                const item = this.buffer.shift(); // 取出角色切换标记
+                // 设置当前说话角色ID
+                window.currentSpeakingCharacterId = item.characterID;
+                // 执行角色切换
+                if (window.switchToCharacter) {
+                    window.switchToCharacter(item.characterID, item.characterName);
+                }
+            }
 
             // 继续处理缓冲区
             if (!this.processingTimeout) {
