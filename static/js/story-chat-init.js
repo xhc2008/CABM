@@ -395,8 +395,8 @@ async function sendStoryMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        //updateCurrentMessage('assistant', '...\n');
-
+        // updateCurrentMessage('assistant', '...\n');
+        updateCurrentMessage('user', message);
         // 读取流式响应
         while (true) {
             const { done, value } = await reader.read();
@@ -428,12 +428,17 @@ async function sendStoryMessage() {
 
                             // 处理角色回复开始信号（仅记录，不立即切换）
                             if (data.characterResponse) {
-                                console.log('角色开始回复2:', data.characterName);
+                                console.log('角色开始回复:', data.characterName);
                                 // 记录待切换的角色信息，但不立即添加切换标记
                                 window.pendingCharacterSwitch = {
                                     characterID: data.characterID,
                                     characterName: data.characterName
                                 };
+                                
+                                // 立即切换到新角色，而不是等待内容
+                                if (window.switchToCharacter) {
+                                    window.switchToCharacter(data.characterID, data.characterName);
+                                }
                                 
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);

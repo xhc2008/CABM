@@ -206,7 +206,7 @@ export async function sendMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        //updateCurrentMessage('assistant', '...\n');
+        updateCurrentMessage('assistant', '\n\n');
 
         // 读取流式响应
         while (true) {

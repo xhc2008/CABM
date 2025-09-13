@@ -73,7 +73,26 @@ export function enableMultiCharacterMode() {
     
     console.log('多角色模式已启用');
 }
-
+function updateCharacterAtPosition(position, characterId, character, characterName) {
+    const element = characterElements[position];
+    if (!element) return;
+    
+    // 获取角色图片URL
+    const imageUrl = getDefaultCharacterImageUrl(characterId, character);
+    
+    // 获取角色图片元素
+    const characterImage = element.querySelector('.character-img');
+    if (!characterImage) return;
+    
+    // 设置图片
+    characterImage.src = imageUrl;
+    characterImage.alt = characterName;
+    
+    // 应用角色配置
+    applyCharacterConfig(element, character);
+    
+    console.log(`角色 ${characterName} 在 ${position} 位置已更新`);
+}
 /**
  * 禁用多角色模式（返回单角色模式）
  */
@@ -254,6 +273,18 @@ function showCharacter(characterId, character, characterName) {
     // 检查当前屏幕上的角色数量
     const activeCharacters = Object.values(currentCharacters).filter(char => char !== null);
     
+    // 检查是否已经有相同角色在不同位置
+    const existingPosition = Object.keys(currentCharacters).find(
+        pos => currentCharacters[pos] && currentCharacters[pos].id === characterId
+    );
+    
+    if (existingPosition) {
+        // 如果角色已经在屏幕上，只需更新该位置的图片
+        console.log(`角色 ${characterName} 已在 ${existingPosition} 位置，更新图片`);
+        updateCharacterAtPosition(existingPosition, characterId, character, characterName);
+        return;
+    }
+    
     if (activeCharacters.length === 0) {
         // 没有角色，显示在中央
         showCharacterAt('center', characterId, character, characterName);
@@ -265,17 +296,36 @@ function showCharacter(characterId, character, characterName) {
             // 将中央角色移到左侧，新角色显示在右侧
             const existingCharacter = currentCharacters.center;
             moveCharacterFromTo('center', 'left', existingCharacter);
-            showCharacterAt('right', characterId, character, characterName);
+            // 等待移动完成后再显示新角色
+            setTimeout(() => {
+                showCharacterAt('right', characterId, character, characterName);
+            }, 100); // 添加短暂延迟确保移动完成
         } else {
             // 已经有左右角色，随机替换一个
-            const targetPosition = Math.random() < 0.5 ? 'left' : 'right';
+            const targetPosition = existingPosition === 'left' ? 'right' : 'left';
             showCharacterAt(targetPosition, characterId, character, characterName);
         }
     } else {
         // 有两个角色，随机替换一个
-        const targetPosition = Math.random() < 0.5 ? 'left' : 'right';
+        const positions = ['left', 'right'];
+        const targetPosition = positions[Math.floor(Math.random() * positions.length)];
         showCharacterAt(targetPosition, characterId, character, characterName);
     }
+}
+
+function clearCharacterAtPosition(position) {
+    const element = characterElements[position];
+    if (!element) return;
+    
+    element.style.opacity = '0';
+    
+    const characterImage = element.querySelector('.character-img');
+    if (characterImage) {
+        characterImage.src = '';
+    }
+    
+    currentCharacters[position] = null;
+    console.log(`已清除 ${position} 位置的角色`);
 }
 
 /**
@@ -286,10 +336,21 @@ function showCharacter(characterId, character, characterName) {
  * @param {string} characterName - 角色名称
  */
 async function showCharacterAt(position, characterId, character, characterName) {
+    // 检查是否已经在其他位置显示了这个角色
+    for (const [pos, char] of Object.entries(currentCharacters)) {
+        if (char && char.id === characterId && pos !== position) {
+            console.log(`角色 ${characterName} 已在 ${pos} 位置显示，移动到 ${position}`);
+            moveCharacterFromTo(pos, position, char);
+            return;
+        }
+    }
+    
     const element = characterElements[position];
-    if (!element) {
-        console.error(`找不到 ${position} 位置的元素`);
-        return;
+    if (!element) return;
+    
+    // 如果该位置已经有其他角色，先清除
+    if (currentCharacters[position]) {
+        clearCharacterAtPosition(position);
     }
     
     // 更新角色状态
@@ -299,50 +360,32 @@ async function showCharacterAt(position, characterId, character, characterName) 
         character: character
     };
     
-    // 获取角色图片URL
-    let imageUrl;
-    try {
-        // 加载角色图片列表
-        await loadCharacterImages(characterId);
-        imageUrl = getDefaultCharacterImageUrl(characterId, character);
-    } catch (error) {
-        console.error('获取角色图片失败:', error);
-        imageUrl = '/static/images/default.svg'; // 使用默认图片
-    }
+    // 加载角色图片列表
+    await loadCharacterImages(characterId);
+    
+    // 获取默认图片
+    const imageUrl = getDefaultCharacterImageUrl(characterId, character);
     
     // 获取角色图片元素
     const characterImage = element.querySelector('.character-img');
-    if (!characterImage) {
-        console.error(`找不到 ${position} 位置的图片元素`);
-        return;
-    }
+    if (!characterImage) return;
     
-    // 设置图片 - 添加时间戳避免缓存问题
-    characterImage.src = imageUrl + '?t=' + Date.now();
+    // 设置图片
+    characterImage.src = imageUrl;
     characterImage.alt = characterName;
     
-    // 添加加载成功和失败的处理
-    characterImage.onload = () => {
-        console.log(`角色 ${characterName} 图片加载成功: ${imageUrl}`);
-        // 应用角色配置（位置校准和缩放）
-        applyCharacterConfig(element, character);
-        
-        // 显示动画
-        setTimeout(() => {
-            element.style.opacity = '1';
-            if (position === 'center') {
-                element.style.transform = 'translateX(-50%)';
-            } else {
-                element.style.transform = 'translateX(0)';
-            }
-            console.log(`角色 ${characterName} 已显示在 ${position} 位置`);
-        }, 50);
-    };
+    // 应用角色配置（位置校准和缩放）
+    applyCharacterConfig(element, character);
     
-    characterImage.onerror = () => {
-        console.error(`角色 ${characterName} 图片加载失败: ${imageUrl}`);
-        characterImage.src = '/static/images/default.svg';
-    };
+    // 显示动画
+    element.style.opacity = '1';
+    if (position === 'center') {
+        element.style.transform = 'translateX(-50%)';
+    } else {
+        element.style.transform = 'translateX(0)';
+    }
+    
+    console.log(`角色 ${characterName} 已显示在 ${position} 位置`);
 }
 
 /**
@@ -365,32 +408,30 @@ function moveCharacterFromTo(fromPosition, toPosition, characterData) {
         // 复制图片到新位置
         toImage.src = fromImage.src;
         toImage.alt = fromImage.alt;
+        
+        // 复制角色配置到新位置
+        applyCharacterConfig(toElement, characterData.character);
+        
+        // 更新角色状态
+        currentCharacters[toPosition] = characterData;
+        currentCharacters[fromPosition] = null;
+        
+        // 隐藏原位置 - 添加过渡效果
+        fromElement.style.opacity = '0';
+        setTimeout(() => {
+            fromImage.src = '';
+        }, 500); // 等待过渡完成后再清空图片
+        
+        // 显示新位置
+        toElement.style.opacity = '1';
+        if (toPosition === 'center') {
+            toElement.style.transform = 'translateX(-50%)';
+        } else {
+            toElement.style.transform = 'translateX(0)';
+        }
+        
+        console.log(`角色从 ${fromPosition} 移动到 ${toPosition}`);
     }
-    
-    // 复制角色配置到新位置
-    applyCharacterConfig(toElement, characterData.character);
-    
-    // 更新角色状态
-    currentCharacters[toPosition] = characterData;
-    currentCharacters[fromPosition] = null;
-    
-    // 隐藏原位置
-    fromElement.style.opacity = '0';
-    if (fromImage) {
-        fromImage.src = '';
-    }
-    
-    // 显示新位置 - 避免上下移动
-    toElement.style.opacity = '1';
-    if (toPosition === 'center') {
-        toElement.style.transform = 'translateX(-50%)';
-    } else if (toPosition === 'left') {
-        toElement.style.transform = 'translateX(0)';
-    } else if (toPosition === 'right') {
-        toElement.style.transform = 'translateX(0)';
-    }
-    
-    console.log(`角色从 ${fromPosition} 移动到 ${toPosition}`);
 }
 
 /**
@@ -451,7 +492,9 @@ function getDefaultCharacterImageUrl(characterId, character) {
     }
     
     // 使用默认立绘路径
-    return `/static/images/${characterId}/1.png`;
+    const defaultUrl = `/static/images/${characterId}/1.png`;
+    console.log(`使用默认图片路径: ${defaultUrl}`);
+    return defaultUrl;
 }
 
 /**
