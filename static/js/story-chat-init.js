@@ -482,6 +482,7 @@ async function sendStoryMessage() {
                             // 处理角色回复完成信号
                             if (data.characterResponseComplete) {
                                 console.log('角色回复完成2');
+                                
                                 if (window.completeCharacterResponse) {
                                     window.completeCharacterResponse();
                                 }
@@ -490,9 +491,14 @@ async function sendStoryMessage() {
                             // 处理下一个说话者信息
                             if (data.nextSpeaker) {
                                 console.log('下一个说话者:', data.nextSpeaker);
+                                    
                                 if (data.nextSpeakerName) {
                                     console.log('下一个说话者名称:', data.nextSpeakerName);
                                     // 可以在这里更新UI提示下一个说话者
+                                }
+                                if(data.nextSpeaker=='player')
+                                {
+                                    globalStreamProcessor.markEnd();
                                 }
                             }
 
