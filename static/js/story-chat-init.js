@@ -4,53 +4,29 @@ import {
     continueOutput,
     skipTyping
 } from './chat-service.js';
-
+import { 
+    initMultiCharacterService, 
+    // showCharacter, 
+    clearAllCharacters 
+} from './multi-character-service.js';
 // 保存原始的continueOutput函数作为备用
 window.originalContinueOutput = continueOutput;
 
 // 直接设置当前角色的函数（用于剧情模式）
 function setCurrentCharacterDirect(character) {
     console.log('直接设置角色:', character);
-
-    // 更新角色名称显示
-    const characterNameElement = document.getElementById('characterName');
-    if (characterNameElement && character.name) {
-        characterNameElement.textContent = character.name;
-        characterNameElement.style.color = character.color || '#ffeb3b';
-        console.log('设置角色名称:', character.name, '颜色:', character.color);
-    }
-
-    // 更新角色图片
-    const characterImage = document.getElementById('characterImage');
-    if (characterImage && character.image) {
-        // 确保路径格式正确
-        let imagePath = character.image;
-        if (!imagePath.startsWith('/')) {
-            imagePath = '/' + imagePath;
-        }
-        if (!imagePath.endsWith('/1.png')) {
-            imagePath = imagePath + '/1.png';
-        }
-
-        console.log('设置角色图片路径:', imagePath);
-        characterImage.src = imagePath;
-        characterImage.alt = character.name;
-
-        // 处理图片加载失败的情况
-        characterImage.onerror = () => {
-            console.log('角色图片加载失败，使用默认图片');
-            characterImage.src = '/static/images/default.svg';
-        };
-
-        // 添加加载成功的回调
-        characterImage.onload = () => {
-            console.log('角色图片加载成功:', imagePath);
-        };
-    }
-
-    // 更新全局角色状态（让getCurrentCharacter能返回正确的角色）
+    
+    // 使用新的showCharacter函数
+    showCharacter(
+        character.id, 
+        character, 
+        character.name, 
+        false
+    );
+    
+    // 更新全局角色状态
     setCurrentCharacter(character);
-
+    
     if (window.updateCurrentCharacter) {
         window.updateCurrentCharacter(character);
     }
@@ -395,13 +371,6 @@ async function sendStoryMessage() {
         const endpoint = isMultiCharacter ?
             '/api/multi-character/chat/stream' :
             '/api/story/chat/stream';
-            
-        // 根据模式启用或禁用多角色立绘显示
-        if (isMultiCharacter && window.enableMultiCharacterMode) {
-            window.enableMultiCharacterMode();
-        } else if (!isMultiCharacter && window.disableMultiCharacterMode) {
-            window.disableMultiCharacterMode();
-        }
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -426,7 +395,7 @@ async function sendStoryMessage() {
         const decoder = new TextDecoder();
 
         // 准备接收流式响应
-        updateCurrentMessage('assistant', '...\n');
+        //updateCurrentMessage('assistant', '...\n');
 
         // 读取流式响应
         while (true) {
@@ -572,13 +541,33 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log('开始初始化剧情聊天页面...');
 
-        // 如果有当前角色信息，直接设置
-        if (window.currentCharacter) {
-            console.log('剧情模式 - 当前角色信息:', window.currentCharacter);
-            // 直接设置当前角色，不需要通过API加载
-            window.setCurrentCharacterDirect(window.currentCharacter);
+        // 检查是否为多角色模式
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+            window.storyData?.characters?.length > 1;
+        
+        console.log('剧情模式 - 角色数量:', window.storyData?.characters?.list?.length || window.storyData?.characters?.length || 0);
+        console.log('是否为多角色模式:', isMultiCharacter);
+        
+        // 根据模式初始化多角色服务
+        if (isMultiCharacter) {
+            console.log('多角色模式 - 初始化多角色服务');
+            // 确保多角色服务已初始化
+            if (window.initMultiCharacterService) {
+                window.initMultiCharacterService();
+            }
+            if (window.enableMultiCharacterMode) {
+                window.enableMultiCharacterMode();
+            }
         } else {
-            console.log('剧情模式 - 未找到当前角色信息');
+            console.log('单角色模式 - 显示单角色立绘');
+            if (window.currentCharacter) {
+                console.log('剧情模式 - 当前角色信息:', window.currentCharacter);
+                window.setCurrentCharacterDirect(window.currentCharacter);
+            }
+            // 确保多角色容器隐藏
+            if (window.disableMultiCharacterMode) {
+                window.disableMultiCharacterMode();
+            }
         }
 
         // 加载角色数据（用于角色选择模态框）

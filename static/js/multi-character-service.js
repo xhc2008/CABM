@@ -43,6 +43,9 @@ export function initMultiCharacterService() {
         createCharacterElements();
     }
     
+    // 添加调试函数到全局
+    window.debugCharacterElements = debugCharacterElements;
+    
     console.log('多角色服务已初始化');
 }
 
@@ -52,16 +55,21 @@ export function initMultiCharacterService() {
 export function enableMultiCharacterMode() {
     console.log('启用多角色模式');
     
-    // 隐藏单角色模式的立绘
-    hideSingleCharacterImage();
+    // 确保多角色容器存在
+    if (!document.querySelector('.multi-character-container')) {
+        createCharacterElements();
+    }
     
     // 确保多角色容器可见
     const multiCharacterContainer = document.querySelector('.multi-character-container');
     if (multiCharacterContainer) {
         multiCharacterContainer.style.display = 'block';
-        // 不要强制隐藏立绘，让它们保持自然状态
-        // 只有当角色确实需要显示时才会显示
+        multiCharacterContainer.style.zIndex = '5'; // 确保在背景之上
+        console.log('多角色容器已显示');
     }
+    
+    // 隐藏单角色模式的立绘
+    hideSingleCharacterImage();
     
     console.log('多角色模式已启用');
 }
@@ -93,43 +101,52 @@ export function disableMultiCharacterMode() {
 function createCharacterElements() {
     const chatContainer = document.querySelector('.chat-container') || document.body;
     
-    // 创建角色容器
-    const characterContainer = document.createElement('div');
-    characterContainer.className = 'multi-character-container';
-    characterContainer.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 1;
-    `;
+    // 检查是否已存在多角色容器
+    let characterContainer = document.querySelector('.multi-character-container');
+    if (!characterContainer) {
+        // 创建角色容器
+        characterContainer = document.createElement('div');
+        characterContainer.className = 'multi-character-container';
+        characterContainer.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5; // 提高z-index确保在背景之上
+            display: block; // 确保默认显示
+        `;
+        chatContainer.appendChild(characterContainer);
+    }
     
-    // 创建左侧角色元素 - 使用与单角色模式相同的结构
-    const leftCharacter = createCharacterElement('left', '15%', 'translateX(-50px)');
+    // 创建左侧角色元素
+    if (!characterElements.left) {
+        const leftCharacter = createCharacterElement('left', '15%', 'translateX(-50px)');
+        characterContainer.appendChild(leftCharacter);
+        characterElements.left = leftCharacter;
+    }
     
     // 创建右侧角色元素
-    const rightCharacter = createCharacterElement('right', '85%', 'translateX(50px)');
+    if (!characterElements.right) {
+        const rightCharacter = createCharacterElement('right', '85%', 'translateX(50px)');
+        characterContainer.appendChild(rightCharacter);
+        characterElements.right = rightCharacter;
+    }
     
-    // 创建中央角色元素（单角色模式使用）
-    const centerCharacter = createCharacterElement('center', '50%', 'translateX(-50%)');
-    
-    // 添加到容器
-    characterContainer.appendChild(leftCharacter);
-    characterContainer.appendChild(rightCharacter);
-    characterContainer.appendChild(centerCharacter);
-    chatContainer.appendChild(characterContainer);
-    
-    // 更新元素引用
-    characterElements.left = leftCharacter;
-    characterElements.right = rightCharacter;
-    characterElements.center = centerCharacter;
+    // 创建中央角色元素
+    if (!characterElements.center) {
+        const centerCharacter = createCharacterElement('center', '50%', 'translateX(-50%)');
+        characterContainer.appendChild(centerCharacter);
+        characterElements.center = centerCharacter;
+    }
     
     // 初始化动画状态
     isAnimating.set('left', false);
     isAnimating.set('right', false);
     isAnimating.set('center', false);
+    
+    console.log('多角色容器和立绘元素已创建');
 }
 
 /**
@@ -143,7 +160,7 @@ function createCharacterElement(position, leftPosition, initialTransform) {
     const characterDiv = document.createElement('div');
     characterDiv.className = `character-${position}`;
     
-    // 设置基础样式 - 避免上下移动，使用底部对齐
+    // 根据位置设置不同的定位方式，避免上下移动
     if (position === 'left') {
         characterDiv.style.cssText = `
             position: absolute;
@@ -158,7 +175,7 @@ function createCharacterElement(position, leftPosition, initialTransform) {
     } else if (position === 'right') {
         characterDiv.style.cssText = `
             position: absolute;
-            right: ${leftPosition};
+            right: ${leftPosition.replace('%', '')}%;
             bottom: 0;
             width: 300px;
             height: 600px;
@@ -270,7 +287,10 @@ function showCharacter(characterId, character, characterName) {
  */
 async function showCharacterAt(position, characterId, character, characterName) {
     const element = characterElements[position];
-    if (!element) return;
+    if (!element) {
+        console.error(`找不到 ${position} 位置的元素`);
+        return;
+    }
     
     // 更新角色状态
     currentCharacters[position] = {
@@ -279,34 +299,50 @@ async function showCharacterAt(position, characterId, character, characterName) 
         character: character
     };
     
-    // 加载角色图片列表
-    await loadCharacterImages(characterId);
-    
-    // 获取默认图片
-    const imageUrl = getDefaultCharacterImageUrl(characterId, character);
+    // 获取角色图片URL
+    let imageUrl;
+    try {
+        // 加载角色图片列表
+        await loadCharacterImages(characterId);
+        imageUrl = getDefaultCharacterImageUrl(characterId, character);
+    } catch (error) {
+        console.error('获取角色图片失败:', error);
+        imageUrl = '/static/images/default.svg'; // 使用默认图片
+    }
     
     // 获取角色图片元素
     const characterImage = element.querySelector('.character-img');
-    if (!characterImage) return;
-    
-    // 设置图片
-    characterImage.src = imageUrl;
-    characterImage.alt = characterName;
-    
-    // 应用角色配置（位置校准和缩放）
-    applyCharacterConfig(element, character);
-    
-    // 显示动画 - 避免上下移动，保持底部对齐
-    element.style.opacity = '1';
-    if (position === 'center') {
-        element.style.transform = 'translateX(-50%)';
-    } else if (position === 'left') {
-        element.style.transform = 'translateX(0)';
-    } else if (position === 'right') {
-        element.style.transform = 'translateX(0)';
+    if (!characterImage) {
+        console.error(`找不到 ${position} 位置的图片元素`);
+        return;
     }
     
-    console.log(`角色 ${characterName} 已显示在 ${position} 位置`);
+    // 设置图片 - 添加时间戳避免缓存问题
+    characterImage.src = imageUrl + '?t=' + Date.now();
+    characterImage.alt = characterName;
+    
+    // 添加加载成功和失败的处理
+    characterImage.onload = () => {
+        console.log(`角色 ${characterName} 图片加载成功: ${imageUrl}`);
+        // 应用角色配置（位置校准和缩放）
+        applyCharacterConfig(element, character);
+        
+        // 显示动画
+        setTimeout(() => {
+            element.style.opacity = '1';
+            if (position === 'center') {
+                element.style.transform = 'translateX(-50%)';
+            } else {
+                element.style.transform = 'translateX(0)';
+            }
+            console.log(`角色 ${characterName} 已显示在 ${position} 位置`);
+        }, 50);
+    };
+    
+    characterImage.onerror = () => {
+        console.error(`角色 ${characterName} 图片加载失败: ${imageUrl}`);
+        characterImage.src = '/static/images/default.svg';
+    };
 }
 
 /**
@@ -791,6 +827,45 @@ export function showSingleCharacterImage() {
         singleCharacterContainer.style.display = 'block';
         console.log('已显示单角色模式立绘');
     }
+}
+export function debugCharacterElements() {
+    console.log('=== 多角色元素调试信息 ===');
+    
+    // 检查容器
+    const container = document.querySelector('.multi-character-container');
+    console.log('多角色容器:', container);
+    if (container) {
+        console.log('容器样式:', {
+            display: container.style.display,
+            opacity: container.style.opacity,
+            zIndex: container.style.zIndex,
+            visibility: container.style.visibility
+        });
+    }
+    
+    // 检查每个角色元素
+    Object.entries(characterElements).forEach(([position, element]) => {
+        console.log(`${position} 位置元素:`, element);
+        if (element) {
+            console.log(`${position} 样式:`, {
+                display: element.style.display,
+                opacity: element.style.opacity,
+                transform: element.style.transform,
+                left: element.style.left,
+                right: element.style.right,
+                bottom: element.style.bottom
+            });
+            
+            const img = element.querySelector('.character-img');
+            console.log(`${position} 图片:`, img);
+            if (img) {
+                console.log(`${position} 图片源:`, img.src);
+            }
+        }
+    });
+    
+    console.log('当前角色状态:', currentCharacters);
+    console.log('=== 调试信息结束 ===');
 }
 
 // 暴露给全局使用
