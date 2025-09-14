@@ -50,97 +50,16 @@ export function initMultiCharacterService() {
         characterElements.center.style.display = 'none';
     }
     
-    // 显示左右角色（多角色模式）
-    if (characterElements.left) {
-        characterElements.left.style.display = 'flex';
-        // 添加呼吸效果
-        const leftImg = characterElements.left.querySelector('.character-img');
-        if (leftImg) {
-            leftImg.classList.add('character-breathing');
-        }
-    }
-    if (characterElements.right) {
-        characterElements.right.style.display = 'flex';
-        // 添加呼吸效果
-        const rightImg = characterElements.right.querySelector('.character-img');
-        if (rightImg) {
-            rightImg.classList.add('character-breathing');
-        }
-    }
-    
+    // 显示左右角色（多角色模式）的逻辑已移动到 showCharacterAt 函数中
+    setTimeout(() => {
+        Object.entries(currentCharacters).forEach(([position, character]) => {
+            if (character && characterElements[position]) {
+                applyCharacterScaling(characterElements[position], character.character);
+                applyCharacterPosition(characterElements[position], character.character, position);
+            }
+        });
+    }, 100);
     console.log('多角色服务已初始化');
-}
-
-/**
- * 创建角色立绘元素
- */
-function createCharacterElements() {
-    const chatContainer = document.querySelector('.character-container') || document.body;
-    
-    // 创建左侧角色元素 - 使用与单角色相同的样式
-    const leftCharacter = document.createElement('div');
-    leftCharacter.className = 'character-image character-left';
-    leftCharacter.style.cssText = `
-        position: absolute;
-        left: 5%;
-        bottom: 0;
-        max-width: 40%;
-        max-height: 80%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        transition: all 0.5s ease;
-        z-index: 1;
-        pointer-events: none;
-    `;
-    
-    const leftImg = document.createElement('img');
-    leftImg.className = 'character-img';
-    leftImg.style.cssText = `
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        transform-origin: center center;
-    `;
-    leftCharacter.appendChild(leftImg);
-    
-    // 创建右侧角色元素 - 使用与单角色相同的样式
-    const rightCharacter = document.createElement('div');
-    rightCharacter.className = 'character-image character-right';
-    rightCharacter.style.cssText = `
-        position: absolute;
-        right: 5%;
-        bottom: 0;
-        max-width: 40%;
-        max-height: 80%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        transition: all 0.5s ease;
-        z-index: 1;
-        pointer-events: none;
-    `;
-    
-    const rightImg = document.createElement('img');
-    rightImg.className = 'character-img';
-    rightImg.style.cssText = `
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        transform-origin: center center;
-    `;
-    rightCharacter.appendChild(rightImg);
-    
-    // 添加到现有的角色容器
-    chatContainer.appendChild(leftCharacter);
-    chatContainer.appendChild(rightCharacter);
-    
-    // 更新元素引用
-    characterElements.left = leftCharacter;
-    characterElements.right = rightCharacter;
-    characterElements.center = null; // 多角色模式下不使用中央位置
 }
 
 /**
@@ -180,12 +99,25 @@ function showCharacter(characterId, character, characterName) {
     // 检查当前屏幕上的角色数量
     const activeCharacters = Object.values(currentCharacters).filter(char => char !== null);
     
-    // 如果没有角色，显示在左侧
+    // 如果没有角色，随机显示在一侧
     if (activeCharacters.length === 0) {
+        const side = Math.random() < 0.5 ? 'left' : 'right';
+        showCharacterAt(side, characterId, character, characterName);
+        return;
+    }
+    //避免在两侧同时出现
+    let currentChar = currentCharacters['left'];
+    if (currentChar && currentChar.id === characterId) {
+        console.log(`角色 ${characterName} 已经在left位置`);
         showCharacterAt('left', characterId, character, characterName);
         return;
     }
-    
+    currentChar = currentCharacters['right'];
+    if (currentChar && currentChar.id === characterId) {
+        console.log(`角色 ${characterName} 已经在right位置`);
+        showCharacterAt('right', characterId, character, characterName);
+        return;
+    }
     // 如果只有一个角色，新角色显示在另一侧
     if (activeCharacters.length === 1) {
         const existingPosition = Object.keys(currentCharacters).find(pos => currentCharacters[pos] !== null);
@@ -198,7 +130,58 @@ function showCharacter(characterId, character, characterName) {
     const side = Math.random() < 0.5 ? 'left' : 'right';
     showCharacterAt(side, characterId, character, characterName);
 }
+/**
+ * 应用角色缩放率（多角色模式）
+ */
+function applyCharacterScaling(element, character) {
+    if (!element || !character) return;
+    
+    const scaleValue = typeof character.scale_rate !== 'undefined' 
+        ? character.scale_rate / 100 
+        : 1;
+    
+    console.log(`应用角色缩放: ${character.name}, 缩放率: ${scaleValue}`);
+    
+    // 应用到整个角色容器
+    element.style.transform = `scale(${scaleValue})`;
+    
+    // 设置CSS变量供呼吸动画使用
+    element.style.setProperty('--base-scale', scaleValue);
+    
+    // 更新内部图片的变换原点
+    const imgElement = element.querySelector('.character-img');
+    if (imgElement) {
+        imgElement.style.transformOrigin = 'center bottom'; // 从底部中心缩放
+    }
+}
 
+/**
+ * 应用角色位置调整（多角色模式）
+ */
+function applyCharacterPosition(element, character, position) {
+    if (!element || !character) return;
+    
+    const positionAdjustment = typeof character.calib !== 'undefined' 
+        ? character.calib 
+        : 0;
+    
+    console.log(`应用角色位置调整: ${character.name}, 调整值: ${positionAdjustment}px`);
+    
+    // 根据位置应用不同的调整
+    if (position === 'left') {
+        element.style.bottom = `${positionAdjustment}px`;
+    } else if (position === 'right') {
+        element.style.bottom = `${positionAdjustment}px`;
+    }
+    
+    // 确保角色不会超出屏幕边界
+    const maxBottomAdjustment = window.innerHeight * 0.2; // 最大调整范围为屏幕高度的20%
+    if (Math.abs(positionAdjustment) > maxBottomAdjustment) {
+        const clampedAdjustment = Math.sign(positionAdjustment) * maxBottomAdjustment;
+        element.style.bottom = `${clampedAdjustment}px`;
+        console.warn(`位置调整值 ${positionAdjustment}px 超出限制，已限制为 ${clampedAdjustment}px`);
+    }
+}
 /**
  * 在指定位置显示角色
  * @param {string} position - 位置 ('left', 'right', 'center')
@@ -206,7 +189,6 @@ function showCharacter(characterId, character, characterName) {
  * @param {Object} character - 角色配置
  * @param {string} characterName - 角色名称
  */
-// 修改后：显示角色，使用平滑过渡
 function showCharacterAt(position, characterId, character, characterName) {
     const element = characterElements[position];
     if (!element) {
@@ -214,18 +196,18 @@ function showCharacterAt(position, characterId, character, characterName) {
         return;
     }
     
-    // 检查是否已经是同一角色在同一位置
-    const currentChar = currentCharacters[position];
-    if (currentChar && currentChar.id === characterId) {
-        console.log(`角色 ${characterName} 已经在 ${position} 位置，无需更新`);
-        return;
+    // 检查该元素是否显示，没显示则显示
+    if (element.style.display !== 'flex') {
+        element.style.display = 'flex';
+        console.log(`设置 ${position} 位置元素显示为 flex`);
     }
     
-    // 如果有当前角色，使用平滑过渡
-    if (currentChar) {
-        smoothCharacterTransition(currentChar.id, characterId, position);
-        return;
-    }
+    // 检查是否已经是同一角色在同一位置
+    // const currentChar = currentCharacters[position];
+    // if (currentChar && currentChar.id === characterId) {
+    //     console.log(`角色 ${characterName} 已经在 ${position} 位置，无需更新`);
+    //     return;
+    // }
     
     // 获取角色立绘URL
     const imageUrl = getCharacterImageUrl(characterId, character);
@@ -249,16 +231,26 @@ function showCharacterAt(position, characterId, character, characterName) {
             this.src = '/static/images/default.svg';
         };
         
-        // 图片加载完成后添加呼吸效果
+        // 图片加载完成后添加呼吸效果和应用缩放
         imgElement.onload = function() {
             this.classList.add('character-breathing');
+            
+            // 应用角色缩放率（多角色模式）
+            applyCharacterScaling(element, character);
+            
+            // 应用角色位置调整（多角色模式）
+            applyCharacterPosition(element, character, position);
         };
     }
+    
+    // 立即应用缩放和位置（即使图片未加载）
+    applyCharacterScaling(element, character);
+    applyCharacterPosition(element, character, position);
     
     // 显示动画
     element.style.opacity = '1';
     
-    console.log(`角色 ${characterName} 已显示在 ${position} 位置`);
+    console.log(`角色 ${characterName} 已显示在 ${position} 位置，缩放率: ${character.scale_rate || 100}%, 位置调整: ${character.calib || 0}`);
 }
 
 /**
@@ -476,21 +468,26 @@ function showNewCharacter(characterId, position) {
                 imgElement.src = getCharacterImageUrl(characterId, character);
                 imgElement.alt = character.name;
                 
-                // 处理图片加载错误
                 imgElement.onerror = function() {
                     console.error(`角色图片加载失败: ${imgElement.src}`);
                     this.src = '/static/images/default.svg';
                 };
                 
-                // 图片加载完成后淡入
                 imgElement.onload = function() {
+                    // 应用缩放和位置
+                    applyCharacterScaling(element, character);
+                    applyCharacterPosition(element, character, position);
+                    
                     element.style.opacity = '1';
                     console.log(`角色已平滑切换: ${character.name} 在 ${position} 位置`);
                     
-                    // 添加呼吸效果
                     this.classList.add('character-breathing');
                 };
             }
+            
+            // 立即应用缩放和位置（即使图片未加载）
+            applyCharacterScaling(element, character);
+            applyCharacterPosition(element, character, position);
             
             // 更新角色状态
             currentCharacters[position] = {

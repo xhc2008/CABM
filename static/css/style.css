@@ -2872,3 +2872,28 @@ Cropper.js 自定义样式 */
     border: 1px solid rgba(255, 107, 107, 0.4);
     color: #ffffff;
 }
+/* 多角色模式下的角色容器样式 */
+.character-left, .character-right {
+    transform-origin: center bottom !important; /* 从底部中心缩放 */
+    transition: all 0.3s ease !important; /* 平滑过渡 */
+    will-change: transform, opacity; /* 性能优化 */
+}
+
+/* 确保角色不会重叠 */
+.character-left {
+    z-index: 2;
+}
+
+.character-right {
+    z-index: 1;
+}
+
+.character-left {
+    left: 5%; /* 左侧角色基础位置 */
+    transform-origin: left bottom; /* 从底部左侧缩放 */
+}
+
+.character-right {
+    right: 5%; /* 右侧角色基础位置 */
+    transform-origin: right bottom; /* 从底部右侧缩放 */
+}

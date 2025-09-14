@@ -573,6 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
             {
                 window.setCurrentCharacterDirect(window.currentCharacter);
             }
+            else
+            {
+                window.setCurrentCharacterDirect('system');
+            }
         } else {
             console.log('剧情模式 - 未找到当前角色信息');
         }
@@ -654,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 绑定点击事件继续输出
         currentMessage?.addEventListener('click', storyContinueOutput);
         clickToContinue?.addEventListener('click', storyContinueOutput);
+        //window.switchToCharacter("lingyin","111")
 
         console.log('剧情聊天页面初始化完成');
     } catch (error) {
