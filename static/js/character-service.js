@@ -113,7 +113,7 @@ export async function loadCharacters() {
 }
 
 // 更新角色图片
-function updateCharacterImage() {
+export function updateCharacterImage() {
     const characterImage = document.getElementById('characterImage');
     const characterContainer = document.querySelector('.character-container');
 

@@ -23,8 +23,10 @@ let characterCache = new Map();
 // 正在进行的请求缓存，避免重复请求
 let pendingRequests = new Map();
 import {
-    setCurrentCharacter
+    setCurrentCharacter,
+    updateCharacterImage
 } from './character-service.js';
+
 /**
  * 初始化多角色服务
  */
@@ -49,7 +51,8 @@ export function initMultiCharacterService() {
     if (characterElements.center) {
         characterElements.center.style.display = 'none';
     }
-    
+    switchToCharacter("lingyin")
+    switchToCharacter("Silver_Wolf")
     // 显示左右角色（多角色模式）的逻辑已移动到 showCharacterAt 函数中
     setTimeout(() => {
         Object.entries(currentCharacters).forEach(([position, character]) => {
@@ -143,7 +146,7 @@ function applyCharacterScaling(element, character) {
     console.log(`应用角色缩放: ${character.name}, 缩放率: ${scaleValue}`);
     
     // 应用到整个角色容器
-    element.style.transform = `scale(${scaleValue})`;
+    // element.style.transform = `scale(${scaleValue})`;
     
     // 设置CSS变量供呼吸动画使用
     element.style.setProperty('--base-scale', scaleValue);
@@ -165,17 +168,18 @@ function applyCharacterPosition(element, character, position) {
         ? character.calib 
         : 0;
     
-    console.log(`应用角色位置调整: ${character.name}, 调整值: ${positionAdjustment}px`);
+    console.log(`应用角色位置调整: ${character.name}, 调整值: ${positionAdjustment}`);
     
     // 根据位置应用不同的调整
-    if (position === 'left') {
-        element.style.bottom = `${positionAdjustment}px`;
-    } else if (position === 'right') {
-        element.style.bottom = `${positionAdjustment}px`;
-    }
+    // const baseTop = 50;
+    // const adjustedTop = baseTop + positionAdjustment;
+    // element.style.transformOrigin='center bottom'
+    // element.style.top = `${adjustedTop}%`;
+    element.style.top = `-50%`;
+    updateCharacterImage()
     
     // 确保角色不会超出屏幕边界
-    const maxBottomAdjustment = window.innerHeight * 0.2; // 最大调整范围为屏幕高度的20%
+    const maxBottomAdjustment = window.innerHeight * 1; // 最大调整范围为屏幕高度的20%
     if (Math.abs(positionAdjustment) > maxBottomAdjustment) {
         const clampedAdjustment = Math.sign(positionAdjustment) * maxBottomAdjustment;
         element.style.bottom = `${clampedAdjustment}px`;
@@ -199,6 +203,7 @@ function showCharacterAt(position, characterId, character, characterName) {
     // 检查该元素是否显示，没显示则显示
     if (element.style.display !== 'flex') {
         element.style.display = 'flex';
+        element.style.position = 'absolute';
         console.log(`设置 ${position} 位置元素显示为 flex`);
     }
     

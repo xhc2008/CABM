@@ -2874,7 +2874,7 @@ Cropper.js 自定义样式 */
 }
 /* 多角色模式下的角色容器样式 */
 .character-left, .character-right {
-    transform-origin: center bottom !important; /* 从底部中心缩放 */
+    /* transform-origin: center bottom !important; 从底部中心缩放 */
     transition: all 0.3s ease !important; /* 平滑过渡 */
     will-change: transform, opacity; /* 性能优化 */
 }
@@ -2889,13 +2889,13 @@ Cropper.js 自定义样式 */
 }
 
 .character-left {
-    left: 5%; /* 左侧角色基础位置 */
+    left: -15%; /* 左侧角色基础位置 */
     transform-origin: left center; /* 从底部左侧缩放 */
-    bottom: 20%;
+    top: 50%;
 }
 
 .character-right {
-    right: 5%; /* 右侧角色基础位置 */
+    right: -15%; /* 右侧角色基础位置 */
     transform-origin: right center; /* 从底部右侧缩放 */
-    bottom: 20%;
+    top: 50%;
 }
