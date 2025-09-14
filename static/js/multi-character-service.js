@@ -191,9 +191,9 @@ function showCharacter(characterId, character, characterName) {
         return;
     }
     
-    // 如果已有两个角色，替换非说话角色的一侧
-    // 这里简化处理，总是替换右侧
-    showCharacterAt('right', characterId, character, characterName);
+    // 如果已有两个角色，随机替换一侧
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+    showCharacterAt(side, characterId, character, characterName);
 }
 
 /**
