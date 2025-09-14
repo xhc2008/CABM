@@ -22,7 +22,9 @@ let characterCache = new Map();
 
 // 正在进行的请求缓存，避免重复请求
 let pendingRequests = new Map();
-
+import {
+    setCurrentCharacter
+} from './character-service.js';
 /**
  * 初始化多角色服务
  */
@@ -155,13 +157,14 @@ export function switchToCharacter(characterId, characterName) {
         console.log(`角色 ${characterName} 已经是当前说话角色`);
         return;
     }
-    
     // 获取角色配置
     fetch(`/api/characters/${characterId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const character = data.character;
+                console.log("更新current角色", character);
+                setCurrentCharacter(character);
                 showCharacter(characterId, character, characterName);
             }
         })
@@ -439,7 +442,7 @@ export function getCharacterBasicInfo(characterId) {
 function smoothCharacterTransition(oldCharacterId, newCharacterId, position) {
     const element = characterElements[position];
     if (!element) return;
-    
+    console.log("平滑过渡……")
     // 获取当前角色的图片元素
     const imgElement = element.querySelector('.character-img');
     if (!imgElement) return;
