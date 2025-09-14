@@ -707,12 +707,12 @@ class CustomCharacterManager {
         
         // 获取裁剪后的canvas
         const canvas = this.cropper.getCroppedCanvas({
-            width: 200,
-            height: 200,
+            width: 800,
+            height: 800,
             minWidth: 200,
             minHeight: 200,
-            maxWidth: 200,
-            maxHeight: 200,
+            maxWidth: 1080,
+            maxHeight: 1080,
             fillColor: '#fff',
             imageSmoothingEnabled: true,
             imageSmoothingQuality: 'high'
