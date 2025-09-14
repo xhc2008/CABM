@@ -161,13 +161,24 @@
             </div>
             
             <div class="character-container">
-                <div class="character-image">
+                <!-- 单角色模式下的中央角色 -->
+                <div class="character-image character-center" id="characterCenter">
                     {% if current_character and current_character.image %}
                     <img src="/{{ current_character.image }}/1.png" alt="{{ current_character.name }}" id="characterImage" class="character-img" 
-                         onerror="this.src='/static/images/default.svg';">
+                        onerror="this.src='/static/images/default.svg';">
                     {% else %}
                     <img src="/static/images/default.svg" alt="AI角色" id="characterImage" class="character-img">
                     {% endif %}
+                </div>
+                
+                <!-- 多角色模式下的左侧角色 -->
+                <div class="character-image character-left" id="characterLeft" style="display: none;">
+                    <img src="/static/images/default.svg" alt="左侧角色" class="character-img">
+                </div>
+                
+                <!-- 多角色模式下的右侧角色 -->
+                <div class="character-image character-right" id="characterRight" style="display: none;">
+                    <img src="/static/images/default.svg" alt="右侧角色" class="character-img">
                 </div>
             </div>
             

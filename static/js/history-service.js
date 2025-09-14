@@ -1,3 +1,5 @@
+import { getCharacterById } from "./multi-character-service.js";
+
 // 历史记录服务模块 - 处理历史记录的分页加载和显示
 class HistoryService {
     constructor() {
@@ -105,7 +107,7 @@ class HistoryService {
                 this.loadedMessages = messages;
             }
 
-            this.renderHistory(append);
+            await this.renderHistory(append);
             this.updateLoadMoreButton();
 
         } catch (error) {
@@ -124,7 +126,7 @@ class HistoryService {
         await this.loadHistory(nextPage, true);
     }
 
-    renderHistory(append = false) {
+    async renderHistory(append = false) {
         if (!this.historyMessages) return;
 
         // 记录当前滚动位置
@@ -148,16 +150,16 @@ class HistoryService {
         if (append) {
             // 只渲染新加载的消息（最新加载的消息在数组前面）
             const newMessages = this.loadedMessages.slice(0, this.pageSize);
-            newMessages.forEach(message => {
-                const messageDiv = this.createMessageElement(message);
+            for (const message of newMessages) {
+                const messageDiv = await this.createMessageElement(message);
                 fragment.appendChild(messageDiv);
-            });
+            }
         } else {
             // 渲染所有消息
-            this.loadedMessages.forEach(message => {
-                const messageDiv = this.createMessageElement(message);
+            for (const message of this.loadedMessages) {
+                const messageDiv = await this.createMessageElement(message);
                 fragment.appendChild(messageDiv);
-            });
+            }
         }
 
         if (append) {
@@ -186,29 +188,40 @@ class HistoryService {
         }
     }
 
-    createMessageElement(message) {
+    async createMessageElement(message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `history-message history-${message.role}`;
 
         const roleSpan = document.createElement('div');
         roleSpan.className = 'history-role';
-
+        
         let roleName = '';
+        let characterColor = '#90caf9'; // 默认颜色
+        
         if (message.role === 'user') {
             roleName = '你';
         } else if (message.role === 'assistant') {
             // 尝试获取当前角色名称
             const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
             roleName = currentCharacter ? currentCharacter.name : 'AI助手';
+            characterColor = currentCharacter?.color || '#ffeb3b';
         } else {
-            roleName = '系统';
+            // 对于特定角色ID的消息
+            const currentCharacter = await getCharacterById(message.role);
+            roleName = currentCharacter ? currentCharacter.name : '系统';
+            characterColor = currentCharacter?.color || '#ffeb3b';
         }
 
         roleSpan.textContent = roleName;
+        
+        // 存储角色颜色到数据属性中
+        messageDiv.dataset.characterColor = characterColor;
+        roleSpan.style.color = characterColor; // 直接设置角色名称颜色
 
         // 处理消息内容
         let content = message.content;
-        if (message.role === 'assistant') {
+       
+        if (message.role != 'user') {
             // 尝试解析JSON格式的回复
             try {
                 const parsed = JSON.parse(content);
@@ -223,9 +236,9 @@ class HistoryService {
 
         // 使用后端提供的句子数据，如果没有则前端分割
         let sentences = [];
-        if (message.sentences && Array.isArray(message.sentences)) {
+        if (message.sentences && Array.isArray(message.sentences)&&(message.role == 'assistant'||message.role == 'user')) {
             sentences = message.sentences;
-        } else if (message.role === 'assistant') {
+        } else if (message.role != 'user') {
             sentences = this.splitIntoSentences(content);
         } else {
             sentences = [content];
@@ -237,19 +250,26 @@ class HistoryService {
 
         // 为每个句子创建一个元素
         sentences.forEach((sentence, index) => {
-            if (sentence.trim()) {
-                const sentenceDiv = document.createElement('div');
-                sentenceDiv.className = 'history-sentence';
-                sentenceDiv.textContent = sentence.trim();
+        if (sentence.trim()) {
+            const sentenceDiv = document.createElement('div');
+            sentenceDiv.className = 'history-sentence';
+            sentenceDiv.textContent = sentence.trim();
+            
+            // 设置悬停时的边框颜色
+            sentenceDiv.style.setProperty('--character-color', characterColor);
+            sentenceDiv.style.borderLeftColor = 'transparent'; // 初始透明
 
-                // 为句子添加点击事件（可以用于TTS播放等）
-                sentenceDiv.addEventListener('click', () => {
-                    this.onSentenceClick(sentence, roleName);
-                });
+            // 为句子添加点击事件（可以用于TTS播放等）
+            sentenceDiv.addEventListener('click', () => {
+                this.onSentenceClick(sentence, roleName);
+            });
 
-                contentContainer.appendChild(sentenceDiv);
-            }
-        });
+            contentContainer.appendChild(sentenceDiv);
+        }
+    });
+
+    // 设置消息的整体边框颜色
+    messageDiv.style.borderLeftColor = characterColor;
 
         // 添加时间戳
         if (message.timestamp) {
