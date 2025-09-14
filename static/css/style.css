@@ -1074,7 +1074,7 @@ body {
     }
 
     50% {
-        transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.02));
+        transform: scale(var(--base-scale, 1)) scaleY(var(--breathing-scale, 1.01));
     }
 
     100% {
@@ -2890,10 +2890,12 @@ Cropper.js 自定义样式 */
 
 .character-left {
     left: 5%; /* 左侧角色基础位置 */
-    transform-origin: left bottom; /* 从底部左侧缩放 */
+    transform-origin: left center; /* 从底部左侧缩放 */
+    bottom: 20%;
 }
 
 .character-right {
     right: 5%; /* 右侧角色基础位置 */
-    transform-origin: right bottom; /* 从底部右侧缩放 */
+    transform-origin: right center; /* 从底部右侧缩放 */
+    bottom: 20%;
 }

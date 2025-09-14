@@ -208,9 +208,9 @@ function showCharacterAt(position, characterId, character, characterName) {
     //     console.log(`角色 ${characterName} 已经在 ${position} 位置，无需更新`);
     //     return;
     // }
-    
+    smoothCharacterTransition(characterId, position);
     // 获取角色立绘URL
-    const imageUrl = getCharacterImageUrl(characterId, character);
+    // const imageUrl = getCharacterImageUrl(characterId, character);
     
     // 更新角色状态
     currentCharacters[position] = {
@@ -220,35 +220,35 @@ function showCharacterAt(position, characterId, character, characterName) {
     };
     
     // 设置立绘
-    const imgElement = element.querySelector('.character-img');
-    if (imgElement) {
-        imgElement.src = imageUrl;
-        imgElement.alt = characterName;
+    // const imgElement = element.querySelector('.character-img');
+    // if (imgElement) {
+    //     imgElement.src = imageUrl;
+    //     imgElement.alt = characterName;
         
-        // 处理图片加载错误
-        imgElement.onerror = function() {
-            console.error(`角色图片加载失败: ${imageUrl}`);
-            this.src = '/static/images/default.svg';
-        };
+    //     // 处理图片加载错误
+    //     imgElement.onerror = function() {
+    //         console.error(`角色图片加载失败: ${imageUrl}`);
+    //         this.src = '/static/images/default.svg';
+    //     };
         
-        // 图片加载完成后添加呼吸效果和应用缩放
-        imgElement.onload = function() {
-            this.classList.add('character-breathing');
+    //     // 图片加载完成后添加呼吸效果和应用缩放
+    //     imgElement.onload = function() {
+    //         this.classList.add('character-breathing');
             
-            // 应用角色缩放率（多角色模式）
-            applyCharacterScaling(element, character);
+    //         // 应用角色缩放率（多角色模式）
+    //         applyCharacterScaling(element, character);
             
-            // 应用角色位置调整（多角色模式）
-            applyCharacterPosition(element, character, position);
-        };
-    }
+    //         // 应用角色位置调整（多角色模式）
+    //         applyCharacterPosition(element, character, position);
+    //     };
+    // }
     
     // 立即应用缩放和位置（即使图片未加载）
     applyCharacterScaling(element, character);
     applyCharacterPosition(element, character, position);
     
     // 显示动画
-    element.style.opacity = '1';
+    // element.style.opacity = '1';
     
     console.log(`角色 ${characterName} 已显示在 ${position} 位置，缩放率: ${character.scale_rate || 100}%, 位置调整: ${character.calib || 0}`);
 }
@@ -431,7 +431,7 @@ export function getCharacterBasicInfo(characterId) {
     return null;
 }
 // 新增：平滑切换角色显示
-function smoothCharacterTransition(oldCharacterId, newCharacterId, position) {
+function smoothCharacterTransition(newCharacterId, position) {
     const element = characterElements[position];
     if (!element) return;
     console.log("平滑过渡……")
