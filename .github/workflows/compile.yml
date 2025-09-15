@@ -24,6 +24,7 @@ jobs:
   # ==================== WINDOWS x64 ====================
   build-windows-x64:
     runs-on: windows-latest
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -90,14 +91,15 @@ jobs:
           Compress-Archive -Path * -DestinationPath "Windows-x64-Release-${{ inputs.version }}.zip" -Force
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: Windows-x64-Release-${{ inputs.version }}
           path: Windows-x64-Release-${{ inputs.version }}.zip
 
   # ==================== WINDOWS x86 (32-bit) ====================
   build-windows-x86:
-    runs-on: windows-2019
+    runs-on: windows-2022
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -164,7 +166,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath "Windows-x86-Release-${{ inputs.version }}.zip" -Force
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: Windows-x86-Release-${{ inputs.version }}
           path: Windows-x86-Release-${{ inputs.version }}.zip
@@ -172,6 +174,7 @@ jobs:
   # ==================== WINDOWS ARM64 ====================
   build-windows-arm64:
     runs-on: windows-latest-arm64
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -238,7 +241,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath "Windows-ARM64-Release-${{ inputs.version }}.zip" -Force
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: Windows-ARM64-Release-${{ inputs.version }}
           path: Windows-ARM64-Release-${{ inputs.version }}.zip
@@ -246,6 +249,7 @@ jobs:
   # ==================== LINUX x64 ====================
   build-linux-x64:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -293,13 +297,21 @@ jobs:
 
       - name: 📦 Package Linux x64 release
         run: |
+          # 删除可能冲突的目录
+          rm -rf characters data static templates config
+
+          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
+
+          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
+
+          # 压缩为 zip
           zip -r Linux-x64-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: Linux-x64-Release-${{ inputs.version }}
           path: Linux-x64-Release-${{ inputs.version }}.zip
@@ -307,6 +319,7 @@ jobs:
   # ==================== LINUX ARM64 ====================
   build-linux-arm64:
     runs-on: ubuntu-latest-arm64
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -354,13 +367,21 @@ jobs:
 
       - name: 📦 Package Linux ARM64 release
         run: |
+          # 删除可能冲突的目录
+          rm -rf characters data static templates config
+
+          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
+
+          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
+
+          # 压缩为 zip
           zip -r Linux-ARM64-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: Linux-ARM64-Release-${{ inputs.version }}
           path: Linux-ARM64-Release-${{ inputs.version }}.zip
@@ -368,6 +389,7 @@ jobs:
   # ==================== macOS x64 (Intel) ====================
   build-macos-x64:
     runs-on: macos-13
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -415,13 +437,21 @@ jobs:
 
       - name: 📦 Package macOS x64 release
         run: |
+          # 删除可能冲突的目录
+          rm -rf characters data static templates config
+
+          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
+
+          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
+
+          # 压缩为 zip
           zip -r macOS-x64-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: macOS-x64-Release-${{ inputs.version }}
           path: macOS-x64-Release-${{ inputs.version }}.zip
@@ -429,6 +459,7 @@ jobs:
   # ==================== macOS ARM64 (Apple Silicon) ====================
   build-macos-arm64:
     runs-on: macos-latest
+    timeout-minutes: 120
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -476,13 +507,21 @@ jobs:
 
       - name: 📦 Package macOS ARM64 release
         run: |
+          # 删除可能冲突的目录
+          rm -rf characters data static templates config
+
+          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
+
+          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
+
+          # 压缩为 zip
           zip -r macOS-ARM64-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4 # ✅ Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: macOS-ARM64-Release-${{ inputs.version }}
           path: macOS-ARM64-Release-${{ inputs.version }}.zip
@@ -498,12 +537,13 @@ jobs:
       - build-macos-x64
       - build-macos-arm64
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
       - name: 📥 Download all artifacts
-        uses: actions/download-artifact@v4 # ✅ Updated to v4
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
