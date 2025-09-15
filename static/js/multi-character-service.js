@@ -31,16 +31,20 @@ import {
  * 初始化多角色服务
  */
 export function initMultiCharacterService() {
-    // 检查是否是多角色故事
+    // 检查是否是多角色故事并且是剧情模式
+    const isStoryPage = window.location.pathname.includes('story');
     const isMultiCharacter = window.storyData?.characters?.list?.length > 1 || 
                             window.storyData?.characters?.length > 1;
     
-    if (!isMultiCharacter) {
-        console.log('单角色故事，不初始化多角色服务');
+    if (!isStoryPage || !isMultiCharacter) {
+        console.log('非剧情模式或单角色故事，不初始化多角色服务');
         return;
     }
     
     console.log('多角色故事，初始化多角色服务');
+    
+    // 设置多角色标志
+    window.isMultiCharacterStory = true;
     
     // 获取角色容器和元素
     characterElements.left = document.getElementById('characterLeft');
@@ -146,7 +150,7 @@ function applyCharacterScaling(element, character) {
     console.log(`应用角色缩放: ${character.name}, 缩放率: ${scaleValue}`);
     
     // 应用到整个角色容器
-    // element.style.transform = `scale(${scaleValue})`;
+    element.style.transform = `scale(${scaleValue})`;
     
     // 设置CSS变量供呼吸动画使用
     element.style.setProperty('--base-scale', scaleValue);
@@ -154,7 +158,7 @@ function applyCharacterScaling(element, character) {
     // 更新内部图片的变换原点
     const imgElement = element.querySelector('.character-img');
     if (imgElement) {
-        imgElement.style.transformOrigin = 'center bottom'; // 从底部中心缩放
+        imgElement.style.transformOrigin = 'center bottom';
     }
 }
 
@@ -171,15 +175,23 @@ function applyCharacterPosition(element, character, position) {
     console.log(`应用角色位置调整: ${character.name}, 调整值: ${positionAdjustment}`);
     
     // 根据位置应用不同的调整
-    // const baseTop = 50;
-    // const adjustedTop = baseTop + positionAdjustment;
-    // element.style.transformOrigin='center bottom'
-    // element.style.top = `${adjustedTop}%`;
-    element.style.top = `-50%`;
-    updateCharacterImage()
+    const baseTop = 0;
+    const adjustedTop = baseTop + positionAdjustment;
+    
+    // 设置垂直位置
+    element.style.top = `${adjustedTop}%`;
+    
+    // 设置水平位置
+    if (position === 'left') {
+        element.style.left = '-15%';
+        element.style.right = 'auto';
+    } else if (position === 'right') {
+        element.style.right = '-15%';
+        element.style.left = 'auto';
+    }
     
     // 确保角色不会超出屏幕边界
-    const maxBottomAdjustment = window.innerHeight * 1; // 最大调整范围为屏幕高度的20%
+    const maxBottomAdjustment = window.innerHeight * 1;
     if (Math.abs(positionAdjustment) > maxBottomAdjustment) {
         const clampedAdjustment = Math.sign(positionAdjustment) * maxBottomAdjustment;
         element.style.bottom = `${clampedAdjustment}px`;

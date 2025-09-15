@@ -32,7 +32,9 @@ import { toggleHistory } from './history-service.js';
 document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log('开始初始化对话页面...');
-        
+         // 设置页面类型标志
+        window.isChatPage = true;
+        window.isMultiCharacterStory = false;
         // 加载角色数据
         loadCharacters();
         

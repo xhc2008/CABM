@@ -659,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMessage?.addEventListener('click', storyContinueOutput);
         clickToContinue?.addEventListener('click', storyContinueOutput);
         //window.switchToCharacter("lingyin","111")
-
+        
         console.log('剧情聊天页面初始化完成');
     } catch (error) {
         console.error('初始化失败:', error);

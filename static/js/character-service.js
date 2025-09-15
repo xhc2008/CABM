@@ -113,52 +113,74 @@ export async function loadCharacters() {
 }
 
 // 更新角色图片
+// character-service.js
+
+// 更新角色图片
 export function updateCharacterImage() {
     const characterImage = document.getElementById('characterImage');
     const characterContainer = document.querySelector('.character-container');
-
+    
+    // 检测当前页面类型
+    const isChatPage = document.getElementById('chatPage')?.classList.contains('active');
+    const isStoryChatPage = document.getElementById('chatPage')?.classList.contains('active') && 
+                          window.location.pathname.includes('story');
+    
+    // 检测是否是多角色模式
+    const isMultiCharacter = window.isMultiCharacterStory || 
+                           (document.getElementById('characterLeft')?.style.display !== 'none' || 
+                            document.getElementById('characterRight')?.style.display !== 'none');
+    
     if (currentCharacter && characterImage) {
         loadCharacterImages(currentCharacter.id);
-
-        if (characterContainer && typeof currentCharacter.calib !== 'undefined') {
-            const baseTop = 50;
-            const adjustedTop = baseTop + currentCharacter.calib;
-            console.log(`角色位置调整: CALIB=${currentCharacter.calib}, 调整后位置=${adjustedTop}%`);
-            characterContainer.style.top = `${adjustedTop}%`;
-        } else if (characterContainer) {
-            console.log('使用默认位置: 50%');
-            characterContainer.style.top = '50%';
-        }
-
-        // 应用缩放率
-        if (characterImage && typeof currentCharacter.scale_rate !== 'undefined') {
-            const scaleValue = currentCharacter.scale_rate / 100; // 将百分比转换为小数
-            console.log(`角色缩放调整: SCALE_RATE=${currentCharacter.scale_rate}%, 缩放值=${scaleValue}`);
-            // 将缩放应用到角色容器而不是图片，避免定位问题
-            if (characterContainer) {
-                characterContainer.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
-                console.log(`缩放应用到角色容器: scale(${scaleValue})，避免定位偏移`);
-            } else {
-                // 如果找不到容器，则应用到图片（后备方案）
-                characterImage.style.transform = `scale(${scaleValue}) scaleY(1)`;
-                console.log(`缩放应用到图片元素: scale(${scaleValue}) (后备方案)`);
+        
+        // 聊天模式或单角色剧情模式：使用容器级别的缩放和位置
+        if (isChatPage && !isStoryChatPage || !isMultiCharacter) {
+            if (characterContainer && typeof currentCharacter.calib !== 'undefined') {
+                const baseTop = 50;
+                const adjustedTop = baseTop + currentCharacter.calib;
+                console.log(`角色位置调整: CALIB=${currentCharacter.calib}, 调整后位置=${adjustedTop}%`);
+                characterContainer.style.top = `${adjustedTop}%`;
+            } else if (characterContainer) {
+                console.log('使用默认位置: 50%');
+                characterContainer.style.top = '50%';
             }
-            // 同时设置CSS变量，为后续的跳跃动画做准备
-            characterImage.style.setProperty('--base-scale', scaleValue);
-        } else if (characterImage) {
-            console.log('使用默认缩放: 100%');
-            // 将缩放应用到角色容器而不是图片，避免定位问题
-            if (characterContainer) {
-                characterContainer.style.transform = `translate(-50%, -50%) scale(1)`;
-                console.log('使用默认缩放应用到角色容器: scale(1)');
-            } else {
-                // 如果找不到容器，则应用到图片（后备方案）
-                characterImage.style.transform = 'scale(1) scaleY(1)';
-                console.log('使用默认缩放应用到图片元素: scale(1) (后备方案)');
+            
+            // 应用缩放率
+            if (characterImage && typeof currentCharacter.scale_rate !== 'undefined') {
+                const scaleValue = currentCharacter.scale_rate / 100;
+                console.log(`角色缩放调整: SCALE_RATE=${currentCharacter.scale_rate}%, 缩放值=${scaleValue}`);
+                
+                if (characterContainer) {
+                    characterContainer.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
+                    console.log(`缩放应用到角色容器: scale(${scaleValue})，避免定位偏移`);
+                } else {
+                    characterImage.style.transform = `scale(${scaleValue}) scaleY(1)`;
+                    console.log(`缩放应用到图片元素: scale(${scaleValue}) (后备方案)`);
+                }
+                
+                characterImage.style.setProperty('--base-scale', scaleValue);
+            } else if (characterImage) {
+                console.log('使用默认缩放: 100%');
+                
+                if (characterContainer) {
+                    characterContainer.style.transform = `translate(-50%, -50%) scale(1)`;
+                    console.log('使用默认缩放应用到角色容器: scale(1)');
+                } else {
+                    characterImage.style.transform = 'scale(1) scaleY(1)';
+                    console.log('使用默认缩放应用到图片元素: scale(1) (后备方案)');
+                }
+                
+                characterImage.style.setProperty('--base-scale', 1);
             }
-            characterImage.style.setProperty('--base-scale', 1);
+        } else {
+            // 多角色剧情模式：重置容器样式，让各个角色独立控制
+            if (characterContainer) {
+                characterContainer.style.top = '50%';
+                characterContainer.style.transform = 'translate(-50%, -50%) scale(1)';
+                console.log('多角色模式：重置角色容器样式');
+            }
         }
-
+        
         // 应用呼吸动画
         applyBreathingAnimation();
     }
