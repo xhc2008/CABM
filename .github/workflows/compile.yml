@@ -21,10 +21,10 @@ permissions:
 
 jobs:
 
-  # ==================== WINDOWS ====================
+  # ==================== WINDOWS x64 ====================
   build-windows-x64:
     runs-on: windows-latest
-    steps: &windows-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -58,7 +58,7 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
 
-      - name: 🖥️ Build Windows executable
+      - name: 🖥️ Build Windows x64 executable
         shell: pwsh
         run: |
           python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
@@ -77,7 +77,7 @@ jobs:
           Remove-Item -Path "dist", "start.build" -Recurse -Force -ErrorAction Ignore
           Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
 
-      - name: 📦 Package release
+      - name: 📦 Package Windows x64 release
         shell: pwsh
         run: |
           Get-ChildItem -Path "app" | ForEach-Object {
@@ -95,6 +95,7 @@ jobs:
           name: Windows-x64-Release-${{ inputs.version }}
           path: Windows-x64-Release-${{ inputs.version }}.zip
 
+  # ==================== WINDOWS x86 (32-bit) ====================
   build-windows-x86:
     runs-on: windows-2019
     steps:
@@ -105,7 +106,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          architecture: 'x86'  # ← 关键！32-bit Python
+          architecture: 'x86'
 
       - name: 🧹 Clean excluded files (.nobuild)
         shell: pwsh
@@ -150,7 +151,7 @@ jobs:
           Remove-Item -Path "dist", "start.build" -Recurse -Force -ErrorAction Ignore
           Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
 
-      - name: 📦 Package release
+      - name: 📦 Package Windows x86 release
         shell: pwsh
         run: |
           Get-ChildItem -Path "app" | ForEach-Object {
@@ -168,10 +169,9 @@ jobs:
           name: Windows-x86-Release-${{ inputs.version }}
           path: Windows-x86-Release-${{ inputs.version }}.zip
 
+  # ==================== WINDOWS ARM64 ====================
   build-windows-arm64:
     runs-on: windows-latest-arm64
-    steps: *windows-steps  # ← 复用 x64 步骤（除了 Python 架构）
-    # 但需覆盖 Python 设置
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
@@ -225,7 +225,7 @@ jobs:
           Remove-Item -Path "dist", "start.build" -Recurse -Force -ErrorAction Ignore
           Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
 
-      - name: 📦 Package release
+      - name: 📦 Package Windows ARM64 release
         shell: pwsh
         run: |
           Get-ChildItem -Path "app" | ForEach-Object {
@@ -243,10 +243,10 @@ jobs:
           name: Windows-ARM64-Release-${{ inputs.version }}
           path: Windows-ARM64-Release-${{ inputs.version }}.zip
 
-  # ==================== LINUX ====================
+  # ==================== LINUX x64 ====================
   build-linux-x64:
     runs-on: ubuntu-latest
-    steps: &linux-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -274,7 +274,7 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
 
-      - name: 🐧 Build Linux executable
+      - name: 🐧 Build Linux x64 executable
         run: |
           python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
 
@@ -291,7 +291,7 @@ jobs:
         run: |
           rm -rf dist start.build *.spec
 
-      - name: 📦 Package release
+      - name: 📦 Package Linux x64 release
         run: |
           mv app/* ./
           rmdir app
@@ -304,14 +304,10 @@ jobs:
           name: Linux-x64-Release-${{ inputs.version }}
           path: Linux-x64-Release-${{ inputs.version }}.zip
 
+  # ==================== LINUX ARM64 ====================
   build-linux-arm64:
     runs-on: ubuntu-latest-arm64
-    steps: *linux-steps  # ← 复用 x64 步骤（ARM64 自动适配）
-
-  # ==================== macOS ====================
-  build-macos-x64:
-    runs-on: macos-13
-    steps: &macos-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -339,7 +335,7 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
 
-      - name: 🍏 Build macOS executable
+      - name: 🐧 Build Linux ARM64 executable
         run: |
           python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
 
@@ -356,7 +352,68 @@ jobs:
         run: |
           rm -rf dist start.build *.spec
 
-      - name: 📦 Package release
+      - name: 📦 Package Linux ARM64 release
+        run: |
+          mv app/* ./
+          rmdir app
+          [ -f start ] && mv start app
+          zip -r Linux-ARM64-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Linux-ARM64-Release-${{ inputs.version }}
+          path: Linux-ARM64-Release-${{ inputs.version }}.zip
+
+  # ==================== macOS x64 (Intel) ====================
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🧹 Clean excluded files (.nobuild)
+        run: |
+          if [ -f .nobuild ]; then
+            while IFS= read -r line; do
+              [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+              if [ -e "$line" ]; then
+                rm -rf "$line"
+                echo "Removed: $line"
+              fi
+            done < .nobuild
+          fi
+          find . -type d -empty -delete
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: 🍏 Build macOS x64 executable
+        run: |
+          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+
+          mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
+          [ -d characters ] && cp -r characters dist/start.dist/
+          [ -d data ]       && cp -r data       dist/start.dist/
+          [ -d static ]     && cp -r static     dist/start.dist/
+          [ -d templates ]  && cp -r templates  dist/start.dist/
+          [ -d config ]     && cp -r config     dist/start.dist/
+
+          mv dist/start.dist app
+
+      - name: 🗑️ Cleanup artifacts
+        run: |
+          rm -rf dist start.build *.spec
+
+      - name: 📦 Package macOS x64 release
         run: |
           mv app/* ./
           rmdir app
@@ -369,11 +426,68 @@ jobs:
           name: macOS-x64-Release-${{ inputs.version }}
           path: macOS-x64-Release-${{ inputs.version }}.zip
 
+  # ==================== macOS ARM64 (Apple Silicon) ====================
   build-macos-arm64:
     runs-on: macos-latest
-    steps: *macos-steps  # ← 复用，ARM64 自动适配
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
 
-  # ==================== PUBLISH ====================
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🧹 Clean excluded files (.nobuild)
+        run: |
+          if [ -f .nobuild ]; then
+            while IFS= read -r line; do
+              [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+              if [ -e "$line" ]; then
+                rm -rf "$line"
+                echo "Removed: $line"
+              fi
+            done < .nobuild
+          fi
+          find . -type d -empty -delete
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: 🍏 Build macOS ARM64 executable
+        run: |
+          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+
+          mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
+          [ -d characters ] && cp -r characters dist/start.dist/
+          [ -d data ]       && cp -r data       dist/start.dist/
+          [ -d static ]     && cp -r static     dist/start.dist/
+          [ -d templates ]  && cp -r templates  dist/start.dist/
+          [ -d config ]     && cp -r config     dist/start.dist/
+
+          mv dist/start.dist app
+
+      - name: 🗑️ Cleanup artifacts
+        run: |
+          rm -rf dist start.build *.spec
+
+      - name: 📦 Package macOS ARM64 release
+        run: |
+          mv app/* ./
+          rmdir app
+          [ -f start ] && mv start app
+          zip -r macOS-ARM64-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: macOS-ARM64-Release-${{ inputs.version }}
+          path: macOS-ARM64-Release-${{ inputs.version }}.zip
+
+  # ==================== PUBLISH ALL ====================
   publish-release:
     needs:
       - build-windows-x64
@@ -406,8 +520,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd artifacts
-          # Flatten structure if needed
-          find . -mindepth 2 -type f -name "*.zip" -exec mv {} . \; 2>/dev/null || true
+          # Flatten all zip files to current dir
+          find . -type f -name "*.zip" -exec mv {} . \; 2>/dev/null || true
+          # Remove any left empty dirs
+          find . -type d -empty -delete
 
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.release_name || inputs.version }}" \
