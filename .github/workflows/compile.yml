@@ -95,6 +95,7 @@ jobs:
         with:
           name: Windows-x64-Full-Release-${{ inputs.version }}
           path: Windows-x64-Full-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   build-windows-x64-lite:
     runs-on: windows-latest
@@ -169,6 +170,7 @@ jobs:
         with:
           name: Windows-x64-Lite-Release-${{ inputs.version }}
           path: Windows-x64-Lite-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   build-windows-x86-lite:
     runs-on: windows-2022
@@ -245,6 +247,7 @@ jobs:
         with:
           name: Linux-x64-Full-Release-${{ inputs.version }}
           path: Linux-x64-Full-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   build-linux-x64-lite:
     runs-on: ubuntu-latest
@@ -314,6 +317,7 @@ jobs:
         with:
           name: Linux-x64-Lite-Release-${{ inputs.version }}
           path: Linux-x64-Lite-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   # ==================== MACOS JOBS ====================
   build-macos-x64-full:
@@ -385,6 +389,7 @@ jobs:
         with:
           name: macOS-x64-Full-Release-${{ inputs.version }}
           path: macOS-x64-Full-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   build-macos-x64-lite:
     runs-on: macos-13
@@ -454,6 +459,7 @@ jobs:
         with:
           name: macOS-x64-Lite-Release-${{ inputs.version }}
           path: macOS-x64-Lite-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   build-macos-arm64-full:
     runs-on: macos-latest
