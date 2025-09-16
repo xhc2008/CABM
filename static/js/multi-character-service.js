@@ -17,6 +17,12 @@ let characterElements = {
     center: null
 };
 
+// 新增：左右角色外层容器（用于承载缩放与位置调整）
+let characterContainers = {
+    left: null,
+    right: null
+};
+
 // 角色信息缓存
 let characterCache = new Map();
 
@@ -50,19 +56,55 @@ export function initMultiCharacterService() {
     characterElements.left = document.getElementById('characterLeft');
     characterElements.right = document.getElementById('characterRight');
     characterElements.center = document.getElementById('characterCenter');
+
+    // 创建左右独立外层容器，并将原有元素迁移进去
+    const rootContainer = document.querySelector('.character-container');
+    if (rootContainer) {
+        const parent = rootContainer.parentElement || document.body;
+        // 左容器
+        if (!document.querySelector('.character-container-left')) {
+            const leftContainer = document.createElement('div');
+            leftContainer.className = 'character-container-left';
+            leftContainer.style.position = 'absolute';
+            leftContainer.style.display = 'flex';
+            leftContainer.style.opacity = '0';
+            parent.appendChild(leftContainer);
+        }
+        // 右容器
+        if (!document.querySelector('.character-container-right')) {
+            const rightContainer = document.createElement('div');
+            rightContainer.className = 'character-container-right';
+            rightContainer.style.position = 'absolute';
+            rightContainer.style.display = 'flex';
+            rightContainer.style.opacity = '0';
+            parent.appendChild(rightContainer);
+        }
+
+        characterContainers.left = document.querySelector('.character-container-left');
+        characterContainers.right = document.querySelector('.character-container-right');
+
+        // 将原始左右元素放入对应容器
+        if (characterElements.left && characterContainers.left && characterElements.left.parentElement !== characterContainers.left) {
+            characterContainers.left.appendChild(characterElements.left);
+        }
+        if (characterElements.right && characterContainers.right && characterElements.right.parentElement !== characterContainers.right) {
+            characterContainers.right.appendChild(characterElements.right);
+        }
+    }
     
     // 隐藏中央角色（单角色模式）
     if (characterElements.center) {
         characterElements.center.style.display = 'none';
     }
-    switchToCharacter("lingyin")
-    switchToCharacter("Silver_Wolf")
+    // switchToCharacter("Silver_Wolf")
+    // switchToCharacter("Collei")
     // 显示左右角色（多角色模式）的逻辑已移动到 showCharacterAt 函数中
     setTimeout(() => {
         Object.entries(currentCharacters).forEach(([position, character]) => {
-            if (character && characterElements[position]) {
-                applyCharacterScaling(characterElements[position], character.character);
-                applyCharacterPosition(characterElements[position], character.character, position);
+            if (character && (position === 'left' || position === 'right')) {
+                const container = characterContainers[position];
+                applyCharacterScaling(container, character.character);
+                applyCharacterPosition(container, character.character, position);
             }
         });
     }, 100);
@@ -140,63 +182,46 @@ function showCharacter(characterId, character, characterName) {
 /**
  * 应用角色缩放率（多角色模式）
  */
-function applyCharacterScaling(element, character) {
-    if (!element || !character) return;
-    
-    const scaleValue = typeof character.scale_rate !== 'undefined' 
-        ? character.scale_rate / 100 
+function applyCharacterScaling(targetContainer, character) {
+    if (!targetContainer || !character) return;
+
+    const scaleValue = typeof character.scale_rate !== 'undefined'
+        ? character.scale_rate / 100
         : 1;
-    
-    console.log(`应用角色缩放: ${character.name}, 缩放率: ${scaleValue}`);
-    
-    // 应用到整个角色容器
-    element.style.transform = `scale(${scaleValue})`;
-    
-    // 设置CSS变量供呼吸动画使用
-    element.style.setProperty('--base-scale', scaleValue);
-    
-    // 更新内部图片的变换原点
-    const imgElement = element.querySelector('.character-img');
+
+    console.log(`应用角色缩放(容器): ${character.name}, 缩放率: ${scaleValue}`);
+
+    // 与单角色一致：在容器上应用translate+scale，保持以容器为中心
+    const baseTranslate = targetContainer.classList.contains('character-container-right')
+        ? 'translate(-50%, -50%)'
+        : 'translate(-50%, -50%)';
+    targetContainer.style.transform = `${baseTranslate} scale(${scaleValue})`;
+    targetContainer.style.setProperty('--base-scale', scaleValue);
+
+    const imgElement = targetContainer.querySelector('.character-img');
     if (imgElement) {
-        imgElement.style.transformOrigin = 'center bottom';
+        imgElement.style.transformOrigin = 'center center';
     }
 }
 
 /**
  * 应用角色位置调整（多角色模式）
  */
-function applyCharacterPosition(element, character, position) {
-    if (!element || !character) return;
-    
-    const positionAdjustment = typeof character.calib !== 'undefined' 
-        ? character.calib 
+function applyCharacterPosition(targetContainer, character, position) {
+    if (!targetContainer || !character) return;
+
+    const positionAdjustment = typeof character.calib !== 'undefined'
+        ? character.calib
         : 0;
-    
-    console.log(`应用角色位置调整: ${character.name}, 调整值: ${positionAdjustment}`);
-    
-    // 根据位置应用不同的调整
-    const baseTop = 0;
+
+    console.log(`应用角色位置调整(容器): ${character.name}, 调整值: ${positionAdjustment}`);
+
+    // 与单角色一致：以容器top为基准50%，做百分比偏移
+    const baseTop = 50;
     const adjustedTop = baseTop + positionAdjustment;
-    
-    // 设置垂直位置
-    element.style.top = `${adjustedTop}%`;
-    
-    // 设置水平位置
-    if (position === 'left') {
-        element.style.left = '-15%';
-        element.style.right = 'auto';
-    } else if (position === 'right') {
-        element.style.right = '-15%';
-        element.style.left = 'auto';
-    }
-    
-    // 确保角色不会超出屏幕边界
-    const maxBottomAdjustment = window.innerHeight * 1;
-    if (Math.abs(positionAdjustment) > maxBottomAdjustment) {
-        const clampedAdjustment = Math.sign(positionAdjustment) * maxBottomAdjustment;
-        element.style.bottom = `${clampedAdjustment}px`;
-        console.warn(`位置调整值 ${positionAdjustment}px 超出限制，已限制为 ${clampedAdjustment}px`);
-    }
+    targetContainer.style.top = `${adjustedTop}%`;
+
+    // X 坐标由左右容器的CSS控制（left:25% / 75%），此处不改动
 }
 /**
  * 在指定位置显示角色
@@ -207,17 +232,18 @@ function applyCharacterPosition(element, character, position) {
  */
 function showCharacterAt(position, characterId, character, characterName) {
     const element = characterElements[position];
-    if (!element) {
+    const container = position === 'left' ? characterContainers.left : characterContainers.right;
+    if (!element || !container) {
         console.error(`未找到 ${position} 位置的角色元素`);
         return;
     }
     
-    // 检查该元素是否显示，没显示则显示
-    if (element.style.display !== 'flex') {
-        element.style.display = 'flex';
-        element.style.position = 'absolute';
-        console.log(`设置 ${position} 位置元素显示为 flex`);
-    }
+    // 确保容器和内部元素显示
+    container.style.display = 'flex';
+    container.style.position = 'absolute';
+    container.style.opacity = container.style.opacity || '0';
+    element.style.display = 'flex';
+    element.style.position = 'relative';
     
     // 检查是否已经是同一角色在同一位置
     // const currentChar = currentCharacters[position];
@@ -261,13 +287,13 @@ function showCharacterAt(position, characterId, character, characterName) {
     // }
     
     // 立即应用缩放和位置（即使图片未加载）
-    applyCharacterScaling(element, character);
-    applyCharacterPosition(element, character, position);
+    applyCharacterScaling(container, character);
+    applyCharacterPosition(container, character, position);
     
     // 显示动画
-    // element.style.opacity = '1';
+    container.style.opacity = '1';
     
-    console.log(`角色 ${characterName} 已显示在 ${position} 位置，缩放率: ${character.scale_rate || 100}%, 位置调整: ${character.calib || 0}`);
+    console.log(`角色 ${characterName} 已显示在 ${position} 容器，缩放率: ${character.scale_rate || 100}%, 位置调整: ${character.calib || 0}`);
 }
 
 /**
@@ -450,19 +476,20 @@ export function getCharacterBasicInfo(characterId) {
 // 新增：平滑切换角色显示
 function smoothCharacterTransition(newCharacterId, position) {
     const element = characterElements[position];
-    if (!element) return;
+    const container = position === 'left' ? characterContainers.left : characterContainers.right;
+    if (!element || !container) return;
     console.log("平滑过渡……")
     // 获取当前角色的图片元素
     const imgElement = element.querySelector('.character-img');
     if (!imgElement) return;
     
     // 保存当前透明度
-    const currentOpacity = parseFloat(element.style.opacity) || 0;
+    const currentOpacity = parseFloat(container.style.opacity) || 0;
     
     // 如果当前角色已经显示，先淡出
     if (currentOpacity > 0) {
         // 淡出当前角色
-        element.style.opacity = '0';
+        container.style.opacity = '0';
         
         // 延迟后显示新角色
         setTimeout(() => {
@@ -475,7 +502,8 @@ function smoothCharacterTransition(newCharacterId, position) {
 }
 function showNewCharacter(characterId, position) {
     const element = characterElements[position];
-    if (!element) return;
+    const container = position === 'left' ? characterContainers.left : characterContainers.right;
+    if (!element || !container) return;
     
     // 获取新角色信息
     getCharacterById(characterId).then(character => {
@@ -492,10 +520,10 @@ function showNewCharacter(characterId, position) {
                 
                 imgElement.onload = function() {
                     // 应用缩放和位置
-                    applyCharacterScaling(element, character);
-                    applyCharacterPosition(element, character, position);
+                    applyCharacterScaling(container, character);
+                    applyCharacterPosition(container, character, position);
                     
-                    element.style.opacity = '1';
+                    container.style.opacity = '1';
                     console.log(`角色已平滑切换: ${character.name} 在 ${position} 位置`);
                     
                     this.classList.add('character-breathing');
@@ -503,8 +531,8 @@ function showNewCharacter(characterId, position) {
             }
             
             // 立即应用缩放和位置（即使图片未加载）
-            applyCharacterScaling(element, character);
-            applyCharacterPosition(element, character, position);
+            applyCharacterScaling(container, character);
+            applyCharacterPosition(container, character, position);
             
             // 更新角色状态
             currentCharacters[position] = {
@@ -522,10 +550,12 @@ function showNewCharacter(characterId, position) {
  */
 // 修改后：清除所有角色，使用现有的HTML元素
 export function clearAllCharacters() {
-    Object.values(characterElements).forEach(element => {
-        if (element) {
-            element.style.opacity = '0';
-            const img = element.querySelector('.character-img');
+    // 隐藏并重置左右容器
+    Object.values(characterContainers).forEach(container => {
+        if (container) {
+            container.style.opacity = '0';
+            container.style.transform = 'translate(-50%, -50%) scale(1)';
+            const img = container.querySelector('.character-img');
             if (img) {
                 img.src = '/static/images/default.svg';
             }
