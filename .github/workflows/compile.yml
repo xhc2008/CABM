@@ -175,16 +175,6 @@ jobs:
     timeout-minutes: 180
     steps: *windows-lite-steps
 
-  build-windows-arm64-full:
-    runs-on: windows-latest-arm64
-    timeout-minutes: 180
-    steps: *windows-full-steps
-
-  build-windows-arm64-lite:
-    runs-on: windows-latest-arm64
-    timeout-minutes: 180
-    steps: *windows-lite-steps
-
   # ==================== LINUX JOBS ====================
   build-linux-x64-full:
     runs-on: ubuntu-latest
@@ -324,16 +314,6 @@ jobs:
         with:
           name: Linux-x64-Lite-Release-${{ inputs.version }}
           path: Linux-x64-Lite-Release-${{ inputs.version }}.zip
-
-  build-linux-arm64-full:
-    runs-on: ubuntu-latest-arm64
-    timeout-minutes: 180
-    steps: *linux-full-steps
-
-  build-linux-arm64-lite:
-    runs-on: ubuntu-latest-arm64
-    timeout-minutes: 180
-    steps: *linux-lite-steps
 
   # ==================== MACOS JOBS ====================
   build-macos-x64-full:
@@ -491,12 +471,12 @@ jobs:
       - build-windows-x64-full
       - build-windows-x64-lite
       - build-windows-x86-lite
-      - build-windows-arm64-full
-      - build-windows-arm64-lite
+      # - build-windows-arm64-full # 已移除
+      # - build-windows-arm64-lite # 已移除
       - build-linux-x64-full
       - build-linux-x64-lite
-      - build-linux-arm64-full
-      - build-linux-arm64-lite
+      # - build-linux-arm64-full # 已移除
+      # - build-linux-arm64-lite # 已移除
       - build-macos-x64-full
       - build-macos-x64-lite
       - build-macos-arm64-full
@@ -536,12 +516,8 @@ jobs:
             Windows-x64-Full-Release-${{ inputs.version }}.zip \
             Windows-x64-Lite-Release-${{ inputs.version }}.zip \
             Windows-x86-Lite-Release-${{ inputs.version }}.zip \
-            Windows-ARM64-Full-Release-${{ inputs.version }}.zip \
-            Windows-ARM64-Lite-Release-${{ inputs.version }}.zip \
             Linux-x64-Full-Release-${{ inputs.version }}.zip \
             Linux-x64-Lite-Release-${{ inputs.version }}.zip \
-            Linux-ARM64-Full-Release-${{ inputs.version }}.zip \
-            Linux-ARM64-Lite-Release-${{ inputs.version }}.zip \
             macOS-x64-Full-Release-${{ inputs.version }}.zip \
             macOS-x64-Lite-Release-${{ inputs.version }}.zip \
             macOS-ARM64-Full-Release-${{ inputs.version }}.zip \
