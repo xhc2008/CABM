@@ -24,7 +24,7 @@ jobs:
   build-windows-x64-full:
     runs-on: windows-latest
     timeout-minutes: 180
-    steps: &windows-full-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -100,7 +100,7 @@ jobs:
   build-windows-x64-lite:
     runs-on: windows-latest
     timeout-minutes: 180
-    steps: &windows-lite-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -175,13 +175,83 @@ jobs:
   build-windows-x86-lite:
     runs-on: windows-2022
     timeout-minutes: 180
-    steps: *windows-lite-steps
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python (x86)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          architecture: 'x86'
+
+      - name: 🧹 Clean excluded files (.nobuild)
+        shell: pwsh
+        run: |
+          $excludedFiles = @()
+          if (Test-Path ".nobuild") {
+            $nobuildContent = Get-Content -Path ".nobuild" | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '\S' }
+            $excludedFiles += $nobuildContent
+            Write-Output "Loaded $($nobuildContent.Count) exclusion rules from .nobuild"
+          }
+          foreach ($file in $excludedFiles) {
+            if (Test-Path $file) {
+              Remove-Item -Path $file -Force
+              Write-Output "Removed: $file"
+            }
+          }
+          Get-ChildItem -Directory | Where-Object { (Get-ChildItem -Path $_.FullName -Recurse -File).Count -eq 0 } | Remove-Item -Recurse -Force
+
+      - name: 📦 Install dependencies (Lite)
+        shell: pwsh
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: 🖥️ Build Windows executable
+        shell: pwsh
+        run: |
+          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+
+          if (Test-Path "characters") { Copy-Item -Path "characters" -Destination "dist\start.dist\characters" -Recurse -Force }
+          if (Test-Path "data")       { Copy-Item -Path "data"       -Destination "dist\start.dist\data"       -Recurse -Force }
+          if (Test-Path "static")     { Copy-Item -Path "static"     -Destination "dist\start.dist\static"     -Recurse -Force }
+          if (Test-Path "templates")  { Copy-Item -Path "templates"  -Destination "dist\start.dist\templates"  -Recurse -Force }
+          if (Test-Path "config")     { Copy-Item -Path "config"     -Destination "dist\start.dist\config"     -Recurse -Force }
+
+          Move-Item -Path "dist\start.dist" -Destination "app" -Force
+
+      - name: 🗑️ Cleanup artifacts
+        shell: pwsh
+        run: |
+          Remove-Item -Path "dist", "start.build" -Recurse -Force -ErrorAction Ignore
+          Remove-Item -Path "*.spec" -Force -ErrorAction Ignore
+
+      - name: 📦 Package Windows release
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path "app" | ForEach-Object {
+            $dest = Join-Path "." $_.Name
+            if (Test-Path $dest) { Remove-Item -Path $dest -Recurse -Force }
+            Move-Item -Path $_.FullName -Destination "." -Force
+          }
+          Remove-Item -Path "app" -Recurse -Force
+          if (Test-Path "start.exe") { Move-Item -Path "start.exe" -Destination "app.exe" -Force }
+          Compress-Archive -Path * -DestinationPath "Windows-x86-Lite-Release-${{ inputs.version }}.zip" -Force
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-x86-Lite-Release-${{ inputs.version }}
+          path: Windows-x86-Lite-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   # ==================== LINUX JOBS ====================
   build-linux-x64-full:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    steps: &linux-full-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -252,7 +322,7 @@ jobs:
   build-linux-x64-lite:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    steps: &linux-lite-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -323,7 +393,7 @@ jobs:
   build-macos-x64-full:
     runs-on: macos-13
     timeout-minutes: 180
-    steps: &macos-full-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -394,7 +464,7 @@ jobs:
   build-macos-x64-lite:
     runs-on: macos-13
     timeout-minutes: 180
-    steps: &macos-lite-steps
+    steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
@@ -464,12 +534,143 @@ jobs:
   build-macos-arm64-full:
     runs-on: macos-latest
     timeout-minutes: 180
-    steps: *macos-full-steps
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🧹 Clean excluded files (.nobuild)
+        run: |
+          if [ -f .nobuild ]; then
+            while IFS= read -r line; do
+              [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+              if [ -e "$line" ]; then
+                rm -rf "$line"
+                echo "Removed: $line"
+              fi
+            done < .nobuild
+          fi
+          find . -type d -empty -delete
+
+      - name: 📦 Install dependencies (Full)
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+          pip install rank_bm25 jieba torch tqdm
+
+      - name: 🍏 Build macOS executable
+        run: |
+          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+
+          mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
+          [ -d characters ] && cp -r characters dist/start.dist/
+          [ -d data ]       && cp -r data       dist/start.dist/
+          [ -d static ]     && cp -r static     dist/start.dist/
+          [ -d templates ]  && cp -r templates  dist/start.dist/
+          [ -d config ]     && cp -r config     dist/start.dist/
+
+          mv dist/start.dist app
+
+      - name: 🗑️ Cleanup artifacts
+        run: |
+          rm -rf dist start.build *.spec
+
+      - name: 📦 Package macOS release
+        run: |
+          # 删除可能冲突的目录
+          rm -rf characters data static templates config
+
+          # 移动 app 内容到根目录
+          mv app/* ./
+          rmdir app
+
+          # 重命名可执行文件（如果存在）
+          [ -f start ] && mv start app
+
+          # 压缩为 zip
+          zip -r macOS-ARM64-Full-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-ARM64-Full-Release-${{ inputs.version }}
+          path: macOS-ARM64-Full-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   build-macos-arm64-lite:
     runs-on: macos-latest
     timeout-minutes: 180
-    steps: *macos-lite-steps
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🧹 Clean excluded files (.nobuild)
+        run: |
+          if [ -f .nobuild ]; then
+            while IFS= read -r line; do
+              [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+              if [ -e "$line" ]; then
+                rm -rf "$line"
+                echo "Removed: $line"
+              fi
+            done < .nobuild
+          fi
+          find . -type d -empty -delete
+
+      - name: 📦 Install dependencies (Lite)
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: 🍏 Build macOS executable
+        run: |
+          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+
+          mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
+          [ -d characters ] && cp -r characters dist/start.dist/
+          [ -d data ]       && cp -r data       dist/start.dist/
+          [ -d static ]     && cp -r static     dist/start.dist/
+          [ -d templates ]  && cp -r templates  dist/start.dist/
+          [ -d config ]     && cp -r config     dist/start.dist/
+
+          mv dist/start.dist app
+
+      - name: 🗑️ Cleanup artifacts
+        run: |
+          rm -rf dist start.build *.spec
+
+      - name: 📦 Package macOS release
+        run: |
+          # 删除可能冲突的目录
+          rm -rf characters data static templates config
+
+          # 移动 app 内容到根目录
+          mv app/* ./
+          rmdir app
+
+          # 重命名可执行文件（如果存在）
+          [ -f start ] && mv start app
+
+          # 压缩为 zip
+          zip -r macOS-ARM64-Lite-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-ARM64-Lite-Release-${{ inputs.version }}
+          path: macOS-ARM64-Lite-Release-${{ inputs.version }}.zip
+          overwrite: true
 
   # ==================== PUBLISH ALL ====================
   publish-release:
@@ -477,12 +678,8 @@ jobs:
       - build-windows-x64-full
       - build-windows-x64-lite
       - build-windows-x86-lite
-      # - build-windows-arm64-full # 已移除
-      # - build-windows-arm64-lite # 已移除
       - build-linux-x64-full
       - build-linux-x64-lite
-      # - build-linux-arm64-full # 已移除
-      # - build-linux-arm64-lite # 已移除
       - build-macos-x64-full
       - build-macos-x64-lite
       - build-macos-arm64-full
