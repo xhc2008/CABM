@@ -116,7 +116,7 @@ export function initMultiCharacterService() {
  * @param {string} characterId - 角色ID
  * @param {string} characterName - 角色名称
  */
-export function switchToCharacter(characterId, characterName) {
+export function switchToCharacter(characterId, characterName, characterMood = null) {
     console.log(`切换到角色: ${characterName} (${characterId})`);
     
     // 检查是否已经是当前说话角色
@@ -133,7 +133,7 @@ export function switchToCharacter(characterId, characterName) {
                 const character = data.character;
                 console.log("更新current角色", character);
                 setCurrentCharacter(character);
-                showCharacter(characterId, character, characterName);
+                showCharacter(characterId, character, characterName, characterMood);
             }
         })
         .catch(error => {
@@ -142,7 +142,7 @@ export function switchToCharacter(characterId, characterName) {
 }
 
 // 修改后：显示角色
-function showCharacter(characterId, character, characterName) {
+function showCharacter(characterId, character, characterName, characterMood = null) {
     console.log(`显示角色: ${characterName} (${characterId})`);
     
     // 检查当前屏幕上的角色数量
@@ -151,33 +151,33 @@ function showCharacter(characterId, character, characterName) {
     // 如果没有角色，随机显示在一侧
     if (activeCharacters.length === 0) {
         const side = Math.random() < 0.5 ? 'left' : 'right';
-        showCharacterAt(side, characterId, character, characterName);
+        showCharacterAt(side, characterId, character, characterName, characterMood);
         return;
     }
     //避免在两侧同时出现
     let currentChar = currentCharacters['left'];
     if (currentChar && currentChar.id === characterId) {
         console.log(`角色 ${characterName} 已经在left位置`);
-        showCharacterAt('left', characterId, character, characterName);
+        showCharacterAt('left', characterId, character, characterName, characterMood);
         return;
     }
     currentChar = currentCharacters['right'];
     if (currentChar && currentChar.id === characterId) {
         console.log(`角色 ${characterName} 已经在right位置`);
-        showCharacterAt('right', characterId, character, characterName);
+        showCharacterAt('right', characterId, character, characterName, characterMood);
         return;
     }
     // 如果只有一个角色，新角色显示在另一侧
     if (activeCharacters.length === 1) {
         const existingPosition = Object.keys(currentCharacters).find(pos => currentCharacters[pos] !== null);
         const targetPosition = existingPosition === 'left' ? 'right' : 'left';
-        showCharacterAt(targetPosition, characterId, character, characterName);
+        showCharacterAt(targetPosition, characterId, character, characterName, characterMood);
         return;
     }
     
     // 如果已有两个角色，随机替换一侧
     const side = Math.random() < 0.5 ? 'left' : 'right';
-    showCharacterAt(side, characterId, character, characterName);
+    showCharacterAt(side, characterId, character, characterName, characterMood);
 }
 /**
  * 应用角色缩放率（多角色模式）
@@ -230,7 +230,7 @@ function applyCharacterPosition(targetContainer, character, position) {
  * @param {Object} character - 角色配置
  * @param {string} characterName - 角色名称
  */
-function showCharacterAt(position, characterId, character, characterName) {
+function showCharacterAt(position, characterId, character, characterName, characterMood = null) {
     const element = characterElements[position];
     const container = position === 'left' ? characterContainers.left : characterContainers.right;
     if (!element || !container) {
@@ -251,7 +251,7 @@ function showCharacterAt(position, characterId, character, characterName) {
     //     console.log(`角色 ${characterName} 已经在 ${position} 位置，无需更新`);
     //     return;
     // }
-    smoothCharacterTransition(characterId, position);
+    smoothCharacterTransition(characterId, position, characterMood);
     // 获取角色立绘URL
     // const imageUrl = getCharacterImageUrl(characterId, character);
     
@@ -336,14 +336,22 @@ function moveCharacterFromTo(fromPosition, toPosition, characterData) {
  * @param {Object} character - 角色配置
  * @returns {string} 立绘URL
  */
-function getCharacterImageUrl(characterId, character) {
+function getCharacterImageUrl(characterId, character, mood = null) {
     // 优先使用角色配置中的立绘
     if (character.image_url) {
         return character.image_url;
     }
     
-    // 使用默认立绘路径
-    return `/static/images/${characterId}/1.png`;
+    // 使用角色配置中的 image 目录（若有），否则回退到默认路径
+    const number = (() => {
+        const n = parseInt(mood, 10);
+        return isNaN(n) || n <= 0 ? 1 : n;
+    })();
+    // if (character.image) {
+    //     const base = character.image.endsWith('/') ? character.image : `${character.image}/`;
+    //     return `${base}${number}.png`;
+    // }
+    return `/static/images/${characterId}/${number}.png`;
 }
 
 /**
@@ -474,33 +482,14 @@ export function getCharacterBasicInfo(characterId) {
     return null;
 }
 // 新增：平滑切换角色显示
-function smoothCharacterTransition(newCharacterId, position) {
+function smoothCharacterTransition(newCharacterId, position, characterMood = null) {
     const element = characterElements[position];
     const container = position === 'left' ? characterContainers.left : characterContainers.right;
     if (!element || !container) return;
-    console.log("平滑过渡……")
-    // 获取当前角色的图片元素
-    const imgElement = element.querySelector('.character-img');
-    if (!imgElement) return;
-    
-    // 保存当前透明度
-    const currentOpacity = parseFloat(container.style.opacity) || 0;
-    
-    // 如果当前角色已经显示，先淡出
-    if (currentOpacity > 0) {
-        // 淡出当前角色
-        container.style.opacity = '0';
-        
-        // 延迟后显示新角色
-        setTimeout(() => {
-            showNewCharacter(newCharacterId, position);
-        }, 300); // 300毫秒的淡出时间
-    } else {
-        // 直接显示新角色
-        showNewCharacter(newCharacterId, position);
-    }
+    // 直接显示新角色（无需动画）
+    showNewCharacter(newCharacterId, position, characterMood);
 }
-function showNewCharacter(characterId, position) {
+function showNewCharacter(characterId, position, characterMood = null) {
     const element = characterElements[position];
     const container = position === 'left' ? characterContainers.left : characterContainers.right;
     if (!element || !container) return;
@@ -510,7 +499,7 @@ function showNewCharacter(characterId, position) {
         if (character) {
             const imgElement = element.querySelector('.character-img');
             if (imgElement) {
-                imgElement.src = getCharacterImageUrl(characterId, character);
+                imgElement.src = getCharacterImageUrl(characterId, character, characterMood);
                 imgElement.alt = character.name;
                 
                 imgElement.onerror = function() {

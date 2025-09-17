@@ -146,6 +146,7 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                     # 发送角色回复
                     full_response = ""
                     parsed_content = ""
+                    parsed_mood = None
                     yield f"data: {json.dumps({'characterResponse': True, 'characterID': next_character['id'], 'characterName': next_character['name']})}\n\n"
                     
                     for chunk in character_stream:
@@ -175,6 +176,24 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                                             if content_diff:
                                                 yield f"data: {json.dumps({'characterContent': content_diff})}\n\n"
                                             parsed_content = current_content
+
+                                # 同时尝试提取mood字段（支持int和string类型）
+                                mood_match = re.search(r'"mood":\s*("[^"]*"|\d+)', full_response)
+                                if mood_match:
+                                    mood_str = mood_match.group(1)
+                                    try:
+                                        # 如果是引号包围的字符串
+                                        if mood_str.startswith('"') and mood_str.endswith('"'):
+                                            current_mood = mood_str[1:-1]
+                                        else:
+                                            # 如果是数字
+                                            current_mood = int(mood_str)
+
+                                        if current_mood != parsed_mood:
+                                            yield f"data: {json.dumps({'characterMood': current_mood})}\n\n"
+                                            parsed_mood = current_mood
+                                    except (ValueError, TypeError):
+                                        pass
                             except Exception as e:
                                 # JSON解析失败，尝试作为普通文本发送
                                 yield f"data: {json.dumps({'characterContent': chunk})}\n\n"

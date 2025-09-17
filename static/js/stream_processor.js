@@ -35,14 +35,15 @@ class StreamProcessor {
      * 添加数据到缓冲区
      */
     addData(data) {
-        // 检查是否是角色切换标记
-        const switchMarkerMatch = data.match(/^<SWITCH_CHARACTER:([^:]+):([^>]+)>$/);
+        // 检查是否是角色切换标记（可选携带情绪编号）
+        const switchMarkerMatch = data.match(/^<SWITCH_CHARACTER:([^:]+):([^:>]+)(?::([^>]+))?>$/);
         if (switchMarkerMatch) {
             // 这是角色切换标记，添加特殊标记到缓冲区
             this.buffer.push({
                 type: 'SWITCH_CHARACTER',
                 characterID: switchMarkerMatch[1],
-                characterName: switchMarkerMatch[2]
+                characterName: switchMarkerMatch[2],
+                characterMood: switchMarkerMatch[3] !== undefined ? switchMarkerMatch[3] : null
             });
         } else {
             // 将数据逐字符添加到缓冲区
@@ -103,7 +104,7 @@ class StreamProcessor {
                 window.currentSpeakingCharacterId = item.characterID;
                 // 执行角色切换
                 if (window.switchToCharacter) {
-                    window.switchToCharacter(item.characterID, item.characterName);
+                    window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
                 }
                 // 继续处理下一个项目
                 this.processingTimeout = setTimeout(() => {
@@ -205,7 +206,7 @@ class StreamProcessor {
                 window.currentSpeakingCharacterId = item.characterID;
                 // 执行角色切换
                 if (window.switchToCharacter) {
-                    window.switchToCharacter(item.characterID, item.characterName);
+                    window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
                 }
             }
 

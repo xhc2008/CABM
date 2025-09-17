@@ -452,10 +452,16 @@ async function sendStoryMessage() {
                             if (data.characterResponse) {
                                 console.log('角色开始回复2:', data.characterName);
                                 // 记录待切换的角色信息，但不立即添加切换标记
-                                window.pendingCharacterSwitch = {
-                                    characterID: data.characterID,
-                                    characterName: data.characterName
-                                };
+                                if (window.pendingCharacterSwitch) {
+                                    // 合并已有的情绪信息
+                                    window.pendingCharacterSwitch.characterID = data.characterID;
+                                    window.pendingCharacterSwitch.characterName = data.characterName;
+                                } else {
+                                    window.pendingCharacterSwitch = {
+                                        characterID: data.characterID,
+                                        characterName: data.characterName
+                                    };
+                                }
                                 
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);
@@ -469,7 +475,10 @@ async function sendStoryMessage() {
                                 
                                 // 如果有待切换的角色，先添加切换标记
                                 if (window.pendingCharacterSwitch) {
-                                    const switchMarker = `<SWITCH_CHARACTER:${window.pendingCharacterSwitch.characterID}:${window.pendingCharacterSwitch.characterName}>`;
+                                    const moodPart = (window.pendingCharacterSwitch.characterMood !== undefined && window.pendingCharacterSwitch.characterMood !== null)
+                                        ? `:${window.pendingCharacterSwitch.characterMood}`
+                                        : '';
+                                    const switchMarker = `<SWITCH_CHARACTER:${window.pendingCharacterSwitch.characterID}:${window.pendingCharacterSwitch.characterName}${moodPart}>`;
                                     globalStreamProcessor.addData(switchMarker);
                                     window.pendingCharacterSwitch = null; // 清除待切换状态
                                 }
@@ -500,11 +509,24 @@ async function sendStoryMessage() {
                                 }
                             }
 
-                            // 处理mood字段
+                            // 处理mood字段（单角色）
                             if (data.mood !== undefined) {
                                 console.log('收到mood数据:', data.mood);
                                 if (handleMoodChange) {
                                     handleMoodChange(data.mood);
+                                }
+                            }
+                            // 多角色专用：仅记录，不直接切换立绘
+                            if (data.characterMood !== undefined) {
+                                console.log('收到多角色 characterMood 数据:', data.characterMood);
+                                if (!window.pendingCharacterSwitch) {
+                                    window.pendingCharacterSwitch = {
+                                        characterID: null,
+                                        characterName: null,
+                                        characterMood: data.characterMood
+                                    };
+                                } else {
+                                    window.pendingCharacterSwitch.characterMood = data.characterMood;
                                 }
                             }
 
