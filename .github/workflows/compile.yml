@@ -57,7 +57,9 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install nuitka
-          pip install rank_bm25 jieba torch tqdm
+          pip install rank_bm25 jieba tqdm
+          # 安装 CPU-only 版本的 PyTorch
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🖥️ Build Windows executable
         shell: pwsh
@@ -278,7 +280,9 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install nuitka
-          pip install rank_bm25 jieba torch tqdm
+          pip install rank_bm25 jieba tqdm
+          # 安装 CPU-only 版本的 PyTorch
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🐧 Build Linux executable
         run: |
@@ -420,7 +424,9 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install nuitka
-          pip install rank_bm25 jieba torch tqdm
+          pip install rank_bm25 jieba tqdm
+          # 安装 CPU-only 版本的 PyTorch
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🍏 Build macOS executable
         run: |
@@ -561,7 +567,9 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install nuitka
-          pip install rank_bm25 jieba torch tqdm
+          pip install rank_bm25 jieba tqdm
+          # 安装 CPU-only 版本的 PyTorch
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🍏 Build macOS executable
         run: |
