@@ -20,7 +20,12 @@
                 <h2>自定义角色</h2>
             </div>
             <div class="custom-character-container">
+                <div class="import-export-buttons" style="margin-bottom: 20px;">
+                    <button type="button" id="exportCharacterButton" class="btn secondary-btn">导出角色</button>
+                    <button type="button" id="importCharacterButton" class="btn secondary-btn">导入角色</button>
+                </div>
                 <form id="customCharacterForm" class="custom-character-form">
+                    <!-- 将导入导出按钮移到顶部 -->
                     <div class="form-group required">
                         <label for="characterId">角色ID <span class="required-mark">*</span></label>
                         <div class="form-description" id="characterIdDesc">必须是英文字母、数字或下划线</div>
@@ -112,10 +117,7 @@
                         <button type="button" id="cancelButton" class="btn secondary-btn">取消</button>
                         <button type="button" id="saveDraftButton" class="btn secondary-btn">存草稿</button>
                     </div>
-                    <div class="import-export-buttons">
-                        <button type="button" id="exportCharacterButton" class="btn secondary-btn">导出角色</button>
-                        <button type="button" id="importCharacterButton" class="btn secondary-btn">导入角色</button>
-                    </div>
+                    <!-- 原来的导入导出按钮位置已移除 -->
                 </form>
             </div>
         </div>
