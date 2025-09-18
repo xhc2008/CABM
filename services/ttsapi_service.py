@@ -186,7 +186,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                         ref_text = "在一无所知中, 梦里的一天结束了，一个新的轮回便会开始"
                 except Exception as e:
                     logger.warning(f"读取参考文本失败 {txt_path}: {e}，使用默认文本。")
-                    ref_text = "在一无所知中, 梦里的一天结束了，一个新的轮回便会开始"
+                    ref_text = ""
                 
                 # 读取音频文件
                 try:
@@ -267,12 +267,21 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                 voice = f"FunAudioLLM/CosyVoice2-0.5B:{role}"
             else:
                 voice = role
+            
+            full_input=filtered_text
+
+            #为什么加了prompt就很诡异……？
+            # if "希儿" in filtered_text:
+            #     full_input+="“希儿”的“儿”不要读轻声。"
+            # if "布洛妮娅" in filtered_text:
+            #     full_input+="“布洛妮娅”读作“Bronya”。"
+            #full_input+="<|endofprompt|>"+filtered_text
 
             url = f"{self.base_url}/audio/speech"
             params = {
                 "model": "FunAudioLLM/CosyVoice2-0.5B",
                 "voice": voice,
-                "input": filtered_text,
+                "input": full_input,
                 "response_format": response_format,
                 "speed": speed,
                 "gain": gain,
