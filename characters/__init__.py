@@ -40,7 +40,7 @@ def load_character_config_from_toml(file_path: Path) -> Optional[Dict[str, Any]]
             "description": data.get("description", ""),
             "prompt": data.get("prompt", ""),
             "welcome": data.get("welcome", "你好，我是AI助手。有什么我可以帮助你的吗？"),
-            "examples": data.get("examples", []),
+            #"examples": data.get("examples", []),
             "moods": [m.get("name", "") for m in data.get("moods", [])]
         }
         return config
