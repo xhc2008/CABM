@@ -83,6 +83,42 @@
     color: #ff6666;
 }
 
+/* 导入导出按钮样式 */
+.import-export-buttons {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.import-export-buttons .btn {
+    background: linear-gradient(45deg, rgba(255, 165, 0, 0.1), rgba(255, 69, 0, 0.1));
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    color: #ffa500;
+    transition: all 0.3s ease;
+}
+
+.import-export-buttons .btn:hover {
+    background: linear-gradient(45deg, rgba(255, 165, 0, 0.2), rgba(255, 69, 0, 0.2));
+    border-color: #ffa500;
+    box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+.import-export-buttons .btn:active {
+    transform: translateY(0);
+}
+
+/* 模态框按钮样式 */
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
     .character-id-container {
@@ -93,5 +129,21 @@
     #loadCharacterButton {
         width: 100%;
         margin-top: 0.5rem;
+    }
+    
+    .import-export-buttons {
+        flex-direction: column;
+    }
+    
+    .import-export-buttons .btn {
+        width: 100%;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+    }
+    
+    .modal-buttons .btn {
+        width: 100%;
     }
 }

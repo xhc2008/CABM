@@ -93,6 +93,42 @@ class CustomCharacterManager {
         document.getElementById('saveDraftButton')?.addEventListener('click', () => {
             this.saveDraft();
         });
+
+        // 导出角色
+        document.getElementById('exportCharacterButton')?.addEventListener('click', () => {
+            this.showExportModal();
+        });
+
+        // 导入角色
+        document.getElementById('importCharacterButton')?.addEventListener('click', () => {
+            this.showImportModal();
+        });
+
+        // 导出模态框事件
+        document.getElementById('closeExportButton')?.addEventListener('click', () => {
+            this.hideExportModal();
+        });
+
+        document.getElementById('cancelExportButton')?.addEventListener('click', () => {
+            this.hideExportModal();
+        });
+
+        document.getElementById('confirmExportButton')?.addEventListener('click', () => {
+            this.handleExportCharacter();
+        });
+
+        // 导入模态框事件
+        document.getElementById('closeImportButton')?.addEventListener('click', () => {
+            this.hideImportModal();
+        });
+
+        document.getElementById('cancelImportButton')?.addEventListener('click', () => {
+            this.hideImportModal();
+        });
+
+        document.getElementById('confirmImportButton')?.addEventListener('click', () => {
+            this.handleImportCharacter();
+        });
     }
 
     showCustomCharacterPage() {
@@ -729,6 +765,129 @@ class CustomCharacterManager {
             this.hideCropModal();
         } else {
             alert('裁剪失败，请重试');
+        }
+    }
+
+    // 导出角色相关方法
+    showExportModal() {
+        const modal = document.getElementById('exportModal');
+        modal.style.display = 'flex';
+        document.getElementById('exportCharacterId').value = '';
+    }
+
+    hideExportModal() {
+        const modal = document.getElementById('exportModal');
+        modal.style.display = 'none';
+    }
+
+    async handleExportCharacter() {
+        const characterId = document.getElementById('exportCharacterId').value.trim();
+        
+        if (!characterId) {
+            alert('请输入角色ID');
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(characterId)) {
+            alert('角色ID只能包含英文字母、数字或下划线');
+            return;
+        }
+
+        try {
+            this.showLoading(true);
+            
+            const response = await fetch(`/api/export-character/${characterId}`, {
+                method: 'GET'
+            });
+
+            if (response.ok) {
+                // 获取文件名
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `${characterId}.zip`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                // 下载文件
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                alert(`角色 ${characterId} 导出成功！`);
+                this.hideExportModal();
+            } else {
+                const result = await response.json();
+                alert('导出失败：' + (result.error || '未知错误'));
+            }
+        } catch (error) {
+            console.error('导出角色失败:', error);
+            alert('导出失败：' + error.message);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // 导入角色相关方法
+    showImportModal() {
+        const modal = document.getElementById('importModal');
+        modal.style.display = 'flex';
+        document.getElementById('importCharacterFile').value = '';
+    }
+
+    hideImportModal() {
+        const modal = document.getElementById('importModal');
+        modal.style.display = 'none';
+    }
+
+    async handleImportCharacter() {
+        const fileInput = document.getElementById('importCharacterFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert('请选择要导入的zip文件');
+            return;
+        }
+
+        if (!file.name.toLowerCase().endsWith('.zip')) {
+            alert('请选择zip格式的文件');
+            return;
+        }
+
+        try {
+            this.showLoading(true);
+            
+            const formData = new FormData();
+            formData.append('characterFile', file);
+
+            const response = await fetch('/api/import-character', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`角色 ${result.character_id} 导入成功！\n如未成功加载请重启程序`);
+                // 重新加载角色列表
+                await this.reloadCharacterList();
+                this.hideImportModal();
+            } else {
+                alert('导入失败：' + result.error);
+            }
+        } catch (error) {
+            console.error('导入角色失败:', error);
+            alert('导入失败：' + error.message);
+        } finally {
+            this.showLoading(false);
         }
     }
 }

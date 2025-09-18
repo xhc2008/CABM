@@ -112,6 +112,10 @@
                         <button type="button" id="cancelButton" class="btn secondary-btn">取消</button>
                         <button type="button" id="saveDraftButton" class="btn secondary-btn">存草稿</button>
                     </div>
+                    <div class="import-export-buttons">
+                        <button type="button" id="exportCharacterButton" class="btn secondary-btn">导出角色</button>
+                        <button type="button" id="importCharacterButton" class="btn secondary-btn">导入角色</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -151,6 +155,46 @@
                                 <button id="cancelCropButton" class="btn secondary-btn">取消</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="exportModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>导出角色</h3>
+                    <button id="closeExportButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="exportCharacterId">角色ID</label>
+                        <div class="form-description">输入要导出的角色ID</div>
+                        <input type="text" id="exportCharacterId" class="form-input" placeholder="请输入角色ID">
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="confirmExportButton" class="btn primary-btn">导出</button>
+                        <button id="cancelExportButton" class="btn secondary-btn">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="importModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>导入角色</h3>
+                    <button id="closeImportButton" class="btn close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="importCharacterFile">角色文件</label>
+                        <div class="form-description">选择要导入的角色zip文件</div>
+                        <input type="file" id="importCharacterFile" class="form-file" accept=".zip">
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="confirmImportButton" class="btn primary-btn">导入</button>
+                        <button id="cancelImportButton" class="btn secondary-btn">取消</button>
                     </div>
                 </div>
             </div>

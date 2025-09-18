@@ -7,8 +7,12 @@ import re
 import json
 import time
 import traceback
+import zipfile
+import tempfile
+import shutil
+import io
 from pathlib import Path
-from flask import Blueprint, request, render_template, jsonify
+from flask import Blueprint, request, render_template, jsonify, send_file
 import sys
 
 project_root = Path(__file__).resolve().parent.parent
@@ -565,3 +569,164 @@ def load_character(character_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/export-character/<character_id>', methods=['GET'])
+def export_character(character_id):
+    """导出角色API"""
+    try:
+        # 验证角色ID格式
+        if not re.match(r'^[a-zA-Z0-9_]+$', character_id):
+            return jsonify({'success': False, 'error': '角色ID格式不正确'}), 400
+
+        # 检查角色是否存在
+        character_toml_path = project_root / 'characters' / f"{character_id}.toml"
+        character_py_path = project_root / 'characters' / f"{character_id}.py"
+        
+        if not character_toml_path.exists() and not character_py_path.exists():
+            return jsonify({'success': False, 'error': f'角色 {character_id} 不存在'}), 404
+
+        # 使用内存打包，避免 Windows 上临时文件占用问题
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # 添加角色配置文件
+            if character_toml_path.exists():
+                with open(character_toml_path, 'rb') as f:
+                    zipf.writestr(f"characters/{character_id}.toml", f.read())
+            elif character_py_path.exists():
+                with open(character_py_path, 'rb') as f:
+                    zipf.writestr(f"characters/{character_id}.py", f.read())
+
+            # 添加角色详细信息文件
+            detail_file_path = project_root / 'data' / 'details' / f"{character_id}.json"
+            if detail_file_path.exists():
+                with open(detail_file_path, 'rb') as f:
+                    zipf.writestr(f"data/details/{character_id}.json", f.read())
+
+            # 添加参考音频目录
+            ref_audio_dir = project_root / 'data' / 'ref_audio' / character_id
+            if ref_audio_dir.exists():
+                for file_path in ref_audio_dir.rglob('*'):
+                    if file_path.is_file():
+                        arcname = f"data/ref_audio/{character_id}/{file_path.relative_to(ref_audio_dir)}"
+                        with open(file_path, 'rb') as f:
+                            zipf.writestr(arcname, f.read())
+
+            # 添加角色图片目录
+            image_dir = project_root / 'static' / 'images' / character_id
+            if image_dir.exists():
+                for file_path in image_dir.rglob('*'):
+                    if file_path.is_file():
+                        arcname = f"static/images/{character_id}/{file_path.relative_to(image_dir)}"
+                        with open(file_path, 'rb') as f:
+                            zipf.writestr(arcname, f.read())
+
+        memory_file.seek(0)
+        return send_file(
+            memory_file,
+            as_attachment=True,
+            download_name=f"{character_id}.zip",
+            mimetype='application/zip'
+        )
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'导出失败: {str(e)}'}), 500
+
+@bp.route('/api/import-character', methods=['POST'])
+def import_character():
+    """导入角色API"""
+    try:
+        # 检查是否有文件上传
+        if 'characterFile' not in request.files:
+            return jsonify({'success': False, 'error': '没有上传文件'}), 400
+
+        file = request.files['characterFile']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '没有选择文件'}), 400
+
+        if not file.filename.lower().endswith('.zip'):
+            return jsonify({'success': False, 'error': '只支持zip格式的文件'}), 400
+
+        # 创建临时目录
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            
+            # 保存上传的zip文件
+            zip_path = temp_path / file.filename
+            file.save(str(zip_path))
+            
+            # 解压文件
+            extract_dir = temp_path / 'extracted'
+            extract_dir.mkdir()
+            
+            with zipfile.ZipFile(zip_path, 'r') as zipf:
+                zipf.extractall(extract_dir)
+            
+            # 查找角色配置文件
+            character_id = None
+            character_config_path = None
+            
+            # 查找toml文件
+            for toml_file in extract_dir.rglob('*.toml'):
+                if toml_file.name.endswith('.toml'):
+                    character_id = toml_file.stem
+                    character_config_path = toml_file
+                    break
+            
+            # 如果没找到toml，查找py文件
+            if not character_id:
+                for py_file in extract_dir.rglob('*.py'):
+                    if py_file.name.endswith('.py'):
+                        character_id = py_file.stem
+                        character_config_path = py_file
+                        break
+            
+            if not character_id or not character_config_path:
+                return jsonify({'success': False, 'error': '未找到有效的角色配置文件'}), 400
+
+            # 验证角色ID格式
+            if not re.match(r'^[a-zA-Z0-9_]+$', character_id):
+                return jsonify({'success': False, 'error': '角色ID格式不正确'}), 400
+
+            # 检查角色是否已存在
+            existing_toml = project_root / 'characters' / f"{character_id}.toml"
+            existing_py = project_root / 'characters' / f"{character_id}.py"
+            
+            if existing_toml.exists() or existing_py.exists():
+                return jsonify({'success': False, 'error': f'角色 {character_id} 已存在，请先删除现有角色'}), 400
+
+            # 复制角色配置文件
+            target_config_path = project_root / 'characters' / f"{character_id}.toml"
+            if character_config_path.suffix == '.py':
+                target_config_path = project_root / 'characters' / f"{character_id}.py"
+            
+            shutil.copy2(character_config_path, target_config_path)
+
+            # 复制角色详细信息文件
+            detail_file = extract_dir / 'data' / 'details' / f"{character_id}.json"
+            if detail_file.exists():
+                target_detail_dir = project_root / 'data' / 'details'
+                target_detail_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(detail_file, target_detail_dir / f"{character_id}.json")
+
+            # 复制参考音频目录
+            ref_audio_src = extract_dir / 'data' / 'ref_audio' / character_id
+            if ref_audio_src.exists():
+                ref_audio_dst = project_root / 'data' / 'ref_audio' / character_id
+                shutil.copytree(ref_audio_src, ref_audio_dst)
+
+            # 复制角色图片目录
+            image_src = extract_dir / 'static' / 'images' / character_id
+            if image_src.exists():
+                image_dst = project_root / 'static' / 'images' / character_id
+                shutil.copytree(image_src, image_dst)
+
+            return jsonify({
+                'success': True,
+                'message': f'角色 {character_id} 导入成功',
+                'character_id': character_id
+            })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'导入失败: {str(e)}'}), 500
