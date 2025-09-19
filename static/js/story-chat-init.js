@@ -210,7 +210,7 @@ async function sendStoryMessage() {
                 window.storyData?.characters?.length > 1;
             const roleToUse = isMultiCharacter && window.currentSpeakingCharacterId ?
                 window.currentSpeakingCharacterId : 'assistant';
-            console.log("》》》》》》》》》聊天框更新：", roleToUse)
+            console.log("聊天框更新：", roleToUse)
             updateCurrentMessage(roleToUse, newContent, true);
 
             // 检查是否有新的完整句子需要处理
@@ -227,22 +227,22 @@ async function sendStoryMessage() {
                 const newSentenceContent = completeSentences.substring(lastPlayedLength);
                 if (newSentenceContent.trim()) {
                     // 统一处理角色信息获取和TTS播放
-                    const handleTTSPlayback = (characterName, character) => {
+                    const handleTTSPlayback = (characterID, character) => {
                         if (prefetchAndPlayAudio) {
-                            prefetchAndPlayAudio(newSentenceContent, characterName, character);
+                            prefetchAndPlayAudio(newSentenceContent, characterID, character);
                         }
                     };
 
                     if (roleToUse === 'assistant') {
                         let currentCharacter = getCurrentCharacter();
-                        let characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                        handleTTSPlayback(characterName, currentCharacter);
+                        let characterID = currentCharacter ? currentCharacter.id : 'AI助手';
+                        handleTTSPlayback(characterID, currentCharacter);
                     } else {
                         // 异步获取角色信息
                         getCharacterById(roleToUse).then(newCharacter => {
-                            const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
-                            console.log("TTS角色名", newCharacterName);
-                            handleTTSPlayback(newCharacterName, newCharacter);
+                            const newCharacterID = newCharacter ? newCharacter.id : 'AI助手';
+                            console.log("TTS角色ID", newCharacterID);
+                            handleTTSPlayback(newCharacterID, newCharacter);
                         }).catch(error => {
                             console.error("获取角色信息失败:", error);
                         });
@@ -265,10 +265,10 @@ async function sendStoryMessage() {
                     window.currentSpeakingCharacterId : 'assistant';
 
                 // 统一处理角色信息获取和内容添加
-                const handleContentProcessing = (characterName, character) => {
+                const handleContentProcessing = (characterID, characterName, character) => {
                     const unplayedContent = newContent.substring(lastPlayedLength);
                     if (unplayedContent.trim() && prefetchAndPlayAudio) {
-                        prefetchAndPlayAudio(unplayedContent, characterName, character);
+                        prefetchAndPlayAudio(unplayedContent, characterID, character);
                     }
                     
                     addToHistory(roleToUse, newContent, characterName);
@@ -278,13 +278,15 @@ async function sendStoryMessage() {
                 if (roleToUse === 'assistant') {
                     const currentCharacter = getCurrentCharacter();
                     const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                    handleContentProcessing(characterName, currentCharacter);
+                    const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
+                    handleContentProcessing(characterID, characterName, currentCharacter);
                 } else {
                     // 异步获取角色信息
                     getCharacterById(roleToUse).then(newCharacter => {
                         const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
-                        console.log("TTS角色名", newCharacterName);
-                        handleContentProcessing(newCharacterName, newCharacter);
+                        const newCharacterID = newCharacter ? newCharacter.id : 'AI助手';
+                        console.log("TTS角色ID", newCharacterID);
+                        handleContentProcessing(newCharacterID, newCharacterName, newCharacter);
                     }).catch(error => {
                         console.error("获取角色信息失败:", error);
                     });
@@ -307,10 +309,10 @@ async function sendStoryMessage() {
                     window.currentSpeakingCharacterId : 'assistant';
 
                 // 统一处理角色信息获取和内容添加
-                const handleContentProcessing = (characterName, character) => {
+                const handleContentProcessing = (characterID, characterName, character) => {
                     const unplayedContent = remainingContent.substring(lastPlayedLength);
                     if (unplayedContent.trim() && prefetchAndPlayAudio) {
-                        prefetchAndPlayAudio(unplayedContent, characterName, character);
+                        prefetchAndPlayAudio(unplayedContent, characterID, character);
                     }
 
                     addToHistory(roleToUse, remainingContent, characterName);
@@ -320,13 +322,15 @@ async function sendStoryMessage() {
                 if (roleToUse === 'assistant') {
                     const currentCharacter = getCurrentCharacter();
                     const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                    handleContentProcessing(characterName, currentCharacter);
+                    const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
+                    handleContentProcessing(characterID, characterName, currentCharacter);
                 } else {
                     // 异步获取角色信息
                     getCharacterById(roleToUse).then(newCharacter => {
                         const newCharacterName = newCharacter ? newCharacter.name : 'AI助手';
-                        console.log("TTS角色名", newCharacterName);
-                        handleContentProcessing(newCharacterName, newCharacter);
+                        const newCharacterID = newCharacter ? newCharacter.id : 'AI助手';
+                        console.log("TTS角色ID", newCharacterID);
+                        handleContentProcessing(newCharacterID, newCharacterName, newCharacter);
                     }).catch(error => {
                         console.error("获取角色信息失败:", error);
                     });
