@@ -154,14 +154,14 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                         self.role_name[character_id] = uri
                         
                         # 添加角色名称映射
-                        if characters:
-                            try:
-                                character_config = characters.get_character_config(character_id)
-                                if character_config and 'name' in character_config:
-                                    character_name = character_config['name']
-                                    self.role_name[character_name] = uri
-                            except Exception:
-                                pass
+                        # if characters:
+                        #     try:
+                        #         character_config = characters.get_character_config(character_id)
+                        #         if character_config and 'name' in character_config:
+                        #             character_name = character_config['name']
+                        #             self.role_name[character_name] = uri
+                        #     except Exception:
+                        #         pass
                         
                         logger.info(f"🔄 使用缓存音色: {character_id} -> {uri}")
                         continue
