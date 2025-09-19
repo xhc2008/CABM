@@ -245,10 +245,6 @@ async function sendStoryMessage() {
                             handleTTSPlayback(newCharacterName, newCharacter);
                         }).catch(error => {
                             console.error("获取角色信息失败:", error);
-                            // 如果获取失败，使用默认角色信息
-                            let currentCharacter = getCurrentCharacter();
-                            let characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                            handleTTSPlayback(characterName, currentCharacter);
                         });
                     }
                     
@@ -291,10 +287,6 @@ async function sendStoryMessage() {
                         handleContentProcessing(newCharacterName, newCharacter);
                     }).catch(error => {
                         console.error("获取角色信息失败:", error);
-                        // 如果获取失败，使用默认角色信息
-                        const currentCharacter = getCurrentCharacter();
-                        const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                        handleContentProcessing(characterName, currentCharacter);
                     });
                 }
                 
@@ -337,10 +329,6 @@ async function sendStoryMessage() {
                         handleContentProcessing(newCharacterName, newCharacter);
                     }).catch(error => {
                         console.error("获取角色信息失败:", error);
-                        // 如果获取失败，使用默认角色信息
-                        const currentCharacter = getCurrentCharacter();
-                        const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                        handleContentProcessing(characterName, currentCharacter);
                     });
                 }
             }
