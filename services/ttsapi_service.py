@@ -233,7 +233,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                                     character_config = characters.get_character_config(character_id)
                                     if character_config and 'name' in character_config:
                                         character_name = character_config['name']
-                                        self.role_name[character_name] = uri
+                                        self.role_name[character_id] = uri
                                         logger.info(f"✅ 成功上传音色: {character_id} ({character_name}) -> {uri}")
                                     else:
                                         logger.info(f"✅ 成功上传音色: {character_id} -> {uri}")
@@ -267,9 +267,12 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
                 voice = f"FunAudioLLM/CosyVoice2-0.5B:{role}"
             else:
                 voice = role
-            
-            full_input=filtered_text
+        
+            #特化
+            filtered_text = filtered_text.replace("希儿", "希而")
+            filtered_text = filtered_text.replace("布洛妮娅", "Bronya")
 
+            full_input=filtered_text
             #为什么加了prompt就很诡异……？
             # if "希儿" in filtered_text:
             #     full_input+="“希儿”的“儿”不要读轻声。"

@@ -104,7 +104,7 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: textToPlay,
-                role: currentCharacter ? currentCharacter.name : 'AI助手',
+                role: currentCharacter ? currentCharacter.id : 'AI助手',
                 enabled: window.ttsEnabled !== false
             })
         });
@@ -238,7 +238,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
-                role: currentCharacter ? currentCharacter.name : 'AI助手',
+                role: currentCharacter ? currentCharacter.id : 'AI助手',
                 enabled: window.ttsEnabled !== false
             })
         });
