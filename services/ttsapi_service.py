@@ -268,7 +268,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             else:
                 voice = role
         
-            #特化
+            #特化（虽然很抽象，但很有效）
             filtered_text = filtered_text.replace("希儿", "希而")
             filtered_text = filtered_text.replace("布洛妮娅", "Bronya")
 
@@ -279,7 +279,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             # if "布洛妮娅" in filtered_text:
             #     full_input+="“布洛妮娅”读作“Bronya”。"
             #full_input+="<|endofprompt|>"+filtered_text
-
+            logger.info("TTS角色："+role)
             url = f"{self.base_url}/audio/speech"
             params = {
                 "model": "FunAudioLLM/CosyVoice2-0.5B",

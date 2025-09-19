@@ -72,10 +72,10 @@ export async function sendMessage() {
                 const newSentenceContent = completeSentences.substring(lastPlayedLength);
                 if (newSentenceContent.trim()) {
                     const currentCharacter = getCurrentCharacter();
-                    const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
+                    const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
                     
                     // 立即开始预加载并播放音频
-                    prefetchAndPlayAudio(newSentenceContent, characterName, currentCharacter);
+                    prefetchAndPlayAudio(newSentenceContent, characterID, currentCharacter);
                     
                     lastPlayedLength = completeSentences.length;
                     isFirstSentence = false;
@@ -88,12 +88,13 @@ export async function sendMessage() {
             const currentCharacter = getCurrentCharacter();
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
+                const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
                 
                 // 检查是否有未播放的内容
                 const unplayedContent = newContent.substring(lastPlayedLength);
                 if (unplayedContent.trim()) {
-                    prefetchAudio(unplayedContent, characterName, () => {
+                    prefetchAudio(unplayedContent, characterID, () => {
                         if (window.playAudio) window.playAudio(true);
                     });
                 }
@@ -115,12 +116,13 @@ export async function sendMessage() {
             const currentCharacter = getCurrentCharacter();
             const remainingContent = fullContent.substring(addedToHistoryLength);
             if (remainingContent) {
+                const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
                 
                 // 检查是否有未播放的内容
                 const unplayedContent = remainingContent.substring(lastPlayedLength);
                 if (unplayedContent.trim()) {
-                    prefetchAudio(unplayedContent, characterName, () => {
+                    prefetchAudio(unplayedContent, characterID, () => {
                         if (window.playAudio) window.playAudio(true);
                     });
                 }

@@ -359,8 +359,8 @@ function getCharacterImageUrl(characterId, character, mood = null) {
  * @param {string} characterName - 角色名称
  */
 // 修改后：显示角色回复状态（移除发光效果）
-export function showCharacterResponse(characterName) {
-    console.log(`${characterName} 正在回复...`);
+export function showCharacterResponse(characterID) {
+    console.log(`${characterID} 正在回复...`);
     // 移除发光效果，留到后续添加
 }
 
