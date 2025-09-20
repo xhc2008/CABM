@@ -39,7 +39,8 @@ class OptionService:
         self, 
         conversation_history: List[Dict[str, str]], 
         character_config: Dict[str, Any],
-        user_query: str
+        user_query: str,
+        isMulti:bool =False
     ) -> List[str]:
         """
         生成对话选项
@@ -69,7 +70,7 @@ class OptionService:
         system_prompt = self.config_service.get_option_system_prompt()
         
         # 构建用户提示词
-        user_prompt = self._build_user_prompt(conversation_history, character_config, user_query)
+        user_prompt = self._build_user_prompt(conversation_history, character_config, user_query,isMulti)
         
         try:
             # 构建请求参数
@@ -114,12 +115,13 @@ class OptionService:
         except Exception as e:
             print(f"选项生成失败: {str(e)}")
             return []
-    
+
     def _build_user_prompt(
         self, 
         conversation_history: List[Dict[str, str]], 
         character_config: Dict[str, Any],
-        user_query: str
+        user_query: str,
+        isMulti:bool
     ) -> str:
         """
         构建用户提示词
@@ -140,13 +142,16 @@ class OptionService:
             
             if role == "user":
                 history_text += f"用户: {content}\n"
-            elif role == "assistant":
+            elif role == "assistant" and not isMulti:
                 history_text += f"{character_config['name']}: {content}\n"
-        
-        # 构建角色设定部分
-        character_setting = f"角色名称: {character_config['name']}\n"
-        character_setting += f"角色描述: {character_config['description']}\n"
-        character_setting += f"角色设定: {character_config['prompt']}\n"
+            else:
+                history_text += f"{role}: {content}\n"
+        character_setting=""
+        if not isMulti:
+            # 构建角色设定部分
+            character_setting += f"角色名称: {character_config['name']}\n"
+            character_setting += f"角色描述: {character_config['description']}\n"
+            character_setting += f"角色设定: {character_config['prompt']}\n"
         
         # 构建完整的用户提示词
         user_prompt = f"""对话历史:

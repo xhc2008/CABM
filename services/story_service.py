@@ -278,6 +278,7 @@ class StoryService:
         characters.append({
             'id': 'player',
             'name': '玩家',
+            'des': '玩家',
             'is_player': True
         })
         
@@ -293,6 +294,7 @@ class StoryService:
                 characters.append({
                     'id': char_id,
                     'name': char_config.get('name', char_id),
+                    'des': char_config.get('description'),
                     'is_player': False
                 })
         

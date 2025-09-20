@@ -37,6 +37,9 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
     if current_depth >= max_depth:
         print(f"达到最大递归深度 {max_depth}，停止角色自动回复")
         yield f"data: {json.dumps({'nextSpeaker': 'player', 'message': '对话轮次过多，请继续'})}\n\n"
+        
+        # 递归终止时生成选项
+        yield from generate_options_after_recursion(story_id)
         return
     
     try:
@@ -109,6 +112,9 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                 # 下次是玩家说话，结束递归
                 print(f"下次说话：{next_character['name']}")
                 yield f"data: {json.dumps({'nextSpeaker': 'player'})}\n\n"
+                
+                # 递归终止时生成选项
+                yield from generate_options_after_recursion(story_id)
             else:
                 # 下次是角色说话，继续角色自动回复
                 print(f"下次说话：{next_character['name']} (角色自动回复，深度: {current_depth + 1})")
@@ -215,15 +221,87 @@ def handle_next_speaker_recursively(story_id, max_history, characters, max_depth
                     print(f"角色自动回复失败: {e}")
                     traceback.print_exc()
                     yield f"data: {json.dumps({'error': f'角色自动回复失败: {str(e)}'})}\n\n"
+                    
+                    # 出错时也生成选项
+                    yield from generate_options_after_recursion(story_id)
         else:
             print(f"无效的角色序号: {next_speaker}")
             yield f"data: {json.dumps({'nextSpeaker': 'player', 'message': '角色选择错误，请继续'})}\n\n"
+            
+            # 错误情况下也生成选项
+            yield from generate_options_after_recursion(story_id)
             
     except Exception as e:
         print(f"处理下一个说话者失败: {e}")
         traceback.print_exc()
         yield f"data: {json.dumps({'error': f'处理下一个说话者失败: {str(e)}'})}\n\n"
 
+        # 出错时也生成选项
+        yield from generate_options_after_recursion(story_id)
+
+
+def generate_options_after_recursion(story_id):
+    """在递归结束后生成选项"""
+    try:
+        # 获取聊天历史
+        history_path = story_service.get_story_history_path()
+        app_config = config_service.get_app_config()
+        history_dir = app_config["history_dir"]
+        history_manager = HistoryManager(history_dir)
+        
+        # 加载历史消息
+        history_messages = history_manager.load_history_from_file(
+            history_path, 
+            app_config["max_history_length"], 
+            app_config["max_history_length"] * 2
+        )
+        
+        # 格式化消息
+        conversation_history = []
+        for msg in history_messages:
+            if msg["role"] == "user":
+                conversation_history.append({"role": "user", "content": msg["content"]})
+            else:
+                # 尝试解析JSON格式的回复
+                try:
+                    msg_data = json.loads(msg["content"])
+                    content = msg_data.get("content", msg["content"])
+                except:
+                    content = msg["content"]
+                conversation_history.append({"role": msg["role"], "content": content})
+        
+        # 获取最后一个用户消息（如果有）
+        last_user_message = ""
+        for msg in reversed(history_messages):
+            if msg["role"] == "user":
+                last_user_message = msg["content"]
+                break
+        
+        # 导入选项服务（确保在需要时导入）
+        try:
+            from services.option_service import option_service
+            from services.chat_service import chat_service
+            
+            # 生成选项
+            options = option_service.generate_options(
+                conversation_history=conversation_history,
+                character_config={},  # 多角色场景可能不需要特定角色配置
+                user_query=last_user_message,
+                isMulti=True
+            )
+            
+            if options:
+                yield f"data: {json.dumps({'options': options})}\n\n"
+                
+        except ImportError:
+            print("选项服务未导入，跳过选项生成")
+        except Exception as e:
+            print(f"选项生成失败: {e}")
+            traceback.print_exc()
+            
+    except Exception as e:
+        print(f"生成选项时出错: {e}")
+        traceback.print_exc()
 @bp.route('/chat/stream', methods=['POST'])
 def multi_character_chat_stream():
     """多角色故事流式对话"""
