@@ -1,8 +1,15 @@
 # 环境变量文件
 .env
+#角色的文件
+
+
 
 .history/
+data/details/cache
+characters/cache
+data/ref_audio/cache
 static/images/default/
+static/images/cache/
 data/voice_cache.json
 #测试文件
 test.py
