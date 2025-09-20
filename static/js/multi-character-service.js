@@ -499,12 +499,29 @@ function showNewCharacter(characterId, position, characterMood = null) {
         if (character) {
             const imgElement = element.querySelector('.character-img');
             if (imgElement) {
-                imgElement.src = getCharacterImageUrl(characterId, character, characterMood);
+                const imageUrl = getCharacterImageUrl(characterId, character, characterMood);
+                imgElement.src = imageUrl;
                 imgElement.alt = character.name;
                 
+                // 修改错误处理：先尝试回退到1.png，再回退到默认图片
                 imgElement.onerror = function() {
-                    console.error(`角色图片加载失败: ${imgElement.src}`);
-                    this.src = '/static/images/default.svg';
+                    console.error(`角色图片加载失败: ${this.src}`);
+                    
+                    // 检查当前URL是否已经是1.png或默认图片，避免无限循环
+                    if (this.src.includes('/1.png') || this.src.includes('/default.svg')) {
+                        console.error('回退图片也加载失败，使用默认图片');
+                        this.src = '/static/images/default.svg';
+                        return;
+                    }
+                    
+                    // 如果当前不是1.png，尝试回退到1.png
+                    if (!this.src.includes('/1.png')) {
+                        console.log('尝试回退到1.png');
+                        this.src = `/static/images/${characterId}/1.png`;
+                    } else {
+                        // 如果已经是1.png但仍然加载失败，使用默认图片
+                        this.src = '/static/images/default.svg';
+                    }
                 };
                 
                 imgElement.onload = function() {
