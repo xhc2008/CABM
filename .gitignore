@@ -1,60 +1,72 @@
-# 环境变量文件
+# ==================== #
+# 环境与配置文件
+# ==================== #
 .env
-#角色的文件
+.env.docker
+.env.test
+.env.test.fast
 
-
-
-.history/
-data/details/cache
-characters/cache
-data/ref_audio/cache
-static/images/default/
-static/images/cache/
+# ==================== #
+# 项目特定文件与目录
+# ==================== #
+# 角色相关文件
+characters/
+character_backups/
+data/ref_audio/
 data/voice_cache.json
-#测试文件
-test.py
-temp/
-node_modules/
-test/
-.kiro/
-.vscode/
+data/details/
 data/history/
 data/memory/
 data/images/
 data/saves/
-plan.txt
-todo.txt
-backups/
-log.txt
-temp.txt
+data/scenes/
+data/backgrounds/
+data/temp_images/
 
-.history/
+# 静态资源
+static/images/
 static/images/default/
-#测试文件
+
+# ==================== #
+# 开发与IDE文件
+# ==================== #
+.history/
+.vscode/
+.idea/
+.kiro/
+*.swp
+*.swo
+
+# ==================== #
+# 测试与临时文件
+# ==================== #
+test/
 test.py
 temp/
-
-test/
-.kiro/
-.vscode/
-data/history/
-data/memory/
-data/images/
+temp.txt
 plan.txt
-backups/
+todo.txt
 log.txt
+backups/
+examples/
 
-# Python缓存文件
-**/__pycache__/
+# ==================== #
+# Python相关
+# ==================== #
+# 缓存文件
 **/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
+
+# 包与分发文件
+*.egg-info/
+*.egg
+.installed.cfg
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -63,58 +75,53 @@ lib64/
 parts/
 sdist/
 var/
-*.egg-info/
-.installed.cfg
-*.egg
-fuck-u-code.exe
 
 # 虚拟环境
 venv/
 ENV/
 env/
 .conda/
-.conda/
 
-# IDE文件
-.idea/
-.vscode/
-*.swp
-*.swo
+# ==================== #
+# 节点与系统文件
+# ==================== #
+node_modules/
+.DS_Store
+Thumbs.db
+fuck-u-code.exe
 
-# 日志文件
-*.log
-
-# 本地数据库
+# ==================== #
+# 数据库文件
+# ==================== #
 *.db
 *.sqlite3
 
-# 临时图片
-data/temp_images/
-data/scenes/
-data/backgrounds/
-# 系统文件
-.DS_Store
-Thumbs.db
-utils/RAG/Retriever.py
-
+# ==================== #
 # Docker相关
-.env.docker
+# ==================== #
+Dockerfile.fast
 docker-package/
 docker-export/
-*.tar.gz
-cabm-*.tar.gz
 .docker/
 docker-data/
-.env.test
-.env.test.fast
-Dockerfile.fast
+*.tar.gz
+cabm-*.tar.gz
 
-# 部署相关
+# ==================== #
+# 部署与发布文件
+# ==================== #
 deployment-package/
 release/
-一键包点我.bat
 CABM.zip
-examples/
+一键包点我.bat
+
+# ==================== #
 # 模型文件
+# ==================== #
 *.safetensors
 model.safetensors
+
+# ==================== #
+# 工具特定文件
+# ==================== #
+utils/RAG/Retriever.py
