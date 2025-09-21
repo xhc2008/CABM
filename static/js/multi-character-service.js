@@ -28,6 +28,12 @@ let characterCache = new Map();
 
 // 正在进行的请求缓存，避免重复请求
 let pendingRequests = new Map();
+
+// 动画状态标志，防止动画冲突
+let animationStates = {
+    left: false,
+    right: false
+};
 import {
     setCurrentCharacter,
     updateCharacterImage
@@ -251,11 +257,20 @@ function showCharacterAt(position, characterId, character, characterName, charac
     element.style.position = 'relative';
     
     // 检查是否已经是同一角色在同一位置
-    // const currentChar = currentCharacters[position];
-    // if (currentChar && currentChar.id === characterId) {
-    //     console.log(`角色 ${characterName} 已经在 ${position} 位置，无需更新`);
-    //     return;
-    // }
+    const currentChar = currentCharacters[position];
+    if (currentChar && currentChar.id === characterId) {
+        console.log(`角色 ${characterName} 已经在 ${position} 位置，检查是否需要更新心情`);
+        // 如果是同一角色但有心情参数，则进行心情切换动画
+        if (characterMood !== null) {
+            console.log(`执行心情切换动画: ${characterName} -> 心情 ${characterMood}`);
+            const imgElement = element.querySelector('.character-img');
+            if (imgElement) {
+                const imageUrl = getCharacterImageUrl(characterId, character, characterMood);
+                switchCharacterMoodWithAnimation(imgElement, imageUrl, character, container, position);
+            }
+        }
+        return;
+    }
     smoothCharacterTransition(characterId, position, characterMood);
     // 获取角色立绘URL
     // const imageUrl = getCharacterImageUrl(characterId, character);
@@ -512,41 +527,54 @@ function showNewCharacter(characterId, position, characterMood = null) {
         if (character) {
             const imgElement = element.querySelector('.character-img');
             if (imgElement) {
+                // 检查是否是同一角色但不同心情的切换
+                const currentChar = currentCharacters[position];
+                const isSameCharacterMoodChange = currentChar && 
+                    currentChar.id === characterId && 
+                    characterMood !== null;
+                
                 const imageUrl = getCharacterImageUrl(characterId, character, characterMood);
-                imgElement.src = imageUrl;
-                imgElement.alt = character.name;
                 
-                // 修改错误处理：先尝试回退到1.png，再回退到默认图片
-                imgElement.onerror = function() {
-                    console.error(`角色图片加载失败: ${this.src}`);
+                if (isSameCharacterMoodChange) {
+                    // 同一角色切换心情，使用跳跃动画
+                    switchCharacterMoodWithAnimation(imgElement, imageUrl, character, container, position);
+                } else {
+                    // 不同角色切换，直接更换图片
+                    imgElement.src = imageUrl;
+                    imgElement.alt = character.name;
                     
-                    // 检查当前URL是否已经是1.png或默认图片，避免无限循环
-                    if (this.src.includes('/1.png') || this.src.includes('/default.svg')) {
-                        console.error('回退图片也加载失败，使用默认图片');
-                        this.src = '/static/images/default.svg';
-                        return;
-                    }
+                    // 修改错误处理：先尝试回退到1.png，再回退到默认图片
+                    imgElement.onerror = function() {
+                        console.error(`角色图片加载失败: ${this.src}`);
+                        
+                        // 检查当前URL是否已经是1.png或默认图片，避免无限循环
+                        if (this.src.includes('/1.png') || this.src.includes('/default.svg')) {
+                            console.error('回退图片也加载失败，使用默认图片');
+                            this.src = '/static/images/default.svg';
+                            return;
+                        }
+                        
+                        // 如果当前不是1.png，尝试回退到1.png
+                        if (!this.src.includes('/1.png')) {
+                            console.log('尝试回退到1.png');
+                            this.src = `/static/images/${characterId}/1.png`;
+                        } else {
+                            // 如果已经是1.png但仍然加载失败，使用默认图片
+                            this.src = '/static/images/default.svg';
+                        }
+                    };
                     
-                    // 如果当前不是1.png，尝试回退到1.png
-                    if (!this.src.includes('/1.png')) {
-                        console.log('尝试回退到1.png');
-                        this.src = `/static/images/${characterId}/1.png`;
-                    } else {
-                        // 如果已经是1.png但仍然加载失败，使用默认图片
-                        this.src = '/static/images/default.svg';
-                    }
-                };
-                
-                imgElement.onload = function() {
-                    // 应用缩放和位置
-                    applyCharacterScaling(container, character);
-                    applyCharacterPosition(container, character, position);
-                    
-                    container.style.opacity = '1';
-                    console.log(`角色已平滑切换: ${character.name} 在 ${position} 位置`);
-                    
-                    this.classList.add('character-breathing');
-                };
+                    imgElement.onload = function() {
+                        // 应用缩放和位置
+                        applyCharacterScaling(container, character);
+                        applyCharacterPosition(container, character, position);
+                        
+                        container.style.opacity = '1';
+                        console.log(`角色已平滑切换: ${character.name} 在 ${position} 位置`);
+                        
+                        this.classList.add('character-breathing');
+                    };
+                }
             }
             
             // 立即应用缩放和位置（即使图片未加载）
@@ -564,6 +592,105 @@ function showNewCharacter(characterId, position, characterMood = null) {
         console.error('获取角色信息失败:', error);
     });
 }
+/**
+ * 角色心情切换时的跳跃动画
+ * @param {HTMLElement} imgElement - 图片元素
+ * @param {string} imageUrl - 新的图片URL
+ * @param {Object} character - 角色配置
+ * @param {HTMLElement} container - 角色容器
+ * @param {string} position - 位置 ('left' 或 'right')
+ */
+function switchCharacterMoodWithAnimation(imgElement, imageUrl, character, container, position) {
+    // 防止动画冲突
+    if (animationStates[position]) {
+        console.log(`${position} 位置动画进行中，跳过此次心情切换`);
+        return;
+    }
+    
+    console.log(`角色心情切换动画: ${character.name} 在 ${position} 位置`);
+    
+    animationStates[position] = true;
+    
+    // 设置基础缩放率作为CSS变量
+    const scaleValue = typeof character.scale_rate !== 'undefined'
+        ? character.scale_rate / 100
+        : 1;
+    imgElement.style.setProperty('--base-scale', scaleValue);
+    
+    // 根据缩放率和屏幕尺寸计算合适的跳跃距离
+    const isMobile = window.innerWidth <= 768;
+    const baseJumpDistances = isMobile
+        ? { d25: -8, d50: -12, d75: -3 }
+        : { d25: -12, d50: -20, d75: -5 };
+    
+    // 根据缩放率调整跳跃距离，缩放率越小，跳跃距离应该越大（视觉上保持一致）
+    const jumpScale = Math.max(0.5, 1 / scaleValue); // 最小0.5倍，避免过度夸张
+    imgElement.style.setProperty('--jump-distance-25', `${baseJumpDistances.d25 * jumpScale}px`);
+    imgElement.style.setProperty('--jump-distance-50', `${baseJumpDistances.d50 * jumpScale}px`);
+    imgElement.style.setProperty('--jump-distance-75', `${baseJumpDistances.d75 * jumpScale}px`);
+    
+    console.log(`跳跃距离调整: 缩放率=${scaleValue.toFixed(2)}, 跳跃倍数=${jumpScale.toFixed(2)}, 最大跳跃=${(baseJumpDistances.d50 * jumpScale).toFixed(1)}px`);
+    
+    // 检查用户是否偏好减少动画
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    // 添加跳跃动画效果（如果用户不偏好减少动画）
+    if (!prefersReducedMotion) {
+        // 暂时移除呼吸动画，避免冲突
+        imgElement.classList.remove('character-breathing');
+        imgElement.classList.add('character-jump');
+    }
+    
+    // 在动画开始后稍微延迟切换图片，让跳跃效果更自然
+    setTimeout(() => {
+        imgElement.src = imageUrl;
+        imgElement.alt = character.name;
+        
+        // 处理图片加载错误
+        imgElement.onerror = function() {
+            console.error(`角色图片加载失败: ${this.src}`);
+            
+            // 检查当前URL是否已经是1.png或默认图片，避免无限循环
+            if (this.src.includes('/1.png') || this.src.includes('/default.svg')) {
+                console.error('回退图片也加载失败，使用默认图片');
+                this.src = '/static/images/default.svg';
+                return;
+            }
+            
+            // 如果当前不是1.png，尝试回退到1.png
+            if (!this.src.includes('/1.png')) {
+                console.log('尝试回退到1.png');
+                const characterId = currentCharacters[position]?.id;
+                if (characterId) {
+                    this.src = `/static/images/${characterId}/1.png`;
+                }
+            } else {
+                // 如果已经是1.png但仍然加载失败，使用默认图片
+                this.src = '/static/images/default.svg';
+            }
+        };
+    }, 150);
+    
+    // 动画结束后移除动画类并恢复原始状态
+    // 根据屏幕尺寸和用户偏好调整动画时长
+    const animationDuration = prefersReducedMotion ? 0 : (window.innerWidth <= 768 ? 400 : 500);
+    setTimeout(() => {
+        imgElement.classList.remove('character-jump');
+        
+        // 恢复角色容器的缩放和位置
+        applyCharacterScaling(container, character);
+        applyCharacterPosition(container, character, position);
+        
+        // 恢复呼吸动画
+        if (!prefersReducedMotion) {
+            imgElement.classList.add('character-breathing');
+        }
+        
+        animationStates[position] = false;
+        console.log(`${position} 位置角色心情切换动画完成`);
+    }, animationDuration);
+}
+
 /**
  * 清除所有角色
  */
@@ -618,8 +745,78 @@ export function getCacheStats() {
     };
 }
 
+/**
+ * 专门用于角色心情切换的函数
+ * @param {string} characterId - 角色ID
+ * @param {string} characterName - 角色名称
+ * @param {string|number} mood - 心情/立绘编号
+ */
+export function switchCharacterMood(characterId, characterName, mood) {
+    console.log(`多角色模式心情切换: ${characterName} -> 心情 ${mood}`);
+    
+    // 查找角色当前位置
+    let targetPosition = null;
+    for (const [position, character] of Object.entries(currentCharacters)) {
+        if (character && character.id === characterId) {
+            targetPosition = position;
+            break;
+        }
+    }
+    
+    if (targetPosition) {
+        console.log(`找到角色 ${characterName} 在 ${targetPosition} 位置，执行心情切换`);
+        // 直接调用switchToCharacter，它会处理心情切换动画
+        switchToCharacter(characterId, characterName, mood);
+    } else {
+        console.log(`角色 ${characterName} 不在场，先显示角色再切换心情`);
+        // 如果角色不在场，先显示角色
+        switchToCharacter(characterId, characterName, mood);
+    }
+}
+
+/**
+ * 处理mood变化（多角色模式）
+ * @param {string|number} moodNumber - 心情编号
+ * @param {string} characterId - 可选，指定角色ID，如果不提供则对当前说话角色生效
+ */
+export function handleMoodChange(moodNumber, characterId = null) {
+    console.log('多角色模式处理mood变化:', moodNumber, '角色ID:', characterId);
+    
+    const imageNumber = parseInt(moodNumber);
+    
+    if (isNaN(imageNumber) || imageNumber <= 0) {
+        console.log('mood不是有效数字，使用默认图片:', moodNumber);
+        return;
+    }
+    
+    // 如果指定了角色ID，直接对该角色进行心情切换
+    if (characterId) {
+        // 查找角色当前位置和信息
+        for (const [position, character] of Object.entries(currentCharacters)) {
+            if (character && character.id === characterId) {
+                console.log(`对指定角色 ${character.name} 执行心情切换: ${imageNumber}`);
+                switchToCharacter(characterId, character.name, imageNumber);
+                return;
+            }
+        }
+        console.log(`指定的角色 ${characterId} 不在场，无法切换心情`);
+        return;
+    }
+    
+    // 如果没有指定角色ID，对当前说话角色进行心情切换
+    const currentSpeakingChar = findCurrentSpeakingCharacter();
+    if (currentSpeakingChar) {
+        console.log(`对当前说话角色 ${currentSpeakingChar.name} 执行心情切换: ${imageNumber}`);
+        switchToCharacter(currentSpeakingChar.id, currentSpeakingChar.name, imageNumber);
+    } else {
+        console.log('没有找到当前说话角色，无法切换心情');
+    }
+}
+
 // 暴露给全局使用
 window.switchToCharacter = switchToCharacter;
+window.switchCharacterMood = switchCharacterMood;
+window.handleMoodChange = handleMoodChange;
 window.showCharacterResponse = showCharacterResponse;
 window.updateCharacterResponse = updateCharacterResponse;
 window.completeCharacterResponse = completeCharacterResponse;
