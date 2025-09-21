@@ -100,6 +100,181 @@ function updateStoryProgress(progress) {
     console.log('=== 故事进度更新完成 ===');
 }
 
+// 初始化聊天框内容
+async function initializeChatContent() {
+    try {
+        console.log('开始初始化聊天框内容...');
+        
+        // 获取历史记录
+        const apiUrl = '/api/story/history';
+        const response = await fetch(`${apiUrl}?page=1&page_size=10`);
+        const result = await response.json();
+        
+        if (result.success && result.data.messages && result.data.messages.length > 0) {
+            // 查找最新一条非用户记录（从数组末尾开始查找）
+            const messages = result.data.messages;
+            let latestNonUserMessage = null;
+            for (let i = messages.length - 1; i >= 0; i--) {
+                if (messages[i].role !== 'user') {
+                    latestNonUserMessage = messages[i];
+                    break;
+                }
+            }
+            
+            if (latestNonUserMessage) {
+                console.log('找到最新非用户记录:', latestNonUserMessage);
+                
+                // 提取并处理content
+                let content = latestNonUserMessage.content;
+                let mood = null;
+                
+                // 尝试解析JSON格式的回复
+                try {
+                    const parsed = JSON.parse(content);
+                    if (parsed.content) {
+                        content = parsed.content;
+                    }
+                    if (parsed.mood !== undefined) {
+                        mood = parsed.mood;
+                    }
+                } catch (e) {
+                    // 如果不是JSON格式，直接使用content
+                    console.log('非JSON格式内容，直接使用');
+                }
+                
+                // 分割句子并取最后一句
+                const sentences = splitIntoSentences(content);
+                if (sentences.length > 0) {
+                    const lastSentence = sentences[sentences.length - 1];
+                    console.log('提取的最后一句:', lastSentence);
+                    
+                    // 更新聊天框内容
+                    const currentMessageElement = document.getElementById('currentMessage');
+                    if (currentMessageElement) {
+                        currentMessageElement.textContent = lastSentence;
+                    }
+                    
+                    // 处理角色立绘和心情
+                    const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+                        window.storyData?.characters?.length > 1;
+                    
+                    if (isMultiCharacter) {
+                        // 多角色模式：根据role显示对应角色和心情
+                        if (latestNonUserMessage.role !== 'assistant') {
+                            // 获取角色信息并切换
+                            if (window.getCharacterById) {
+                                const character = await window.getCharacterById(latestNonUserMessage.role);
+                                if (character && window.switchToCharacter) {
+                                    window.switchToCharacter(latestNonUserMessage.role, character.name, mood);
+                                    // 更新聊天框角色名称显示
+                                    updateCharacterNameDisplay(character.name, character.color);
+                                }
+                            }
+                        } else {
+                            // 如果是assistant角色，使用当前角色信息
+                            const currentCharacter = getCurrentCharacter();
+                            if (currentCharacter) {
+                                updateCharacterNameDisplay(currentCharacter.name, currentCharacter.color);
+                            }
+                        }
+                    } else {
+                        // 单角色模式：直接显示对应心情的立绘
+                        if (mood !== null && window.handleMoodChange) {
+                            window.handleMoodChange(mood);
+                        }
+                        // 更新聊天框角色名称显示
+                        const currentCharacter = getCurrentCharacter();
+                        if (currentCharacter) {
+                            updateCharacterNameDisplay(currentCharacter.name, currentCharacter.color);
+                        }
+                    }
+                    
+                    console.log('聊天框内容初始化完成');
+                    return; // 成功初始化，直接返回
+                }
+            }
+        }
+        
+        // 如果没有找到合适的历史记录，显示默认欢迎消息
+        console.log('未找到合适的历史记录，显示默认欢迎消息');
+        const currentMessageElement = document.getElementById('currentMessage');
+        if (currentMessageElement && window.storyData) {
+            const defaultMessage = `欢迎来到《${window.storyData.metadata.title}》！${window.storyData.summary.text}`;
+            currentMessageElement.textContent = defaultMessage;
+        }
+        
+        // 显示默认角色名称
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+            window.storyData?.characters?.length > 1;
+        if (!isMultiCharacter) {
+            // 单角色模式：显示当前角色名称
+            const currentCharacter = getCurrentCharacter();
+            if (currentCharacter) {
+                updateCharacterNameDisplay(currentCharacter.name, currentCharacter.color);
+            }
+        } else {
+            // 多角色模式：显示系统名称
+            updateCharacterNameDisplay('系统', '#4caf50');
+        }
+        
+    } catch (error) {
+        console.error('初始化聊天框内容失败:', error);
+        // 发生错误时也显示默认欢迎消息
+        const currentMessageElement = document.getElementById('currentMessage');
+        if (currentMessageElement && window.storyData) {
+            const defaultMessage = `欢迎来到《${window.storyData.metadata.title}》！${window.storyData.summary.text}`;
+            currentMessageElement.textContent = defaultMessage;
+        }
+        
+        // 显示默认角色名称
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+            window.storyData?.characters?.length > 1;
+        if (!isMultiCharacter) {
+            // 单角色模式：显示当前角色名称
+            const currentCharacter = getCurrentCharacter();
+            if (currentCharacter) {
+                updateCharacterNameDisplay(currentCharacter.name, currentCharacter.color);
+            }
+        } else {
+            // 多角色模式：显示系统名称
+            updateCharacterNameDisplay('系统', '#4caf50');
+        }
+    }
+}
+
+// 更新聊天框角色名称显示
+function updateCharacterNameDisplay(characterName, characterColor) {
+    const characterNameElement = document.getElementById('characterName');
+    if (characterNameElement && characterName) {
+        characterNameElement.textContent = characterName;
+        characterNameElement.style.color = characterColor || '#ffeb3b';
+        console.log('更新聊天框角色名称:', characterName, '颜色:', characterColor);
+    }
+}
+
+// 分割句子的函数（从history-service.js复制）
+function splitIntoSentences(text) {
+    if (!text) return [];
+
+    // 清理文本
+    text = text.replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+
+    // 定义句子结束标点
+    const sentenceEndings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~'];
+
+    // 构建分割正则表达式
+    const escapedEndings = sentenceEndings.map(ch => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('');
+    const pattern = new RegExp(`([^${escapedEndings}]*[${escapedEndings}]+|[^${escapedEndings}]+(?=[${escapedEndings}]|$))`, 'g');
+
+    const sentences = text.match(pattern) || [];
+
+    // 清理和过滤句子
+    return sentences
+        .map(sentence => sentence.trim())
+        .filter(sentence => sentence.length > 0);
+}
+
 // 暴露给全局使用
 window.setCurrentCharacterDirect = setCurrentCharacterDirect;
 window.updateCurrentCharacter = updateCurrentCharacter;
@@ -595,6 +770,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('剧情模式 - 未找到当前角色信息');
         }
 
+        // 初始化聊天框内容
+        initializeChatContent();
+
         // 加载角色数据（用于角色选择模态框）
         loadCharacters();
 
@@ -628,7 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sendButton?.addEventListener('click', sendStoryMessage);
 
         // 绑定返回按钮事件，退出剧情模式
-        const backButtons = document.querySelectorAll('.back-btn, .back-to-story');
+        const backButtons = document.querySelectorAll('.back-btn');
         backButtons.forEach(button => {
             button.addEventListener('click', async (e) => {
                 e.preventDefault();

@@ -271,6 +271,7 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             #特化（虽然很抽象，但很有效）
             filtered_text = filtered_text.replace("希儿", "希而")
             filtered_text = filtered_text.replace("布洛妮娅", "Bronya")
+            filtered_text = filtered_text.replace("安柏", "安博")
 
             full_input=filtered_text
             #为什么加了prompt就很诡异……？

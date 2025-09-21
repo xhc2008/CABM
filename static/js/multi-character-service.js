@@ -115,14 +115,19 @@ export function initMultiCharacterService() {
  * 切换到指定角色
  * @param {string} characterId - 角色ID
  * @param {string} characterName - 角色名称
+ * @param {string|number} characterMood - 角色心情/立绘编号
  */
 export function switchToCharacter(characterId, characterName, characterMood = null) {
-    console.log(`切换到角色: ${characterName} (${characterId})`);
+    console.log(`切换到角色: ${characterName} (${characterId}), 心情: ${characterMood}`);
     
     // 检查是否已经是当前说话角色
     const currentSpeakingChar = findCurrentSpeakingCharacter();
     if (currentSpeakingChar && currentSpeakingChar.id === characterId) {
-        console.log(`角色 ${characterName} 已经是当前说话角色`);
+        console.log(`角色 ${characterName} 已经是当前说话角色，更新心情`);
+        // 即使是同一角色，也要更新心情
+        if (characterMood !== null) {
+            showCharacter(characterId, currentSpeakingChar.character, characterName, characterMood);
+        }
         return;
     }
     // 获取角色配置
@@ -334,6 +339,7 @@ function moveCharacterFromTo(fromPosition, toPosition, characterData) {
  * 获取角色立绘URL
  * @param {string} characterId - 角色ID
  * @param {Object} character - 角色配置
+ * @param {string|number} mood - 心情/立绘编号
  * @returns {string} 立绘URL
  */
 function getCharacterImageUrl(characterId, character, mood = null) {
@@ -342,11 +348,18 @@ function getCharacterImageUrl(characterId, character, mood = null) {
         return character.image_url;
     }
     
-    // 使用角色配置中的 image 目录（若有），否则回退到默认路径
+    // 处理心情参数，转换为立绘编号
     const number = (() => {
+        if (mood === null || mood === undefined) {
+            return 1; // 默认使用1.png
+        }
         const n = parseInt(mood, 10);
         return isNaN(n) || n <= 0 ? 1 : n;
     })();
+    
+    console.log(`获取角色立绘: ${characterId}, 心情: ${mood}, 立绘编号: ${number}`);
+    
+    // 使用角色配置中的 image 目录（若有），否则回退到默认路径
     // if (character.image) {
     //     const base = character.image.endsWith('/') ? character.image : `${character.image}/`;
     //     return `${base}${number}.png`;

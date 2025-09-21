@@ -45,22 +45,6 @@
             font-size: 0.8em;
         }
         
-        .back-to-story {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.9em;
-            transition: all 0.3s ease;
-        }
-        
-        .back-to-story:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-        }
-        
         .story-finished-modal {
             display: none;
             position: fixed;
@@ -150,9 +134,9 @@
                     <span class="story-chapter" id="currentChapter">当前章节: {{ story_data.structure.outline[story_data.progress.current] }}</span>
                 </div>
                 <div class="story-offset" id="currentOffset">偏移值: {{ story_data.progress.offset }}</div>
-                <div style="margin-top: 10px;">
+                <!-- <div style="margin-top: 10px;">
                     <a href="/story" class="back-to-story">← 返回故事列表</a>
-                </div>
+                </div> -->
             </div>
             
             <div class="chat-header">
