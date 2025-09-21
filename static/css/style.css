@@ -1669,8 +1669,8 @@ body {
     will-change: transform, opacity; /* 性能优化 */
 }
 
-.character-container-left { left: 25%; }
-.character-container-right { left: 75%; }
+.character-container-left { left: 30%; }
+.character-container-right { left: 70%; }
 
 /* 左右容器内的图片保持同样的适配规则 */
 .character-container-left .character-image,
