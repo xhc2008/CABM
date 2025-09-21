@@ -294,7 +294,7 @@ class StoryService:
                 characters.append({
                     'id': char_id,
                     'name': char_config.get('name', char_id),
-                    'des': char_config.get('description'),
+                    'des': char_config.get('prompt'),
                     'is_player': False
                 })
         
