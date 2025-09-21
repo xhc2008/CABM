@@ -127,7 +127,7 @@ def get_director_prompts(chat_history, current_chapter, next_chapter):
 下一个章节：{next_chapter}"""
 
 def get_director_prompts_mult(chat_history, current_chapter, next_chapter, characters, isPlayer):
-    character_list = "\n".join([f"{i+1 if isPlayer and i > 0 else i}: {char['name']}：`{char['des']}`" for i, char in enumerate(characters)])
+    character_list = "\n".join([f"{i+1 if isPlayer and i > 0 else i}: {char['name']}：{char['des']}" for i, char in enumerate(characters)])
     return f"""
 最近的几条聊天内容：
 ```
