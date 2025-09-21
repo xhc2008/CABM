@@ -4,7 +4,7 @@ try:
     from rank_bm25 import BM25Okapi
     import jieba
 except ImportError:
-    raise ImportError("rank_bm25 or jieba 未安装. 无法使用BM25")
+    logger.warn("rank_bm25 or jieba 未安装. 无法使用BM25")
 
 
 class BM25(Retriever):
