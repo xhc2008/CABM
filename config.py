@@ -42,14 +42,14 @@ MEMORY_CONFIG = {
 }
 
 RAG_CONFIG = {
-    ## 多路召回选择
-    # 如果你都选择了API，出现“无法使用BM25”的报错可以忽略，不影响使用
+    # 多路召回选择
     "Multi_Recall":{
-        'BM25': {
-            'lan': 'zh'  # ['zh', 'en']  语言选择
-        },
+        #BM25：可选，不选的话就注释掉
+        # 'BM25': {
+        #     'lan': 'zh'  # ['zh', 'en']  语言选择
+        # },
         "Cosine_Similarity":{
-            ## 嵌入选择('Model', 'API')选择其中一个!
+            # 嵌入选择('Model', 'API')选择其中一个!
             
             # 'embed_func': 'Model',
             # 'embed_kwds': {
@@ -61,15 +61,17 @@ RAG_CONFIG = {
             
             'embed_func': 'API',
             'embed_kwds': {
-                'base_url': 'https://api.siliconflow.cn/v1',  # 嵌入模型的url地址
+                'base_url': os.getenv("MEMORY_API_BASE_URL"),  # 嵌入模型的url地址
                 'api_key': os.getenv("MEMORY_API_KEY"),
-                'model': 'BAAI/bge-m3'
+                'model': os.getenv("EMBEDDING_MODEL")
             },
             
             'vector_dim': 1024,  # 嵌入维度(必须和嵌入模型的输出维度一样! 默认bge是1024, 不用调!)
         }
     },
     'Reranker': {
+        # 重排序选择('Model', 'API')选择其中一个!
+
         # 'reranker_func': 'Model',  # Choice ['Model', 'API']
         # 'reranker_kwds': {
         #     'rerank_model_name_or_path': 'BAAI/bge-reranker-large',
@@ -78,9 +80,9 @@ RAG_CONFIG = {
         
         'reranker_func': 'API',
         'reranker_kwds': {
-            'base_url': 'https://api.siliconflow.cn/v1',
+            'base_url': os.getenv("MEMORY_API_BASE_URL"),
             'api_key': os.getenv("MEMORY_API_KEY"),
-            'model': 'netease-youdao/bce-reranker-base_v1'
+            'model': os.getenv("RERANKER_MODEL")
         }
     }
     
