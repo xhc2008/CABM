@@ -385,14 +385,13 @@ export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
     
     if (audioBlob) {
         console.log(`[AudioService] 播放音频 #${sentenceId} (索引: ${sentenceIndex})`);
-        playAudioBlobById(sentenceId, audioBlob, isStreamMode);
-        
-        // 增加播放索引
-        processor.incrementPlayIndex();
-        
-        // 清理已播放的音频缓存
-        audioBlobCache.delete(sentenceId);
-        audioQueue.delete(sentenceId);
+        playAudioBlobById(sentenceId, audioBlob, isStreamMode, () => {
+            // 播放完成后的回调
+            processor.incrementPlayIndex();
+            // 清理已播放的音频缓存
+            audioBlobCache.delete(sentenceId);
+            audioQueue.delete(sentenceId);
+        });
     } else {
         console.log(`[AudioService] 音频 #${sentenceId} (索引: ${sentenceIndex}) 尚未准备好，等待中...`);
         // 设置重试机制，但有限制次数
@@ -400,12 +399,22 @@ export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
         const maxRetries = 50; // 最多重试5秒
         const retryInterval = setInterval(() => {
             retryCount++;
-            if (audioBlobCache.has(sentenceId)) {
+            const audioBlob = audioBlobCache.get(sentenceId);
+            if (audioBlob) {
                 clearInterval(retryInterval);
-                playNextAudioByIndex(sentenceIndex, isStreamMode);
+                console.log(`[AudioService] 重试成功，播放音频 #${sentenceId} (索引: ${sentenceIndex})`);
+                playAudioBlobById(sentenceId, audioBlob, isStreamMode, () => {
+                    // 播放完成后的回调
+                    processor.incrementPlayIndex();
+                    // 清理已播放的音频缓存
+                    audioBlobCache.delete(sentenceId);
+                    audioQueue.delete(sentenceId);
+                });
             } else if (retryCount >= maxRetries) {
                 clearInterval(retryInterval);
                 console.log(`[AudioService] 音频 #${sentenceId} (索引: ${sentenceIndex}) 等待超时，跳过播放`);
+                // 即使跳过播放，也要增加索引，避免卡住
+                processor.incrementPlayIndex();
             }
         }, 100);
     }
@@ -425,7 +434,7 @@ export function playNextAudio() {
     }
 }
 
-async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false) {
+async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false, onPlayComplete = null) {
     try {
         // 停止当前正在播放的音频
         stopCurrentAudio();
@@ -436,6 +445,12 @@ async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false) {
         audio.volume = window.ttsVolume || 0.8;
         audio.onended = () => { 
             URL.revokeObjectURL(url);
+            
+            // 调用播放完成回调
+            if (onPlayComplete) {
+                onPlayComplete();
+            }
+            
             // 只有在流式模式下才自动播放下一个
             if (isStreamMode) {
                 // 尝试获取流处理器引用
@@ -453,6 +468,12 @@ async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false) {
         audio.onerror = () => { 
             console.error(`音频播放失败 #${sentenceId}`);
             URL.revokeObjectURL(url);
+            
+            // 调用播放完成回调（即使失败也要调用，确保索引正确更新）
+            if (onPlayComplete) {
+                onPlayComplete();
+            }
+            
             // 播放失败时也根据模式决定是否播放下一个
             if (isStreamMode) {
                 // 尝试获取流处理器引用
@@ -472,6 +493,12 @@ async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false) {
         await audio.play();
     } catch (error) {
         console.error(`播放音频失败 #${sentenceId}:`, error);
+        
+        // 调用播放完成回调（即使失败也要调用，确保索引正确更新）
+        if (onPlayComplete) {
+            onPlayComplete();
+        }
+        
         // 播放失败时也根据模式决定是否播放下一个
         if (isStreamMode) {
             // 尝试获取流处理器引用

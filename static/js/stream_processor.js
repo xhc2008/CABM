@@ -141,10 +141,10 @@ class StreamProcessor {
                 this.currentParagraph = '';
             }
 
-            // 处理剩余的待处理句子
-            if (this.pendingSentence.trim()) {
-                this.handleCompleteSentence();
-            }
+            // // 处理剩余的待处理句子
+            // if (this.pendingSentence.trim()) {
+            //     this.handleCompleteSentence();
+            // }
 
             // 段落结束，重置音频相关状态
             this.isFirstSentence = true;
@@ -175,14 +175,7 @@ class StreamProcessor {
         // 正常字符处理
         this.currentParagraph += char;
 
-        // 检查是否是第一句话开始
-        if (this.isFirstSentence && this.currentParagraph.length === 1) {
-            console.log('[StreamProcessor] 第一句话开始，尝试流式播放音频');
-            this.isFirstSentence = false;
-            if (window.playNextAudioByIndex) {
-                window.playNextAudioByIndex(this.nextPlaySentenceIndex, true); // 流式模式
-            }
-        }
+        // 不在第一个字符时就播放，等到句子检测完成后再播放
 
         // 调用字符回调
         if (this.onCharacterCallback) {
@@ -211,10 +204,10 @@ class StreamProcessor {
             this.currentParagraph = '';
         }
 
-        // 处理剩余的待处理句子
-        if (this.pendingSentence.trim()) {
-            this.handleCompleteSentence();
-        }
+        // // 处理剩余的待处理句子
+        // if (this.pendingSentence.trim()) {
+        //     this.handleCompleteSentence();
+        // }
 
         // 调用暂停回调
         if (this.onPauseCallback) {
@@ -247,6 +240,7 @@ class StreamProcessor {
 
             // 继续时播放音频（单次播放模式）
             if (window.playNextAudioByIndex) {
+                console.log(`[StreamProcessor] 继续播放，当前索引: ${this.nextPlaySentenceIndex}`);
                 window.playNextAudioByIndex(this.nextPlaySentenceIndex, false); // 单次播放模式
             }
 
@@ -333,6 +327,18 @@ class StreamProcessor {
         // 调用audio-service.js的预加载函数
         if (window.preloadAudioForSentence) {
             window.preloadAudioForSentence(sentenceObj);
+        }
+        
+        // 检查是否是第一句话，如果是则开始播放
+        if (this.isFirstSentence) {
+            console.log('[StreamProcessor] 第一句话检测完成，开始流式播放音频');
+            this.isFirstSentence = false;
+            // 延迟一点时间确保预加载开始
+            setTimeout(() => {
+                if (window.playNextAudioByIndex) {
+                    window.playNextAudioByIndex(0, false); // 流式模式，从索引0开始
+                }
+            }, 100);
         }
         
         // 清空待处理句子
