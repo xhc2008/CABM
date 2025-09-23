@@ -9,6 +9,11 @@ let audioEnabled = true; // 音频是否已被用户启用
 // 当前播放的音频对象
 window.currentAudio = null;
 
+// 新的音频队列管理
+const audioQueue = new Map(); // Map<sentenceId, {text, characterId, character}>
+const audioBlobCache = new Map(); // Map<sentenceId, audioBlob>
+let currentPlayingSentenceId = 0;
+
 // 显示加载指示器
 function showLoading() {
     loadingIndicator.style.display = 'flex';
@@ -294,99 +299,6 @@ export async function playAudio(currentCharacter, autoPlay = true) {
     }
 }
 
-// 预加载并播放音频
-export function prefetchAndPlayAudio(text, roleName, currentCharacter) {
-    // 检查TTS开关
-    if (!window.ttsEnabled) {
-        console.log('TTS已关闭，跳过音频预加载和播放');
-        return;
-    }
-
-    if (!text || !text.trim()) {
-        return;
-    }
-    
-    const textToProcess = text.trim();
-    
-    if (audioCache[textToProcess]) {
-        // 命中缓存时，直接播放
-        console.log('[prefetchAndPlayAudio] 命中缓存，直接播放:', textToProcess);
-        playTextAudio(textToProcess, currentCharacter, true);
-        return;
-    }
-    
-    // 开始预加载
-    console.log('[prefetchAndPlayAudio] 开始预加载:', textToProcess);
-    fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: textToProcess,
-            role: roleName || 'AI助手',
-            enabled: window.ttsEnabled !== false
-        })
-    })
-    .then(response => {
-        if (!response.ok) return Promise.reject();
-        return response.blob();
-    })
-    .then(blob => {
-        if (blob && blob.size > 0) {
-            audioCache[textToProcess] = blob;
-            // 预加载完成后立即播放
-            console.log('[prefetchAndPlayAudio] 预加载完成，开始播放:', textToProcess);
-            playTextAudio(textToProcess, currentCharacter, true);
-        }
-    })
-    .catch((error) => {
-        console.error('预加载音频失败:', error);
-    });
-}
-
-// 预加载音频（原有函数，保持兼容性）
-export function prefetchAudio(text, roleName, callback) {
-    // 检查TTS开关
-    if (!window.ttsEnabled) {
-        console.log('TTS已关闭，跳过音频预加载');
-        if (callback) callback();
-        return;
-    }
-
-    if (!text) {
-        if (callback) callback();
-        return;
-    }
-    
-    if (audioCache[text]) {
-        // 命中缓存时，直接同步调用回调，避免异步等待
-        if (callback) callback();
-        return;
-    }
-    
-    fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: text,
-            role: roleName || 'AI助手',
-            enabled: window.ttsEnabled !== false
-        })
-    })
-    .then(response => {
-        if (!response.ok) return Promise.reject();
-        return response.blob();
-    })
-    .then(blob => {
-        if (blob && blob.size > 0) {
-            audioCache[text] = blob;
-        }
-        if (callback) callback();
-    })
-    .catch(() => {
-        if (callback) callback();
-    });
-}
-
 // 停止当前音频播放
 export function stopCurrentAudio() {
     if (window.currentAudio && typeof window.currentAudio.pause === 'function') {
@@ -394,6 +306,116 @@ export function stopCurrentAudio() {
         window.currentAudio.currentTime = 0;
         window.currentAudio = null;
     }
+}
+
+// 新的音频管理系统
+export function preloadAudioForSentence(sentenceId, text, characterId, character) {
+    // 检查TTS开关
+    if (!window.ttsEnabled) {
+        console.log('TTS已关闭，跳过音频预加载');
+        return;
+    }
+
+    if (!text || !text.trim()) {
+        return;
+    }
+
+    const textToProcess = text.trim();
+    
+    // 将句子信息加入队列
+    audioQueue.set(sentenceId, {
+        text: textToProcess,
+        characterId: characterId || 'AI助手',
+        character: character
+    });
+
+    console.log(`[AudioService] 开始预加载音频 #${sentenceId}:`, textToProcess);
+
+    // 开始预加载
+    fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            text: textToProcess,
+            role: characterId || 'AI助手',
+            enabled: window.ttsEnabled !== false
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('TTS请求失败');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        if (blob && blob.size > 0) {
+            audioBlobCache.set(sentenceId, blob);
+            console.log(`[AudioService] 音频预加载完成 #${sentenceId}`);
+        }
+    })
+    .catch(error => {
+        console.error(`预加载音频失败 #${sentenceId}:`, error);
+    });
+}
+
+export function playNextAudio() {
+    const nextSentenceId = currentPlayingSentenceId + 1;
+    const audioBlob = audioBlobCache.get(nextSentenceId);
+    
+    if (audioBlob) {
+        console.log(`[AudioService] 播放音频 #${nextSentenceId}`);
+        playAudioBlobById(nextSentenceId, audioBlob);
+        currentPlayingSentenceId = nextSentenceId;
+        
+        // 清理已播放的音频缓存
+        audioBlobCache.delete(nextSentenceId);
+        audioQueue.delete(nextSentenceId);
+    } else {
+        console.log(`[AudioService] 音频 #${nextSentenceId} 尚未准备好，等待中...`);
+        // 可以设置一个定时器来重试
+        setTimeout(() => {
+            if (audioBlobCache.has(nextSentenceId)) {
+                playNextAudio();
+            }
+        }, 100);
+    }
+}
+
+async function playAudioBlobById(sentenceId, audioBlob) {
+    try {
+        // 停止当前正在播放的音频
+        stopCurrentAudio();
+
+        const audio = new Audio();
+        const url = URL.createObjectURL(audioBlob);
+        audio.src = url;
+        audio.volume = window.ttsVolume || 0.8;
+        audio.onended = () => { 
+            URL.revokeObjectURL(url);
+            // 音频播放完成后，尝试播放下一个
+            playNextAudio();
+        };
+        audio.onerror = () => { 
+            console.error(`音频播放失败 #${sentenceId}`);
+            URL.revokeObjectURL(url);
+            // 播放失败也尝试播放下一个
+            playNextAudio();
+        };
+        
+        window.currentAudio = audio;
+        await audio.play();
+    } catch (error) {
+        console.error(`播放音频失败 #${sentenceId}:`, error);
+        // 播放失败也尝试播放下一个
+        playNextAudio();
+    }
+}
+
+export function resetAudioQueue() {
+    currentPlayingSentenceId = 0;
+    audioQueue.clear();
+    audioBlobCache.clear();
+    stopCurrentAudio();
 }
 
 // 语音识别相关
@@ -464,3 +486,7 @@ export function toggleRecording(messageInput, micButton, showError) {
         }
     }
 }
+// 暴露新的音频管理函数到全局
+window.preloadAudioForSentence = preloadAudioForSentence;
+window.playNextAudio = playNextAudio;
+window.resetAudioQueue = resetAudioQueue;

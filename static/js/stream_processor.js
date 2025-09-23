@@ -4,7 +4,7 @@
  */
 
 // 常量配置
-const OUTPUT_DELAY = 30; // 每个字符的输出间隔（毫秒）
+const OUTPUT_DELAY = 100; // 每个字符的输出间隔（毫秒）
 const END_MARKER = "<END>"; // 结束标记符号
 const PAUSE_MARKERS = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~']; // 暂停输出的分隔符号
 class StreamProcessor {
@@ -20,6 +20,11 @@ class StreamProcessor {
         this.onCompleteCallback = null;
         this.processingTimeout = null;
         this.lastCharWasPauseMarker = false; // 新增：标记上一个字符是否为暂停标记
+        
+        // 音频预加载和播放管理
+        this.sentenceCounter = 0; // 句子编号计数器
+        this.isFirstSentence = true; // 标记是否是段落的第一句
+        this.pendingSentence = ''; // 当前正在构建的句子
     }
 
     /**
@@ -46,9 +51,15 @@ class StreamProcessor {
                 characterMood: switchMarkerMatch[3] !== undefined ? switchMarkerMatch[3] : null
             });
         } else {
-            // 将数据逐字符添加到缓冲区
+            // 将数据逐字符添加到缓冲区，同时检查句子完整性
             for (const char of data) {
                 this.buffer.push(char);
+                this.pendingSentence += char;
+                
+                // 检查是否形成完整句子
+                if (PAUSE_MARKERS.includes(char)) {
+                    this.handleCompleteSentence();
+                }
             }
         }
 
@@ -128,6 +139,14 @@ class StreamProcessor {
                 this.currentParagraph = '';
             }
 
+            // 处理剩余的待处理句子
+            if (this.pendingSentence.trim()) {
+                this.handleCompleteSentence();
+            }
+
+            // 段落结束，重置音频相关状态
+            this.isFirstSentence = true;
+
             // 调用完成回调
             if (this.onCompleteCallback) {
                 this.onCompleteCallback(this.paragraphs.join(''));
@@ -154,6 +173,15 @@ class StreamProcessor {
         // 正常字符处理
         this.currentParagraph += char;
 
+        // 检查是否是第一句话开始
+        if (this.isFirstSentence && this.currentParagraph.length === 1) {
+            console.log('[StreamProcessor] 第一句话开始，尝试播放音频');
+            this.isFirstSentence = false;
+            if (window.playNextAudio) {
+                window.playNextAudio();
+            }
+        }
+
         // 调用字符回调
         if (this.onCharacterCallback) {
             this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
@@ -179,6 +207,11 @@ class StreamProcessor {
         if (this.currentParagraph) {
             this.paragraphs.push(this.currentParagraph);
             this.currentParagraph = '';
+        }
+
+        // 处理剩余的待处理句子
+        if (this.pendingSentence.trim()) {
+            this.handleCompleteSentence();
         }
 
         // 调用暂停回调
@@ -208,6 +241,11 @@ class StreamProcessor {
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
                 }
+            }
+
+            // 继续时播放音频
+            if (window.playNextAudio) {
+                window.playNextAudio();
             }
 
             // 继续处理缓冲区
@@ -260,6 +298,41 @@ class StreamProcessor {
     }
 
     /**
+     * 处理完整句子 - 开始预加载音频
+     */
+    handleCompleteSentence() {
+        if (!this.pendingSentence.trim()) {
+            return;
+        }
+        
+        const sentenceText = this.pendingSentence.trim();
+        const sentenceId = ++this.sentenceCounter;
+        
+        console.log(`[StreamProcessor] 检测到完整句子 #${sentenceId}:`, sentenceText);
+        
+        // 调用audio-service.js的预加载函数
+        if (window.preloadAudioForSentence) {
+            // const characterId = window.currentSpeakingCharacterId || 'AI助手';
+            const character = this.getCurrentCharacterInfo();
+            const characterId = character.id;
+            window.preloadAudioForSentence(sentenceId, sentenceText, characterId, character);
+        }
+        
+        // 清空待处理句子
+        this.pendingSentence = '';
+    }
+
+    /**
+     * 获取当前角色信息
+     */
+    getCurrentCharacterInfo() {
+        if (window.getCurrentCharacter) {
+            return window.getCurrentCharacter();
+        }
+        return null;
+    }
+
+    /**
      * 重置处理器状态
      */
     reset() {
@@ -275,6 +348,16 @@ class StreamProcessor {
         this.currentParagraph = '';
         this.paragraphs = [];
         this.lastCharWasPauseMarker = false; // 重置暂停标记状态
+        
+        // 重置音频相关状态
+        this.sentenceCounter = 0;
+        this.isFirstSentence = true;
+        this.pendingSentence = '';
+        
+        // 调用audio-service.js的重置函数
+        if (window.resetAudioQueue) {
+            window.resetAudioQueue();
+        }
     }
 
 

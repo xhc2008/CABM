@@ -19,7 +19,6 @@ import {
     setIsPaused
 } from './ui-service.js';
 import { getCurrentCharacter, handleMoodChange } from './character-service.js';
-import { prefetchAudio, prefetchAndPlayAudio } from './audio-service.js';
 
 // 流式处理器实例
 let streamProcessor = null;
@@ -40,14 +39,14 @@ export async function sendMessage() {
 
     // 创建新的流式处理器
     streamProcessor = new StreamProcessor();
+    
+    // 重置音频队列
+    if (window.resetAudioQueue) {
+        window.resetAudioQueue();
+    }
 
     // 跟踪已添加到历史记录的内容长度
     let addedToHistoryLength = 0;
-
-    // 跟踪当前正在处理的句子和已播放的内容
-    let currentSentence = '';
-    let lastPlayedLength = 0;
-    let isFirstSentence = true;
 
     // 设置回调函数
     streamProcessor.setCallbacks(
@@ -55,32 +54,6 @@ export async function sendMessage() {
         (fullContent) => {
             const newContent = fullContent.substring(addedToHistoryLength);
             updateCurrentMessage('assistant', newContent, true);
-            
-            // 检查是否有新的完整句子需要处理
-            const sentences = newContent.split(/([。？！…~])/);
-            let completeSentences = '';
-            
-            // 找到所有完整的句子（包含标点符号）
-            for (let i = 0; i < sentences.length - 1; i += 2) {
-                if (i + 1 < sentences.length) {
-                    completeSentences += sentences[i] + sentences[i + 1];
-                }
-            }
-            
-            // 如果有新的完整句子且还没有播放过
-            if (completeSentences.length > lastPlayedLength) {
-                const newSentenceContent = completeSentences.substring(lastPlayedLength);
-                if (newSentenceContent.trim()) {
-                    const currentCharacter = getCurrentCharacter();
-                    const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
-                    
-                    // 立即开始预加载并播放音频
-                    prefetchAndPlayAudio(newSentenceContent, characterID, currentCharacter);
-                    
-                    lastPlayedLength = completeSentences.length;
-                    isFirstSentence = false;
-                }
-            }
         },
         // 暂停回调
         (fullContent) => {
@@ -88,17 +61,7 @@ export async function sendMessage() {
             const currentCharacter = getCurrentCharacter();
             const newContent = fullContent.substring(addedToHistoryLength);
             if (newContent) {
-                const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                
-                // 检查是否有未播放的内容
-                const unplayedContent = newContent.substring(lastPlayedLength);
-                if (unplayedContent.trim()) {
-                    prefetchAudio(unplayedContent, characterID, () => {
-                        if (window.playAudio) window.playAudio(true);
-                    });
-                }
-                
                 addToHistory('assistant', newContent, characterName);
                 updateCurrentMessage('assistant', newContent);
                 addedToHistoryLength = fullContent.length;
@@ -106,57 +69,27 @@ export async function sendMessage() {
             } else {
                 showContinuePrompt();
             }
-            
-            // 重置句子跟踪变量
-            lastPlayedLength = 0;
-            isFirstSentence = true;
         },
         // 完成回调
         (fullContent) => {
             const currentCharacter = getCurrentCharacter();
             const remainingContent = fullContent.substring(addedToHistoryLength);
             if (remainingContent) {
-                const characterID = currentCharacter ? currentCharacter.id : 'AI助手';
                 const characterName = currentCharacter ? currentCharacter.name : 'AI助手';
-                
-                // 检查是否有未播放的内容
-                const unplayedContent = remainingContent.substring(lastPlayedLength);
-                if (unplayedContent.trim()) {
-                    prefetchAudio(unplayedContent, characterID, () => {
-                        if (window.playAudio) window.playAudio(true);
-                    });
-                }
-                
                 addToHistory('assistant', remainingContent, characterName);
                 updateCurrentMessage('assistant', remainingContent);
-                hideContinuePrompt();
-                enableUserInput();
-                setIsPaused(false);
-                // 检查是否启用选项生成
-                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
-                if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
-                    if (window.showOptionButtons) {
-                        window.showOptionButtons(window.pendingOptions);
-                    }
-                    window.pendingOptions = null;
-                }
-            } else {
-                hideContinuePrompt();
-                enableUserInput();
-                setIsPaused(false);
-                // 检查是否启用选项生成
-                const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
-                if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
-                    if (window.showOptionButtons) {
-                        window.showOptionButtons(window.pendingOptions);
-                    }
-                    window.pendingOptions = null;
-                }
             }
-            
-            // 重置句子跟踪变量
-            lastPlayedLength = 0;
-            isFirstSentence = true;
+            hideContinuePrompt();
+            enableUserInput();
+            setIsPaused(false);
+            // 检查是否启用选项生成
+            const optionGenerationEnabled = localStorage.getItem('optionGenerationEnabled') !== 'false';
+            if (optionGenerationEnabled && window.pendingOptions && window.pendingOptions.length > 0) {
+                if (window.showOptionButtons) {
+                    window.showOptionButtons(window.pendingOptions);
+                }
+                window.pendingOptions = null;
+            }
         }
     );
 

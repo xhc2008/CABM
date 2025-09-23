@@ -104,12 +104,12 @@ function updateStoryProgress(progress) {
 async function initializeChatContent() {
     try {
         console.log('开始初始化聊天框内容...');
-        
+
         // 获取历史记录
         const apiUrl = '/api/story/history';
         const response = await fetch(`${apiUrl}?page=1&page_size=10`);
         const result = await response.json();
-        
+
         if (result.success && result.data.messages && result.data.messages.length > 0) {
             // 查找最新一条非用户记录（从数组末尾开始查找）
             const messages = result.data.messages;
@@ -120,14 +120,14 @@ async function initializeChatContent() {
                     break;
                 }
             }
-            
+
             if (latestNonUserMessage) {
                 console.log('找到最新非用户记录:', latestNonUserMessage);
-                
+
                 // 提取并处理content
                 let content = latestNonUserMessage.content;
                 let mood = null;
-                
+
                 // 尝试解析JSON格式的回复
                 try {
                     const parsed = JSON.parse(content);
@@ -141,23 +141,23 @@ async function initializeChatContent() {
                     // 如果不是JSON格式，直接使用content
                     console.log('非JSON格式内容，直接使用');
                 }
-                
+
                 // 分割句子并取最后一句
                 const sentences = splitIntoSentences(content);
                 if (sentences.length > 0) {
                     const lastSentence = sentences[sentences.length - 1];
                     console.log('提取的最后一句:', lastSentence);
-                    
+
                     // 更新聊天框内容
                     const currentMessageElement = document.getElementById('currentMessage');
                     if (currentMessageElement) {
                         currentMessageElement.textContent = lastSentence;
                     }
-                    
+
                     // 处理角色立绘和心情
                     const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
                         window.storyData?.characters?.length > 1;
-                    
+
                     if (isMultiCharacter) {
                         // 多角色模式：根据role显示对应角色和心情
                         if (latestNonUserMessage.role !== 'assistant') {
@@ -188,13 +188,13 @@ async function initializeChatContent() {
                             updateCharacterNameDisplay(currentCharacter.name, currentCharacter.color);
                         }
                     }
-                    
+
                     console.log('聊天框内容初始化完成');
                     return; // 成功初始化，直接返回
                 }
             }
         }
-        
+
         // 如果没有找到合适的历史记录，显示默认欢迎消息
         console.log('未找到合适的历史记录，显示默认欢迎消息');
         const currentMessageElement = document.getElementById('currentMessage');
@@ -202,7 +202,7 @@ async function initializeChatContent() {
             const defaultMessage = `欢迎来到《${window.storyData.metadata.title}》！${window.storyData.summary.text}`;
             currentMessageElement.textContent = defaultMessage;
         }
-        
+
         // 显示默认角色名称
         const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
             window.storyData?.characters?.length > 1;
@@ -216,7 +216,7 @@ async function initializeChatContent() {
             // 多角色模式：显示系统名称
             updateCharacterNameDisplay('系统', '#4caf50');
         }
-        
+
     } catch (error) {
         console.error('初始化聊天框内容失败:', error);
         // 发生错误时也显示默认欢迎消息
@@ -225,7 +225,7 @@ async function initializeChatContent() {
             const defaultMessage = `欢迎来到《${window.storyData.metadata.title}》！${window.storyData.summary.text}`;
             currentMessageElement.textContent = defaultMessage;
         }
-        
+
         // 显示默认角色名称
         const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
             window.storyData?.characters?.length > 1;
@@ -261,7 +261,7 @@ function splitIntoSentences(text) {
     if (!text) return [];
 
     // 定义句子结束标点
-    const sentenceEndings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~'];
+    const sentenceEndings = ['。', '！', '？', '!', '?', '.', '…', '♪', '...', '~'];
 
     // 构建分割正则表达式
     const escapedEndings = sentenceEndings.map(ch => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('');
@@ -292,7 +292,9 @@ import {
     playAudio,
     toggleRecording,
     stopCurrentAudio,
-    prefetchAndPlayAudio
+    preloadAudioForSentence,
+    playNextAudio,
+    resetAudioQueue
 } from './audio-service.js';
 
 import {
@@ -366,14 +368,17 @@ async function sendStoryMessage() {
     // 立即暴露给全局作用域
     window.globalStreamProcessor = globalStreamProcessor;
 
+    // 重置音频队列
+    if (window.resetAudioQueue) {
+        window.resetAudioQueue();
+    }
+
     // 初始化角色状态
     window.currentSpeakingCharacterId = null;
     window.pendingCharacterSwitch = null;
 
     // 跟踪已添加到历史记录的内容长度
     let addedToHistoryLength = 0;
-    let lastPlayedLength = 0;
-    let isFirstSentence = true;
 
     // 设置回调函数
     globalStreamProcessor.setCallbacks(
@@ -388,45 +393,7 @@ async function sendStoryMessage() {
             console.log("聊天框更新：", roleToUse)
             updateCurrentMessage(roleToUse, newContent, true);
 
-            // 检查是否有新的完整句子需要处理
-            const sentences = newContent.split(/([。？！…~])/);
-            let completeSentences = '';
 
-            for (let i = 0; i < sentences.length - 1; i += 2) {
-                if (i + 1 < sentences.length) {
-                    completeSentences += sentences[i] + sentences[i + 1];
-                }
-            }
-
-            if (completeSentences.length > lastPlayedLength) {
-                const newSentenceContent = completeSentences.substring(lastPlayedLength);
-                if (newSentenceContent.trim()) {
-                    // 统一处理角色信息获取和TTS播放
-                    const handleTTSPlayback = (characterID, character) => {
-                        if (prefetchAndPlayAudio) {
-                            prefetchAndPlayAudio(newSentenceContent, characterID, character);
-                        }
-                    };
-
-                    if (roleToUse === 'assistant') {
-                        let currentCharacter = getCurrentCharacter();
-                        let characterID = currentCharacter ? currentCharacter.id : 'AI助手';
-                        handleTTSPlayback(characterID, currentCharacter);
-                    } else {
-                        // 异步获取角色信息
-                        getCharacterById(roleToUse).then(newCharacter => {
-                            const newCharacterID = newCharacter ? newCharacter.id : 'AI助手';
-                            console.log("TTS角色ID", newCharacterID);
-                            handleTTSPlayback(newCharacterID, newCharacter);
-                        }).catch(error => {
-                            console.error("获取角色信息失败:", error);
-                        });
-                    }
-                    
-                    lastPlayedLength = completeSentences.length;
-                    isFirstSentence = false;
-                }
-            }
         },
         // 暂停回调
         (fullContent) => {
@@ -441,11 +408,6 @@ async function sendStoryMessage() {
 
                 // 统一处理角色信息获取和内容添加
                 const handleContentProcessing = (characterID, characterName, character) => {
-                    const unplayedContent = newContent.substring(lastPlayedLength);
-                    if (unplayedContent.trim() && prefetchAndPlayAudio) {
-                        prefetchAndPlayAudio(unplayedContent, characterID, character);
-                    }
-                    
                     addToHistory(roleToUse, newContent, characterName);
                     updateCurrentMessage(roleToUse, newContent);
                 };
@@ -466,17 +428,15 @@ async function sendStoryMessage() {
                         console.error("获取角色信息失败:", error);
                     });
                 }
-                
+
                 addedToHistoryLength = fullContent.length;
             }
             showContinuePrompt();
-            lastPlayedLength = 0;
-            isFirstSentence = true;
         },
         // 完成回调
         (fullContent) => {
             const remainingContent = fullContent.substring(addedToHistoryLength);
-            
+
             if (remainingContent) {
                 const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
                     window.storyData?.characters?.length > 1;
@@ -485,11 +445,6 @@ async function sendStoryMessage() {
 
                 // 统一处理角色信息获取和内容添加
                 const handleContentProcessing = (characterID, characterName, character) => {
-                    const unplayedContent = remainingContent.substring(lastPlayedLength);
-                    if (unplayedContent.trim() && prefetchAndPlayAudio) {
-                        prefetchAndPlayAudio(unplayedContent, characterID, character);
-                    }
-
                     addToHistory(roleToUse, remainingContent, characterName);
                     updateCurrentMessage(roleToUse, remainingContent);
                 };
@@ -525,9 +480,6 @@ async function sendStoryMessage() {
                 }
                 window.pendingOptions = null;
             }
-
-            lastPlayedLength = 0;
-            isFirstSentence = true;
         }
     );
 
@@ -629,7 +581,7 @@ async function sendStoryMessage() {
                                         characterName: data.characterName
                                     };
                                 }
-                                
+
                                 if (window.showCharacterResponse) {
                                     window.showCharacterResponse(data.characterName);
                                 }
@@ -639,7 +591,7 @@ async function sendStoryMessage() {
                             if (data.characterContent) {
                                 // 这是角色自动回复的内容
                                 // console.log('收到角色回复内容:', data.characterContent);
-                                
+
                                 // 如果有待切换的角色，先添加切换标记
                                 if (window.pendingCharacterSwitch) {
                                     const moodPart = (window.pendingCharacterSwitch.characterMood !== undefined && window.pendingCharacterSwitch.characterMood !== null)
@@ -649,14 +601,14 @@ async function sendStoryMessage() {
                                     globalStreamProcessor.addData(switchMarker);
                                     window.pendingCharacterSwitch = null; // 清除待切换状态
                                 }
-                                
+
                                 globalStreamProcessor.addData(data.characterContent);
                             }
 
                             // 处理角色回复完成信号
                             if (data.characterResponseComplete) {
                                 console.log('角色回复完成2');
-                                
+
                                 if (window.completeCharacterResponse) {
                                     window.completeCharacterResponse();
                                 }
@@ -665,13 +617,12 @@ async function sendStoryMessage() {
                             // 处理下一个说话者信息
                             if (data.nextSpeaker) {
                                 console.log('下一个说话者:', data.nextSpeaker);
-                                    
+
                                 if (data.nextSpeakerName) {
                                     console.log('下一个说话者名称:', data.nextSpeakerName);
                                     // 可以在这里更新UI提示下一个说话者
                                 }
-                                if(data.nextSpeaker=='player')
-                                {
+                                if (data.nextSpeaker == 'player') {
                                     globalStreamProcessor.markEnd();
                                 }
                             }
@@ -758,12 +709,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 直接设置当前角色，不需要通过API加载
             const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
                 window.storyData?.characters?.length > 1;
-            if(!isMultiCharacter)
-            {
+            if (!isMultiCharacter) {
                 window.setCurrentCharacterDirect(window.currentCharacter);
             }
-            else
-            {
+            else {
                 window.setCurrentCharacterDirect('system');
             }
         } else {
@@ -851,7 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMessage?.addEventListener('click', storyContinueOutput);
         clickToContinue?.addEventListener('click', storyContinueOutput);
         //window.switchToCharacter("lingyin","111")
-        
+
         console.log('剧情聊天页面初始化完成');
     } catch (error) {
         console.error('初始化失败:', error);
@@ -923,7 +872,9 @@ window.setIsPaused = setIsPaused;
 window.hideLoading = hideLoading;
 window.playAudio = (autoPlay = false) => playAudio(getCurrentCharacter(), autoPlay);
 window.stopCurrentAudio = stopCurrentAudio;
-window.prefetchAndPlayAudio = prefetchAndPlayAudio;
+window.preloadAudioForSentence = preloadAudioForSentence;
+window.playNextAudio = playNextAudio;
+window.resetAudioQueue = resetAudioQueue;
 window.handleMoodChange = handleMoodChange;
 window.showError = showError;
 window.sendStoryMessage = sendStoryMessage;
