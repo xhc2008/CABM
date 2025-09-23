@@ -294,7 +294,8 @@ import {
     stopCurrentAudio,
     preloadAudioForSentence,
     playNextAudio,
-    resetAudioQueue
+    resetAudioQueue,
+    setStreamProcessor
 } from './audio-service.js';
 
 import {
@@ -364,6 +365,11 @@ async function sendStoryMessage() {
 
     // 创建新的流式处理器
     globalStreamProcessor = new StreamProcessor();
+
+    // 设置音频服务的流处理器引用
+    if (setStreamProcessor) {
+        setStreamProcessor(globalStreamProcessor);
+    }
 
     // 立即暴露给全局作用域
     window.globalStreamProcessor = globalStreamProcessor;

@@ -10,9 +10,9 @@ let audioEnabled = true; // 音频是否已被用户启用
 window.currentAudio = null;
 
 // 新的音频队列管理
-const audioQueue = new Map(); // Map<sentenceId, {text, characterId, character}>
+const audioQueue = new Map(); // Map<sentenceId, sentenceObj>
 const audioBlobCache = new Map(); // Map<sentenceId, audioBlob>
-let currentPlayingSentenceId = 0;
+let streamProcessor = null; // 引用到当前的流处理器
 
 // 显示加载指示器
 function showLoading() {
@@ -308,26 +308,28 @@ export function stopCurrentAudio() {
     }
 }
 
+// 设置流处理器引用
+export function setStreamProcessor(processor) {
+    streamProcessor = processor;
+}
+
 // 新的音频管理系统
-export function preloadAudioForSentence(sentenceId, text, characterId, character) {
+export function preloadAudioForSentence(sentenceObj) {
     // 检查TTS开关
     if (!window.ttsEnabled) {
         console.log('TTS已关闭，跳过音频预加载');
         return;
     }
 
-    if (!text || !text.trim()) {
+    if (!sentenceObj || !sentenceObj.text || !sentenceObj.text.trim()) {
         return;
     }
 
-    const textToProcess = text.trim();
+    const textToProcess = sentenceObj.text.trim();
+    const sentenceId = sentenceObj.id;
     
     // 将句子信息加入队列
-    audioQueue.set(sentenceId, {
-        text: textToProcess,
-        characterId: characterId || 'AI助手',
-        character: character
-    });
+    audioQueue.set(sentenceId, sentenceObj);
 
     console.log(`[AudioService] 开始预加载音频 #${sentenceId}:`, textToProcess);
 
@@ -337,7 +339,7 @@ export function preloadAudioForSentence(sentenceId, text, characterId, character
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             text: textToProcess,
-            role: characterId || 'AI助手',
+            role: sentenceObj.characterId || 'AI助手',
             enabled: window.ttsEnabled !== false
         })
     })
@@ -358,30 +360,72 @@ export function preloadAudioForSentence(sentenceId, text, characterId, character
     });
 }
 
-export function playNextAudio() {
-    const nextSentenceId = currentPlayingSentenceId + 1;
-    const audioBlob = audioBlobCache.get(nextSentenceId);
+// 根据索引播放音频
+export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
+    // 尝试获取流处理器引用，优先使用模块级别的，然后尝试全局的
+    let processor = streamProcessor;
+    if (!processor && window.globalStreamProcessor) {
+        processor = window.globalStreamProcessor;
+        console.log('[AudioService] 使用全局流处理器引用');
+    }
+    
+    if (!processor) {
+        console.error('[AudioService] 流处理器引用未设置');
+        return;
+    }
+
+    const sentenceObj = processor.getSentenceByIndex(sentenceIndex);
+    if (!sentenceObj) {
+        console.log(`[AudioService] 索引 ${sentenceIndex} 处没有句子信息`);
+        return;
+    }
+
+    const sentenceId = sentenceObj.id;
+    const audioBlob = audioBlobCache.get(sentenceId);
     
     if (audioBlob) {
-        console.log(`[AudioService] 播放音频 #${nextSentenceId}`);
-        playAudioBlobById(nextSentenceId, audioBlob);
-        currentPlayingSentenceId = nextSentenceId;
+        console.log(`[AudioService] 播放音频 #${sentenceId} (索引: ${sentenceIndex})`);
+        playAudioBlobById(sentenceId, audioBlob, isStreamMode);
+        
+        // 增加播放索引
+        processor.incrementPlayIndex();
         
         // 清理已播放的音频缓存
-        audioBlobCache.delete(nextSentenceId);
-        audioQueue.delete(nextSentenceId);
+        audioBlobCache.delete(sentenceId);
+        audioQueue.delete(sentenceId);
     } else {
-        console.log(`[AudioService] 音频 #${nextSentenceId} 尚未准备好，等待中...`);
-        // 可以设置一个定时器来重试
-        setTimeout(() => {
-            if (audioBlobCache.has(nextSentenceId)) {
-                playNextAudio();
+        console.log(`[AudioService] 音频 #${sentenceId} (索引: ${sentenceIndex}) 尚未准备好，等待中...`);
+        // 设置重试机制，但有限制次数
+        let retryCount = 0;
+        const maxRetries = 50; // 最多重试5秒
+        const retryInterval = setInterval(() => {
+            retryCount++;
+            if (audioBlobCache.has(sentenceId)) {
+                clearInterval(retryInterval);
+                playNextAudioByIndex(sentenceIndex, isStreamMode);
+            } else if (retryCount >= maxRetries) {
+                clearInterval(retryInterval);
+                console.log(`[AudioService] 音频 #${sentenceId} (索引: ${sentenceIndex}) 等待超时，跳过播放`);
             }
         }, 100);
     }
 }
 
-async function playAudioBlobById(sentenceId, audioBlob) {
+// 保持向后兼容的函数
+export function playNextAudio() {
+    // 尝试获取流处理器引用
+    let processor = streamProcessor;
+    if (!processor && window.globalStreamProcessor) {
+        processor = window.globalStreamProcessor;
+    }
+    
+    if (processor) {
+        const currentIndex = processor.getCurrentPlayIndex();
+        playNextAudioByIndex(currentIndex, false);
+    }
+}
+
+async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false) {
     try {
         // 停止当前正在播放的音频
         stopCurrentAudio();
@@ -392,31 +436,66 @@ async function playAudioBlobById(sentenceId, audioBlob) {
         audio.volume = window.ttsVolume || 0.8;
         audio.onended = () => { 
             URL.revokeObjectURL(url);
-            // 音频播放完成后，尝试播放下一个
-            playNextAudio();
+            // 只有在流式模式下才自动播放下一个
+            if (isStreamMode) {
+                // 尝试获取流处理器引用
+                let processor = streamProcessor;
+                if (!processor && window.globalStreamProcessor) {
+                    processor = window.globalStreamProcessor;
+                }
+                
+                if (processor) {
+                    const currentIndex = processor.getCurrentPlayIndex();
+                    playNextAudioByIndex(currentIndex, true);
+                }
+            }
         };
         audio.onerror = () => { 
             console.error(`音频播放失败 #${sentenceId}`);
             URL.revokeObjectURL(url);
-            // 播放失败也尝试播放下一个
-            playNextAudio();
+            // 播放失败时也根据模式决定是否播放下一个
+            if (isStreamMode) {
+                // 尝试获取流处理器引用
+                let processor = streamProcessor;
+                if (!processor && window.globalStreamProcessor) {
+                    processor = window.globalStreamProcessor;
+                }
+                
+                if (processor) {
+                    const currentIndex = processor.getCurrentPlayIndex();
+                    playNextAudioByIndex(currentIndex, true);
+                }
+            }
         };
         
         window.currentAudio = audio;
         await audio.play();
     } catch (error) {
         console.error(`播放音频失败 #${sentenceId}:`, error);
-        // 播放失败也尝试播放下一个
-        playNextAudio();
+        // 播放失败时也根据模式决定是否播放下一个
+        if (isStreamMode) {
+            // 尝试获取流处理器引用
+            let processor = streamProcessor;
+            if (!processor && window.globalStreamProcessor) {
+                processor = window.globalStreamProcessor;
+            }
+            
+            if (processor) {
+                const currentIndex = processor.getCurrentPlayIndex();
+                playNextAudioByIndex(currentIndex, true);
+            }
+        }
     }
 }
 
 export function resetAudioQueue() {
-    currentPlayingSentenceId = 0;
     audioQueue.clear();
     audioBlobCache.clear();
     stopCurrentAudio();
+    streamProcessor = null;
 }
+
+
 
 // 语音识别相关
 let recognition;
@@ -489,4 +568,6 @@ export function toggleRecording(messageInput, micButton, showError) {
 // 暴露新的音频管理函数到全局
 window.preloadAudioForSentence = preloadAudioForSentence;
 window.playNextAudio = playNextAudio;
+window.playNextAudioByIndex = playNextAudioByIndex;
+window.setStreamProcessor = setStreamProcessor;
 window.resetAudioQueue = resetAudioQueue;

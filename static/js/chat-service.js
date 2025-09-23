@@ -19,6 +19,7 @@ import {
     setIsPaused
 } from './ui-service.js';
 import { getCurrentCharacter, handleMoodChange } from './character-service.js';
+import { setStreamProcessor, resetAudioQueue } from './audio-service.js';
 
 // 流式处理器实例
 let streamProcessor = null;
@@ -40,9 +41,17 @@ export async function sendMessage() {
     // 创建新的流式处理器
     streamProcessor = new StreamProcessor();
     
+    // 暴露到全局作用域（备用）
+    window.globalStreamProcessor = streamProcessor;
+    
+    // 设置音频服务的流处理器引用
+    if (setStreamProcessor) {
+        setStreamProcessor(streamProcessor);
+    }
+    
     // 重置音频队列
-    if (window.resetAudioQueue) {
-        window.resetAudioQueue();
+    if (resetAudioQueue) {
+        resetAudioQueue();
     }
 
     // 跟踪已添加到历史记录的内容长度

@@ -92,9 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 panel.style.opacity = '';
             });
             
-            // 如果亚克力检测器已存在，强制触发一次重绘
-            if (window.acrylicDetector) {
-                window.acrylicDetector.forceRepaint();
+            // 如果亚克力检测器已存在，重新应用效果
+            if (window.acrylicDetector && typeof window.acrylicDetector.applyAcrylicEffects === 'function') {
+                window.acrylicDetector.applyAcrylicEffects();
             }
         });
         

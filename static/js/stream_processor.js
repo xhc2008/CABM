@@ -25,6 +25,8 @@ class StreamProcessor {
         this.sentenceCounter = 0; // 句子编号计数器
         this.isFirstSentence = true; // 标记是否是段落的第一句
         this.pendingSentence = ''; // 当前正在构建的句子
+        this.completedSentences = []; // 已完成的句子列表，包含ID和文本
+        this.nextPlaySentenceIndex = 0; // 下一个要播放的句子索引
     }
 
     /**
@@ -175,10 +177,10 @@ class StreamProcessor {
 
         // 检查是否是第一句话开始
         if (this.isFirstSentence && this.currentParagraph.length === 1) {
-            console.log('[StreamProcessor] 第一句话开始，尝试播放音频');
+            console.log('[StreamProcessor] 第一句话开始，尝试流式播放音频');
             this.isFirstSentence = false;
-            if (window.playNextAudio) {
-                window.playNextAudio();
+            if (window.playNextAudioByIndex) {
+                window.playNextAudioByIndex(this.nextPlaySentenceIndex, true); // 流式模式
             }
         }
 
@@ -243,9 +245,9 @@ class StreamProcessor {
                 }
             }
 
-            // 继续时播放音频
-            if (window.playNextAudio) {
-                window.playNextAudio();
+            // 继续时播放音频（单次播放模式）
+            if (window.playNextAudioByIndex) {
+                window.playNextAudioByIndex(this.nextPlaySentenceIndex, false); // 单次播放模式
             }
 
             // 继续处理缓冲区
@@ -308,14 +310,29 @@ class StreamProcessor {
         const sentenceText = this.pendingSentence.trim();
         const sentenceId = ++this.sentenceCounter;
         
+        // 创建句子对象，嵌入ID
+        const sentenceObj = {
+            id: sentenceId,
+            text: sentenceText,
+            characterId: null,
+            character: null
+        };
+        
+        // 获取当前角色信息
+        const character = this.getCurrentCharacterInfo();
+        if (character) {
+            sentenceObj.characterId = character.id;
+            sentenceObj.character = character;
+        }
+        
+        // 添加到已完成句子列表
+        this.completedSentences.push(sentenceObj);
+        
         console.log(`[StreamProcessor] 检测到完整句子 #${sentenceId}:`, sentenceText);
         
         // 调用audio-service.js的预加载函数
         if (window.preloadAudioForSentence) {
-            // const characterId = window.currentSpeakingCharacterId || 'AI助手';
-            const character = this.getCurrentCharacterInfo();
-            const characterId = character.id;
-            window.preloadAudioForSentence(sentenceId, sentenceText, characterId, character);
+            window.preloadAudioForSentence(sentenceObj);
         }
         
         // 清空待处理句子
@@ -353,6 +370,8 @@ class StreamProcessor {
         this.sentenceCounter = 0;
         this.isFirstSentence = true;
         this.pendingSentence = '';
+        this.completedSentences = [];
+        this.nextPlaySentenceIndex = 0;
         
         // 调用audio-service.js的重置函数
         if (window.resetAudioQueue) {
@@ -374,6 +393,28 @@ class StreamProcessor {
      */
     isProcessing() {
         return this.active || this.buffer.length > 0 || this.processingTimeout !== null;
+    }
+
+    /**
+     * 获取指定索引的句子信息
+     */
+    getSentenceByIndex(index) {
+        return this.completedSentences[index] || null;
+    }
+
+    /**
+     * 增加下一个播放句子的索引
+     */
+    incrementPlayIndex() {
+        this.nextPlaySentenceIndex++;
+        return this.nextPlaySentenceIndex;
+    }
+
+    /**
+     * 获取当前播放索引
+     */
+    getCurrentPlayIndex() {
+        return this.nextPlaySentenceIndex;
     }
 }
 
