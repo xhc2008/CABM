@@ -27,6 +27,9 @@ class StreamProcessor {
         this.pendingSentence = ''; // 当前正在构建的句子
         this.completedSentences = []; // 已完成的句子列表，包含ID和文本
         this.nextPlaySentenceIndex = 0; // 下一个要播放的句子索引
+        
+        // 多角色模式支持：当前说话角色ID
+        this.currentSpeakingCharacterId = null; // 为空时使用单角色模式，不为空时使用多角色模式
     }
 
     /**
@@ -113,8 +116,8 @@ class StreamProcessor {
                 // 没有内容需要暂停，立即执行角色切换
                 const item = this.buffer.shift(); // 现在才真正取出
                 console.log('StreamProcessor: 立即执行角色切换:', item.characterName);
-                // 设置当前说话角色ID
-                window.currentSpeakingCharacterId = item.characterID;
+                // 设置当前说话角色ID（多角色模式）
+                this.currentSpeakingCharacterId = item.characterID;
                 // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
@@ -146,8 +149,9 @@ class StreamProcessor {
             //     this.handleCompleteSentence();
             // }
 
-            // 段落结束，重置音频相关状态
+            // 段落结束，重置音频相关状态和当前说话角色
             this.isFirstSentence = true;
+            this.currentSpeakingCharacterId = null; // 段落结束后重置当前角色
 
             // 调用完成回调
             if (this.onCompleteCallback) {
@@ -209,6 +213,9 @@ class StreamProcessor {
         //     this.handleCompleteSentence();
         // }
 
+        // 段落暂停后重置当前说话角色
+        this.currentSpeakingCharacterId = null;
+
         // 调用暂停回调
         if (this.onPauseCallback) {
             this.onPauseCallback(this.paragraphs.join(''));
@@ -230,8 +237,8 @@ class StreamProcessor {
             if (typeof nextItem === 'object' && nextItem.type === 'SWITCH_CHARACTER') {
                 console.log('StreamProcessor: 继续时执行角色切换:', nextItem.characterName);
                 const item = this.buffer.shift(); // 取出角色切换标记
-                // 设置当前说话角色ID
-                window.currentSpeakingCharacterId = item.characterID;
+                // 设置当前说话角色ID（多角色模式）
+                this.currentSpeakingCharacterId = item.characterID;
                 // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
@@ -308,15 +315,20 @@ class StreamProcessor {
         const sentenceObj = {
             id: sentenceId,
             text: sentenceText,
-            characterId: null,
-            character: null
+            characterId: null
         };
-        
-        // 获取当前角色信息
-        const character = this.getCurrentCharacterInfo();
-        if (character) {
-            sentenceObj.characterId = character.id;
-            sentenceObj.character = character;
+        // 多角色模式：如果设置了当前说话角色ID，使用它
+        if (this.currentSpeakingCharacterId) {
+            console.log("当前TTS角色：",this.currentSpeakingCharacterId)
+            sentenceObj.characterId = this.currentSpeakingCharacterId;
+        }
+        else
+        {
+            // 获取当前角色信息
+            const character = this.getCurrentCharacterInfo();
+            if (character) {
+                sentenceObj.characterId = character.id;
+            }
         }
         
         // 添加到已完成句子列表
@@ -349,6 +361,7 @@ class StreamProcessor {
      * 获取当前角色信息
      */
     getCurrentCharacterInfo() {
+        // 单角色模式：使用原来的方法
         if (window.getCurrentCharacter) {
             return window.getCurrentCharacter();
         }
@@ -378,6 +391,9 @@ class StreamProcessor {
         this.pendingSentence = '';
         this.completedSentences = [];
         this.nextPlaySentenceIndex = 0;
+        
+        // 重置当前说话角色
+        this.currentSpeakingCharacterId = null;
         
         // 调用audio-service.js的重置函数
         if (window.resetAudioQueue) {
