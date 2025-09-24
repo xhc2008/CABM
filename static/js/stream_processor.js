@@ -4,13 +4,13 @@
  */
 
 // 常量配置
-const OUTPUT_DELAY = 100; // 每个字符的输出间隔（毫秒）
+const OUTPUT_DELAY = 30; // 每个字符的输出间隔（毫秒）
 const END_MARKER = "<END>"; // 结束标记符号
 const PAUSE_MARKERS = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~']; // 暂停输出的分隔符号
 class StreamProcessor {
     
     constructor() {
-        this.buffer = [];
+        this.buffer = []; // 现在存储句子对象而不是字符
         this.active = true;
         this.isPaused = false;
         this.currentParagraph = '';
@@ -19,14 +19,14 @@ class StreamProcessor {
         this.onPauseCallback = null;
         this.onCompleteCallback = null;
         this.processingTimeout = null;
-        this.lastCharWasPauseMarker = false; // 新增：标记上一个字符是否为暂停标记
         
         // 音频预加载和播放管理
-        this.sentenceCounter = 0; // 句子编号计数器
-        this.isFirstSentence = true; // 标记是否是段落的第一句
-        this.pendingSentence = ''; // 当前正在构建的句子
         this.completedSentences = []; // 已完成的句子列表，包含ID和文本
-        this.nextPlaySentenceIndex = 0; // 下一个要播放的句子索引
+        this.currentPlayingSentenceId = 0; // 当前正在播放的句子ID
+        this.isFirstSentence = true; // 标记是否是段落的第一句
+        
+        // 句子构建状态
+        this.pendingSentence = ''; // 当前正在构建的句子（跨多次addData调用）
         
         // 多角色模式支持：当前说话角色ID
         this.currentSpeakingCharacterId = null; // 为空时使用单角色模式，不为空时使用多角色模式
@@ -42,7 +42,7 @@ class StreamProcessor {
     }
 
     /**
-     * 添加数据到缓冲区
+     * 添加数据到缓冲区 - 现在逐句添加
      */
     addData(data) {
         // 检查是否是角色切换标记（可选携带情绪编号）
@@ -59,16 +59,8 @@ class StreamProcessor {
                 characterMood: switchMarkerMatch[3] !== undefined ? switchMarkerMatch[3] : null
             });
         } else {
-            // 将数据逐字符添加到缓冲区，同时检查句子完整性
-            for (const char of data) {
-                this.buffer.push(char);
-                this.pendingSentence += char;
-                
-                // 检查是否形成完整句子
-                if (PAUSE_MARKERS.includes(char)) {
-                    this.handleCompleteSentence();
-                }
-            }
+            // 将数据按句子分割并添加到缓冲区
+            this.splitIntoSentences(data);
         }
 
         // 如果没有在处理且没有暂停，开始处理
@@ -78,10 +70,81 @@ class StreamProcessor {
     }
 
     /**
+     * 将数据分割成句子对象并添加到缓冲区
+     */
+    splitIntoSentences(data) {
+        // 将新数据添加到待处理句子中
+        this.pendingSentence += data;
+        
+        // 查找完整句子
+        let lastCompleteIndex = -1;
+        for (let i = 0; i < this.pendingSentence.length; i++) {
+            if (PAUSE_MARKERS.includes(this.pendingSentence[i])) {
+                lastCompleteIndex = i;
+            }
+        }
+        
+        // 如果找到完整句子
+        if (lastCompleteIndex >= 0) {
+            const completeSentenceText = this.pendingSentence.substring(0, lastCompleteIndex + 1);
+            const remainingText = this.pendingSentence.substring(lastCompleteIndex + 1);
+            
+            if (completeSentenceText.trim()) {
+                const sentenceId = this.completedSentences.length + 1;
+                
+                // 创建句子对象，嵌入ID
+                const sentenceObj = {
+                    id: sentenceId,
+                    text: completeSentenceText.trim(),
+                    characterId: null,
+                    type: 'SENTENCE'
+                };
+                
+                // 多角色模式：如果设置了当前说话角色ID，使用它
+                if (this.currentSpeakingCharacterId) {
+                    sentenceObj.characterId = this.currentSpeakingCharacterId;
+                } else {
+                    // 获取当前角色信息
+                    const character = this.getCurrentCharacterInfo();
+                    if (character) {
+                        sentenceObj.characterId = character.id;
+                    }
+                }
+                
+                // 添加到缓冲区和已完成句子列表
+                this.buffer.push(sentenceObj);
+                this.completedSentences.push(sentenceObj);
+                
+                console.log(`[StreamProcessor] 创建句子对象 #${sentenceObj.id}:`, sentenceObj.text);
+                
+                // 调用audio-service.js的预加载函数
+                if (window.preloadAudioForSentence) {
+                    window.preloadAudioForSentence(sentenceObj);
+                }
+                
+                // 检查是否是第一句话，如果是则开始播放
+                if (this.isFirstSentence) {
+                    console.log('[StreamProcessor] 第一句话检测完成，开始流式播放音频');
+                    this.isFirstSentence = false;
+                    // 延迟一点时间确保预加载开始
+                    setTimeout(() => {
+                        if (window.playNextAudioBySentenceId) {
+                            window.playNextAudioBySentenceId(sentenceId); // 使用句子ID
+                        }
+                    }, 100);
+                }
+            }
+            
+            // 更新待处理句子为剩余部分
+            this.pendingSentence = remainingText;
+        }
+    }
+
+    /**
      * 标记数据结束
      */
     markEnd() {
-        this.buffer.push(END_MARKER);
+        this.buffer.push({ type: 'END_MARKER' });
         this.active = false;
 
         // 如果没有在处理，开始处理
@@ -91,7 +154,7 @@ class StreamProcessor {
     }
 
     /**
-     * 处理缓冲区数据
+     * 处理缓冲区数据 - 现在处理句子对象
      */
     processBuffer() {
         if (this.buffer.length === 0 || this.processingTimeout) {
@@ -103,23 +166,23 @@ class StreamProcessor {
             return;
         }
 
-        // 预览下一个项目，但不立即取出
-        const nextItem = this.buffer[0];
+        // 取出下一个项目
+        const item = this.buffer.shift();
 
-        // 如果下一个项目是角色切换标记，需要特殊处理
-        if (typeof nextItem === 'object' && nextItem.type === 'SWITCH_CHARACTER') {
-            console.log('StreamProcessor: 发现角色切换标记，等待暂停后执行:', nextItem.characterName);
+        // 如果是角色切换标记
+        if (item.type === 'SWITCH_CHARACTER') {
+            console.log('StreamProcessor: 发现角色切换标记，等待暂停后执行:', item.characterName);
             
             // 检查当前段落是否有内容需要暂停
-            if (this.currentParagraph && this.lastCharWasPauseMarker) {
-                // 有内容且上一个字符是暂停标记，触发暂停
+            if (this.currentParagraph) {
+                // 有内容，触发暂停
                 this.handlePause();
-                return; // 暂停处理，等待用户继续
+                // 将角色切换标记放回缓冲区开头，暂停后再处理
+                this.buffer.unshift(item);
+                return;
             } else {
                 // 没有内容需要暂停，立即执行角色切换
-                const item = this.buffer.shift(); // 现在才真正取出
                 console.log('StreamProcessor: 立即执行角色切换:', item.characterName);
-                // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
                 }
@@ -127,32 +190,22 @@ class StreamProcessor {
                 this.processingTimeout = setTimeout(() => {
                     this.processingTimeout = null;
                     this.processBuffer();
-                }, 0); // 立即处理下一个项目
+                }, 0);
                 return;
             }
         }
 
-        // 正常处理：取出一个字符
-        const item = this.buffer.shift();
-
-        const char = item;
-
         // 如果是结束标记
-        if (char === END_MARKER) {
+        if (item.type === 'END_MARKER') {
             // 如果还有未处理的段落，添加到结果中
             if (this.currentParagraph) {
                 this.paragraphs.push(this.currentParagraph);
                 this.currentParagraph = '';
             }
 
-            // // 处理剩余的待处理句子
-            // if (this.pendingSentence.trim()) {
-            //     this.handleCompleteSentence();
-            // }
-
             // 段落结束，重置音频相关状态和当前说话角色
             this.isFirstSentence = true;
-            this.currentSpeakingCharacterId = null; // 段落结束后重置当前角色
+            this.currentSpeakingCharacterId = null;
 
             // 调用完成回调
             if (this.onCompleteCallback) {
@@ -161,40 +214,51 @@ class StreamProcessor {
             return;
         }
 
-        // 检查是否需要分割：上一个字符是暂停标记，当前字符不是暂停标记
-        if (this.lastCharWasPauseMarker && !PAUSE_MARKERS.includes(char)) {
-            // 检查下一个字符是否是结束标记
-            const nextChar = this.buffer.length > 0 ? this.buffer[0] : null;
-
-            // 只有在下一个字符不是结束标记时才暂停
-            if (nextChar !== END_MARKER) {
-                this.handlePause();
-                // 重置标记
-                this.lastCharWasPauseMarker = false;
-                // 将当前字符放回缓冲区开头，下次处理时再处理
-                this.buffer.unshift(char);
-                return;
+        // 处理句子对象
+        if (item.type === 'SENTENCE') {
+            console.log(`[StreamProcessor] 开始逐字输出句子 #${item.id}:`, item.text);
+            
+            // 在开始输出句子时播放音频
+            if (window.playNextAudioBySentenceId) {
+                console.log(`[StreamProcessor] 开始播放句子音频 #${item.id}`);
+                window.playNextAudioBySentenceId(item.id);
             }
+            
+            this.outputSentenceCharByChar(item.text);
+            return;
         }
+    }
 
-        // 正常字符处理
-        this.currentParagraph += char;
-
-        // 不在第一个字符时就播放，等到句子检测完成后再播放
-
-        // 调用字符回调
-        if (this.onCharacterCallback) {
-            this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
-        }
-
-        // 更新暂停标记状态
-        this.lastCharWasPauseMarker = PAUSE_MARKERS.includes(char);
-
-        // 继续处理下一个字符
-        this.processingTimeout = setTimeout(() => {
-            this.processingTimeout = null;
-            this.processBuffer();
-        }, OUTPUT_DELAY);
+    /**
+     * 逐字输出句子内容
+     */
+    outputSentenceCharByChar(sentenceText) {
+        let charIndex = 0;
+        
+        const outputNextChar = () => {
+            if (charIndex < sentenceText.length && !this.isPaused) {
+                const char = sentenceText[charIndex];
+                this.currentParagraph += char;
+                charIndex++;
+                
+                // 调用字符回调
+                if (this.onCharacterCallback) {
+                    this.onCharacterCallback(this.paragraphs.join('') + this.currentParagraph);
+                }
+                
+                // 继续输出下一个字符
+                this.processingTimeout = setTimeout(() => {
+                    this.processingTimeout = null;
+                    outputNextChar();
+                }, OUTPUT_DELAY);
+            } else if (charIndex >= sentenceText.length) {
+                // 句子输出完成，触发暂停（因为一句输出完了就是暂停）
+                this.handlePause();
+            }
+            // 如果isPaused为true，则停止输出，等待continue()调用
+        };
+        
+        outputNextChar();
     }
 
     /**
@@ -208,11 +272,6 @@ class StreamProcessor {
             this.paragraphs.push(this.currentParagraph);
             this.currentParagraph = '';
         }
-
-        // // 处理剩余的待处理句子
-        // if (this.pendingSentence.trim()) {
-        //     this.handleCompleteSentence();
-        // }
 
         // 段落暂停后重置当前说话角色
         this.currentSpeakingCharacterId = null;
@@ -235,19 +294,13 @@ class StreamProcessor {
 
             // 检查是否有待处理的角色切换标记
             const nextItem = this.buffer[0];
-            if (typeof nextItem === 'object' && nextItem.type === 'SWITCH_CHARACTER') {
+            if (nextItem && nextItem.type === 'SWITCH_CHARACTER') {
                 console.log('StreamProcessor: 继续时执行角色切换:', nextItem.characterName);
                 const item = this.buffer.shift(); // 取出角色切换标记
                 // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
                 }
-            }
-
-            // 继续时播放音频（单次播放模式）
-            if (window.playNextAudioByIndex) {
-                console.log(`[StreamProcessor] 继续播放，当前索引: ${this.nextPlaySentenceIndex}`);
-                window.playNextAudioByIndex(this.nextPlaySentenceIndex, false); // 单次播放模式
             }
 
             // 继续处理缓冲区
@@ -271,14 +324,17 @@ class StreamProcessor {
             this.processingTimeout = null;
         }
 
-        // 将所有缓冲区内容添加到当前段落
+        // 将所有缓冲区中的句子内容添加到当前段落
         let remainingContent = '';
         while (this.buffer.length > 0) {
-            const char = this.buffer.shift();
-            if (char === END_MARKER) {
+            const item = this.buffer.shift();
+            if (item.type === 'END_MARKER') {
                 break;
             }
-            remainingContent += char;
+            if (item.type === 'SENTENCE') {
+                remainingContent += item.text;
+            }
+            // 跳过角色切换标记
         }
 
         this.currentParagraph += remainingContent;
@@ -299,62 +355,7 @@ class StreamProcessor {
         this.active = false;
     }
 
-    /**
-     * 处理完整句子 - 开始预加载音频
-     */
-    handleCompleteSentence() {
-        if (!this.pendingSentence.trim()) {
-            return;
-        }
-        
-        const sentenceText = this.pendingSentence.trim();
-        const sentenceId = ++this.sentenceCounter;
-        
-        // 创建句子对象，嵌入ID
-        const sentenceObj = {
-            id: sentenceId,
-            text: sentenceText,
-            characterId: null
-        };
-        // 多角色模式：如果设置了当前说话角色ID，使用它
-        if (this.currentSpeakingCharacterId) {
-            console.log("当前TTS角色：",this.currentSpeakingCharacterId)
-            sentenceObj.characterId = this.currentSpeakingCharacterId;
-        }
-        else
-        {
-            // 获取当前角色信息
-            const character = this.getCurrentCharacterInfo();
-            if (character) {
-                sentenceObj.characterId = character.id;
-            }
-        }
-        
-        // 添加到已完成句子列表
-        this.completedSentences.push(sentenceObj);
-        
-        console.log(`[StreamProcessor] 检测到完整句子 #${sentenceId}:`, sentenceText);
-        
-        // 调用audio-service.js的预加载函数
-        if (window.preloadAudioForSentence) {
-            window.preloadAudioForSentence(sentenceObj);
-        }
-        
-        // 检查是否是第一句话，如果是则开始播放
-        if (this.isFirstSentence) {
-            console.log('[StreamProcessor] 第一句话检测完成，开始流式播放音频');
-            this.isFirstSentence = false;
-            // 延迟一点时间确保预加载开始
-            setTimeout(() => {
-                if (window.playNextAudioByIndex) {
-                    window.playNextAudioByIndex(0, false); // 流式模式，从索引0开始
-                }
-            }, 100);
-        }
-        
-        // 清空待处理句子
-        this.pendingSentence = '';
-    }
+
 
     /**
      * 获取当前角色信息
@@ -382,14 +383,14 @@ class StreamProcessor {
         this.isPaused = false;
         this.currentParagraph = '';
         this.paragraphs = [];
-        this.lastCharWasPauseMarker = false; // 重置暂停标记状态
+        
+        // 重置句子构建状态
+        this.pendingSentence = '';
         
         // 重置音频相关状态
-        this.sentenceCounter = 0;
         this.isFirstSentence = true;
-        this.pendingSentence = '';
         this.completedSentences = [];
-        this.nextPlaySentenceIndex = 0;
+        this.currentPlayingSentenceId = 0;
         
         // 重置当前说话角色
         this.currentSpeakingCharacterId = null;
@@ -415,18 +416,26 @@ class StreamProcessor {
     }
 
     /**
-     * 获取指定索引的句子信息
+     * 根据句子ID获取句子信息
      */
-    getSentenceByIndex(index) {
-        return this.completedSentences[index] || null;
+    getSentenceBySentenceId(sentenceId) {
+        return this.completedSentences.find(sentence => sentence.id === sentenceId) || null;
     }
 
     /**
-     * 增加下一个播放句子的索引
+     * 更新当前播放的句子ID
      */
-    incrementPlayIndex() {
-        this.nextPlaySentenceIndex++;
-        return this.nextPlaySentenceIndex;
+    setCurrentPlayingSentenceId(sentenceId) {
+        this.currentPlayingSentenceId = sentenceId;
+        return this.currentPlayingSentenceId;
+    }
+
+    /**
+     * 获取下一个未播放的句子
+     */
+    getNextUnplayedSentence() {
+        // 查找ID大于当前播放ID的第一个句子
+        return this.completedSentences.find(sentence => sentence.id > this.currentPlayingSentenceId) || null;
     }
 
 }

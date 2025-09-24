@@ -360,8 +360,8 @@ export function preloadAudioForSentence(sentenceObj) {
     });
 }
 
-// 根据索引播放音频
-export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
+// 根据句子ID播放音频
+export function playNextAudioBySentenceId(sentenceId) {
     // 尝试获取流处理器引用，优先使用模块级别的，然后尝试全局的
     let processor = streamProcessor;
     if (!processor && window.globalStreamProcessor) {
@@ -374,26 +374,25 @@ export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
         return;
     }
 
-    const sentenceObj = processor.getSentenceByIndex(sentenceIndex);
+    const sentenceObj = processor.getSentenceBySentenceId(sentenceId);
     if (!sentenceObj) {
-        console.log(`[AudioService] 索引 ${sentenceIndex} 处没有句子信息`);
+        console.log(`[AudioService] 句子ID ${sentenceId} 不存在`);
         return;
     }
 
-    const sentenceId = sentenceObj.id;
     const audioBlob = audioBlobCache.get(sentenceId);
     
     if (audioBlob) {
-        console.log(`[AudioService] 播放音频 #${sentenceId} (索引: ${sentenceIndex})`);
-        playAudioBlobById(sentenceId, audioBlob, isStreamMode, () => {
+        console.log(`[AudioService] 播放音频 #${sentenceId}`);
+        playAudioBlobById(sentenceId, audioBlob, () => {
             // 播放完成后的回调
-            processor.incrementPlayIndex();
+            processor.setCurrentPlayingSentenceId(sentenceId);
             // 清理已播放的音频缓存
             audioBlobCache.delete(sentenceId);
             audioQueue.delete(sentenceId);
         });
     } else {
-        console.log(`[AudioService] 音频 #${sentenceId} (索引: ${sentenceIndex}) 尚未准备好，等待中...`);
+        console.log(`[AudioService] 音频 #${sentenceId} 尚未准备好，等待中...`);
         // 设置重试机制，但有限制次数
         let retryCount = 0;
         const maxRetries = 50; // 最多重试5秒
@@ -402,26 +401,26 @@ export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
             const audioBlob = audioBlobCache.get(sentenceId);
             if (audioBlob) {
                 clearInterval(retryInterval);
-                console.log(`[AudioService] 重试成功，播放音频 #${sentenceId} (索引: ${sentenceIndex})`);
-                playAudioBlobById(sentenceId, audioBlob, isStreamMode, () => {
+                console.log(`[AudioService] 重试成功，播放音频 #${sentenceId}`);
+                playAudioBlobById(sentenceId, audioBlob, () => {
                     // 播放完成后的回调
-                    processor.incrementPlayIndex();
+                    processor.setCurrentPlayingSentenceId(sentenceId);
                     // 清理已播放的音频缓存
                     audioBlobCache.delete(sentenceId);
                     audioQueue.delete(sentenceId);
                 });
             } else if (retryCount >= maxRetries) {
                 clearInterval(retryInterval);
-                console.log(`[AudioService] 音频 #${sentenceId} (索引: ${sentenceIndex}) 等待超时，跳过播放`);
-                // 即使跳过播放，也要增加索引，避免卡住
-                processor.incrementPlayIndex();
+                console.log(`[AudioService] 音频 #${sentenceId} 等待超时，跳过播放`);
+                // 即使跳过播放，也要更新当前播放ID，避免卡住
+                processor.setCurrentPlayingSentenceId(sentenceId);
             }
         }, 100);
     }
 }
 
 
-async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false, onPlayComplete = null) {
+async function playAudioBlobById(sentenceId, audioBlob, onPlayComplete = null) {
     try {
         // 停止当前正在播放的音频
         stopCurrentAudio();
@@ -542,6 +541,6 @@ export function toggleRecording(messageInput, micButton, showError) {
 }
 // 暴露新的音频管理函数到全局
 window.preloadAudioForSentence = preloadAudioForSentence;
-window.playNextAudioByIndex = playNextAudioByIndex;
+window.playNextAudioBySentenceId = playNextAudioBySentenceId;
 window.setStreamProcessor = setStreamProcessor;
 window.resetAudioQueue = resetAudioQueue;
