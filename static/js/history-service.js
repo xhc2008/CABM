@@ -222,6 +222,8 @@ class HistoryService {
         let content = message.content;
        
         if (message.role != 'user') {
+            // 清除内容前后可能的```json```或``````标记
+            content = content.replace(/^```(json)?\s*|\s*```$/g, '');
             // 尝试解析JSON格式的回复
             try {
                 const parsed = JSON.parse(content);

@@ -133,9 +133,9 @@ class ChatService:
         Returns:
             添加的消息对象
         """
+        content = re.sub(r'^```(json)?\s*|\s*```$', '', content)
         message = Message(role, content)
         self.history.append(message)
-        
         # 限制历史记录长度
         max_history = self.config_service.get_app_config()["max_history_length"]
         if len(self.history) > max_history:

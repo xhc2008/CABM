@@ -48,6 +48,9 @@ class StreamProcessor {
         // 检查是否是角色切换标记（可选携带情绪编号）
         const switchMarkerMatch = data.match(/^<SWITCH_CHARACTER:([^:]+):([^:>]+)(?::([^>]+))?>$/);
         if (switchMarkerMatch) {
+            this.currentSpeakingCharacterId = switchMarkerMatch[1];
+            console.log(`[StreamProcessor] 在addData中更新当前说话角色: ${this.currentSpeakingCharacterId}`);
+            
             // 这是角色切换标记，添加特殊标记到缓冲区
             this.buffer.push({
                 type: 'SWITCH_CHARACTER',
@@ -116,8 +119,6 @@ class StreamProcessor {
                 // 没有内容需要暂停，立即执行角色切换
                 const item = this.buffer.shift(); // 现在才真正取出
                 console.log('StreamProcessor: 立即执行角色切换:', item.characterName);
-                // 设置当前说话角色ID（多角色模式）
-                this.currentSpeakingCharacterId = item.characterID;
                 // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
@@ -237,8 +238,6 @@ class StreamProcessor {
             if (typeof nextItem === 'object' && nextItem.type === 'SWITCH_CHARACTER') {
                 console.log('StreamProcessor: 继续时执行角色切换:', nextItem.characterName);
                 const item = this.buffer.shift(); // 取出角色切换标记
-                // 设置当前说话角色ID（多角色模式）
-                this.currentSpeakingCharacterId = item.characterID;
                 // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);

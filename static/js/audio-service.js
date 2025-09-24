@@ -331,7 +331,7 @@ export function preloadAudioForSentence(sentenceObj) {
     // 将句子信息加入队列
     audioQueue.set(sentenceId, sentenceObj);
 
-    console.log(`[AudioService] 开始预加载音频 #${sentenceId}:`, textToProcess);
+    console.log(`[AudioService] 开始预加载音频 #${sentenceId}:`, sentenceObj.characterId,textToProcess);
 
     // 开始预加载
     fetch('/api/tts', {
@@ -339,7 +339,7 @@ export function preloadAudioForSentence(sentenceObj) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             text: textToProcess,
-            role: sentenceObj.characterId || 'AI助手',
+            role: sentenceObj.characterId,
             enabled: window.ttsEnabled !== false
         })
     })
