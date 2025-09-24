@@ -130,6 +130,7 @@ export function switchToCharacter(characterId, characterName, characterMood = nu
     const currentSpeakingChar = findCurrentSpeakingCharacter();
     if (currentSpeakingChar && currentSpeakingChar.id === characterId) {
         console.log(`角色 ${characterName} 已经是当前说话角色，更新心情`);
+        setCurrentCharacter(currentSpeakingChar);
         // 即使是同一角色，也要更新心情
         if (characterMood !== null) {
             showCharacter(characterId, currentSpeakingChar.character, characterName, characterMood);

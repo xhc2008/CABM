@@ -135,7 +135,7 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
                 if (currentCharacter) {
                     updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
                 } else {
-                    updateCharacterDisplay('AI', '#ffeb3b', role);
+                    updateCharacterDisplay('？？？', '#ffeb3b', role);
                 }
             }
         } else {
@@ -144,7 +144,7 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
             if (currentCharacter) {
                 updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
             } else {
-                updateCharacterDisplay('AI', '#ffeb3b', role);
+                updateCharacterDisplay('？？？', '#ffeb3b', role);
             }
         }
     }
