@@ -119,20 +119,20 @@ export async function loadCharacters() {
 export function updateCharacterImage() {
     const characterImage = document.getElementById('characterImage');
     const characterContainer = document.querySelector('.character-container');
-    
+
     // 检测当前页面类型
     const isChatPage = document.getElementById('chatPage')?.classList.contains('active');
-    const isStoryChatPage = document.getElementById('chatPage')?.classList.contains('active') && 
-                          window.location.pathname.includes('story');
-    
+    const isStoryChatPage = document.getElementById('chatPage')?.classList.contains('active') &&
+        window.location.pathname.includes('story');
+
     // 检测是否是多角色模式
-    const isMultiCharacter = window.isMultiCharacterStory || 
-                           (document.getElementById('characterLeft')?.style.display !== 'none' || 
-                            document.getElementById('characterRight')?.style.display !== 'none');
-    
+    const isMultiCharacter = window.isMultiCharacterStory ||
+        (document.getElementById('characterLeft')?.style.display !== 'none' ||
+            document.getElementById('characterRight')?.style.display !== 'none');
+
     if (currentCharacter && characterImage) {
         loadCharacterImages(currentCharacter.id);
-        
+
         // 聊天模式或单角色剧情模式：使用容器级别的缩放和位置
         if (isChatPage && !isStoryChatPage || !isMultiCharacter) {
             if (characterContainer && typeof currentCharacter.calib !== 'undefined') {
@@ -144,12 +144,12 @@ export function updateCharacterImage() {
                 console.log('使用默认位置: 50%');
                 characterContainer.style.top = '50%';
             }
-            
+
             // 应用缩放率
             if (characterImage && typeof currentCharacter.scale_rate !== 'undefined') {
                 const scaleValue = currentCharacter.scale_rate / 100;
                 console.log(`角色缩放调整: SCALE_RATE=${currentCharacter.scale_rate}%, 缩放值=${scaleValue}`);
-                
+
                 if (characterContainer) {
                     characterContainer.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
                     console.log(`缩放应用到角色容器: scale(${scaleValue})，避免定位偏移`);
@@ -157,11 +157,11 @@ export function updateCharacterImage() {
                     characterImage.style.transform = `scale(${scaleValue}) scaleY(1)`;
                     console.log(`缩放应用到图片元素: scale(${scaleValue}) (后备方案)`);
                 }
-                
+
                 characterImage.style.setProperty('--base-scale', scaleValue);
             } else if (characterImage) {
                 console.log('使用默认缩放: 100%');
-                
+
                 if (characterContainer) {
                     characterContainer.style.transform = `translate(-50%, -50%) scale(1)`;
                     console.log('使用默认缩放应用到角色容器: scale(1)');
@@ -169,7 +169,7 @@ export function updateCharacterImage() {
                     characterImage.style.transform = 'scale(1) scaleY(1)';
                     console.log('使用默认缩放应用到图片元素: scale(1) (后备方案)');
                 }
-                
+
                 characterImage.style.setProperty('--base-scale', 1);
             }
         } else {
@@ -180,7 +180,7 @@ export function updateCharacterImage() {
                 console.log('多角色模式：重置角色容器样式');
             }
         }
-        
+
         // 应用呼吸动画
         applyBreathingAnimation();
     }

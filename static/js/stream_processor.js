@@ -273,8 +273,6 @@ class StreamProcessor {
             this.currentParagraph = '';
         }
 
-        // 段落暂停后重置当前说话角色
-        this.currentSpeakingCharacterId = null;
 
         // 调用暂停回调
         if (this.onPauseCallback) {

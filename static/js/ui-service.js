@@ -98,7 +98,7 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
         if (currentCharacter) {
             updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
         } else {
-            updateCharacterDisplay('AI', '#ffeb3b', role);
+            updateCharacterDisplay('？？？', '#ffeb3b', role);
         }
     } else if (role === 'system') {
         updateCharacterDisplay('系统', '#4caf50', role);
