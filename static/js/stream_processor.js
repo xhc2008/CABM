@@ -401,8 +401,6 @@ class StreamProcessor {
         }
     }
 
-
-
     /**
      * 获取当前完整内容
      */
@@ -432,12 +430,6 @@ class StreamProcessor {
         return this.nextPlaySentenceIndex;
     }
 
-    /**
-     * 获取当前播放索引
-     */
-    getCurrentPlayIndex() {
-        return this.nextPlaySentenceIndex;
-    }
 }
 
 // 导出类

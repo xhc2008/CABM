@@ -12,6 +12,7 @@
 # 角色相关文件
 characters/
 character_backups/
+character_packages/
 data/ref_audio/
 data/voice_cache.json
 data/details/

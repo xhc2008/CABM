@@ -420,19 +420,6 @@ export function playNextAudioByIndex(sentenceIndex, isStreamMode = false) {
     }
 }
 
-// 保持向后兼容的函数
-export function playNextAudio() {
-    // 尝试获取流处理器引用
-    let processor = streamProcessor;
-    if (!processor && window.globalStreamProcessor) {
-        processor = window.globalStreamProcessor;
-    }
-    
-    if (processor) {
-        const currentIndex = processor.getCurrentPlayIndex();
-        playNextAudioByIndex(currentIndex, false);
-    }
-}
 
 async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false, onPlayComplete = null) {
     try {
@@ -451,19 +438,6 @@ async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false, on
                 onPlayComplete();
             }
             
-            // 只有在流式模式下才自动播放下一个
-            if (isStreamMode) {
-                // 尝试获取流处理器引用
-                let processor = streamProcessor;
-                if (!processor && window.globalStreamProcessor) {
-                    processor = window.globalStreamProcessor;
-                }
-                
-                if (processor) {
-                    const currentIndex = processor.getCurrentPlayIndex();
-                    playNextAudioByIndex(currentIndex, true);
-                }
-            }
         };
         audio.onerror = () => { 
             console.error(`音频播放失败 #${sentenceId}`);
@@ -474,19 +448,6 @@ async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false, on
                 onPlayComplete();
             }
             
-            // 播放失败时也根据模式决定是否播放下一个
-            if (isStreamMode) {
-                // 尝试获取流处理器引用
-                let processor = streamProcessor;
-                if (!processor && window.globalStreamProcessor) {
-                    processor = window.globalStreamProcessor;
-                }
-                
-                if (processor) {
-                    const currentIndex = processor.getCurrentPlayIndex();
-                    playNextAudioByIndex(currentIndex, true);
-                }
-            }
         };
         
         window.currentAudio = audio;
@@ -499,19 +460,6 @@ async function playAudioBlobById(sentenceId, audioBlob, isStreamMode = false, on
             onPlayComplete();
         }
         
-        // 播放失败时也根据模式决定是否播放下一个
-        if (isStreamMode) {
-            // 尝试获取流处理器引用
-            let processor = streamProcessor;
-            if (!processor && window.globalStreamProcessor) {
-                processor = window.globalStreamProcessor;
-            }
-            
-            if (processor) {
-                const currentIndex = processor.getCurrentPlayIndex();
-                playNextAudioByIndex(currentIndex, true);
-            }
-        }
     }
 }
 
@@ -594,7 +542,6 @@ export function toggleRecording(messageInput, micButton, showError) {
 }
 // 暴露新的音频管理函数到全局
 window.preloadAudioForSentence = preloadAudioForSentence;
-window.playNextAudio = playNextAudio;
 window.playNextAudioByIndex = playNextAudioByIndex;
 window.setStreamProcessor = setStreamProcessor;
 window.resetAudioQueue = resetAudioQueue;

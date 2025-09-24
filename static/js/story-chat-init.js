@@ -293,7 +293,6 @@ import {
     toggleRecording,
     stopCurrentAudio,
     preloadAudioForSentence,
-    playNextAudio,
     resetAudioQueue,
     setStreamProcessor
 } from './audio-service.js';
@@ -879,7 +878,6 @@ window.hideLoading = hideLoading;
 window.playAudio = (autoPlay = false) => playAudio(getCurrentCharacter(), autoPlay);
 window.stopCurrentAudio = stopCurrentAudio;
 window.preloadAudioForSentence = preloadAudioForSentence;
-window.playNextAudio = playNextAudio;
 window.resetAudioQueue = resetAudioQueue;
 window.handleMoodChange = handleMoodChange;
 window.showError = showError;
