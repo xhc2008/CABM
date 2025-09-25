@@ -29,7 +29,7 @@ class StreamProcessor {
         this.pendingSentence = ''; // 当前正在构建的句子（跨多次addData调用）
         
         // 多角色模式支持：当前说话角色ID
-        this.currentSpeakingCharacterId = null; // 为空时使用单角色模式，不为空时使用多角色模式
+        this.currentProcessingCharacterId = null; // 为空时使用单角色模式，不为空时使用多角色模式
     }
 
     /**
@@ -48,8 +48,8 @@ class StreamProcessor {
         // 检查是否是角色切换标记（可选携带情绪编号）
         const switchMarkerMatch = data.match(/^<SWITCH_CHARACTER:([^:]+):([^:>]+)(?::([^>]+))?>$/);
         if (switchMarkerMatch) {
-            this.currentSpeakingCharacterId = switchMarkerMatch[1];
-            console.log(`[StreamProcessor] 在addData中更新当前说话角色: ${this.currentSpeakingCharacterId}`);
+            this.currentProcessingCharacterId = switchMarkerMatch[1];
+            console.log(`[StreamProcessor] 在addData中更新当前说话角色: ${this.currentProcessingCharacterId}`);
             
             // 这是角色切换标记，添加特殊标记到缓冲区
             this.buffer.push({
@@ -101,8 +101,8 @@ class StreamProcessor {
                 };
                 
                 // 多角色模式：如果设置了当前说话角色ID，使用它
-                if (this.currentSpeakingCharacterId) {
-                    sentenceObj.characterId = this.currentSpeakingCharacterId;
+                if (this.currentProcessingCharacterId) {
+                    sentenceObj.characterId = this.currentProcessingCharacterId;
                 } else {
                     // 获取当前角色信息
                     const character = this.getCurrentCharacterInfo();
@@ -205,7 +205,7 @@ class StreamProcessor {
 
             // 段落结束，重置音频相关状态和当前说话角色
             this.isFirstSentence = true;
-            this.currentSpeakingCharacterId = null;
+            this.currentProcessingCharacterId = null;
 
             // 调用完成回调
             if (this.onCompleteCallback) {
@@ -391,7 +391,7 @@ class StreamProcessor {
         this.currentPlayingSentenceId = 0;
         
         // 重置当前说话角色
-        this.currentSpeakingCharacterId = null;
+        this.currentProcessingCharacterId = null;
         
         // 调用audio-service.js的重置函数
         if (window.resetAudioQueue) {

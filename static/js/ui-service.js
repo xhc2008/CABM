@@ -96,7 +96,6 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
         // 需要从角色服务获取当前角色
         const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
         if (currentCharacter) {
-            console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<更新角色名称",currentCharacter.name, currentCharacter.color)
             updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
         } else {
             updateCharacterDisplay('？？？', '#ffeb3b', role);
@@ -125,19 +124,24 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
                         if (targetCharacter) {
                             updateCharacterDisplay(targetCharacter.name, targetCharacter.color, role);
                             console.log("多角色模式 - 异步获取角色：", targetCharacter.name);
+                        } else {
+                            // 如果异步获取也失败，使用默认显示
+                            updateCharacterDisplay('？？？', '#ffeb3b', role);
                         }
                     }).catch(error => {
                         console.error('获取角色信息失败:', error);
+                        // 异步获取失败时使用默认显示
+                        updateCharacterDisplay('？？？', '#ffeb3b', role);
                     });
+                } else {
+                    // 如果不能异步获取，使用当前角色或默认值作为临时显示
+                    const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
+                    if (currentCharacter && currentCharacter.name && currentCharacter.color) {
+                        updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
+                    } else {
+                        updateCharacterDisplay('？？？', '#ffeb3b', role);
+                    }
                 }
-                
-                // 使用当前角色或默认值作为临时显示
-                // const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
-                // if (currentCharacter) {
-                //     updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
-                // } else {
-                //     updateCharacterDisplay('？？？', '#ffeb3b', role);
-                // }
             }
         } else {
             // 非多角色模式，使用默认处理

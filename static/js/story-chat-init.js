@@ -12,9 +12,29 @@ window.originalContinueOutput = continueOutput;
 function setCurrentCharacterDirect(character) {
     console.log('直接设置角色:', character);
 
+    // 如果传入的是字符串，转换为对象
+    if (typeof character === 'string') {
+        if (character === 'system') {
+            character = {
+                id: 'system',
+                name: '系统',
+                color: '#4caf50',
+                image: null
+            };
+        } else {
+            console.warn('未知的角色字符串:', character);
+            character = {
+                id: character,
+                name: '？？？',
+                color: '#ffeb3b',
+                image: null
+            };
+        }
+    }
+
     // 更新角色名称显示
     const characterNameElement = document.getElementById('characterName');
-    if (characterNameElement && character.name) {
+    if (characterNameElement && character && character.name) {
         characterNameElement.textContent = character.name;
         characterNameElement.style.color = character.color || '#ffeb3b';
         console.log('设置角色名称:', character.name, '颜色:', character.color);
@@ -718,7 +738,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.setCurrentCharacterDirect(window.currentCharacter);
             }
             else {
-                window.setCurrentCharacterDirect('system');
+                // 多角色模式下，设置一个系统角色对象而不是字符串
+                const systemCharacter = {
+                    id: 'system',
+                    name: '系统',
+                    color: '#4caf50',
+                    image: null
+                };
+                window.setCurrentCharacterDirect(systemCharacter);
             }
         } else {
             console.log('剧情模式 - 未找到当前角色信息');

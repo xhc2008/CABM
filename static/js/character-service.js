@@ -50,6 +50,7 @@ function showError(message) {
 
 // 获取当前角色
 export function getCurrentCharacter() {
+    console.log("获取当前角色：",currentCharacter)
     return currentCharacter;
 }
 
