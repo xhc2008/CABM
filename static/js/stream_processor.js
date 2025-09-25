@@ -7,6 +7,18 @@
 const OUTPUT_DELAY = 30; // 每个字符的输出间隔（毫秒）
 const END_MARKER = "<END>"; // 结束标记符号
 const PAUSE_MARKERS = ['。', '！', '？', '!', '?', '.', '…', '♪', '...','~']; // 暂停输出的分隔符号
+
+// 简单的哈希函数，用于生成文本+角色ID的哈希值
+function generateTextHash(text, characterId) {
+    const input = `${text}_${characterId || 'default'}`;
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        const char = input.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 转换为32位整数
+    }
+    return Math.abs(hash).toString(36); // 转换为36进制字符串
+}
 class StreamProcessor {
     
     constructor() {
@@ -91,25 +103,32 @@ class StreamProcessor {
             
             if (completeSentenceText.trim()) {
                 const sentenceId = this.completedSentences.length + 1;
+                const trimmedText = completeSentenceText.trim();
                 
-                // 创建句子对象，嵌入ID
-                const sentenceObj = {
-                    id: sentenceId,
-                    text: completeSentenceText.trim(),
-                    characterId: null,
-                    type: 'SENTENCE'
-                };
-                
-                // 多角色模式：如果设置了当前说话角色ID，使用它
+                // 确定角色ID
+                let characterId = null;
                 if (this.currentProcessingCharacterId) {
-                    sentenceObj.characterId = this.currentProcessingCharacterId;
+                    characterId = this.currentProcessingCharacterId;
                 } else {
                     // 获取当前角色信息
                     const character = this.getCurrentCharacterInfo();
                     if (character) {
-                        sentenceObj.characterId = character.id;
+                        characterId = character.id;
                     }
                 }
+                
+                // 生成哈希值用于缓存索引
+                console.log("text:",trimmedText,"characterId",characterId)
+                const textHash = generateTextHash(trimmedText, characterId);
+                console.log("生成哈希：",textHash)
+                // 创建句子对象，嵌入ID和哈希值
+                const sentenceObj = {
+                    id: sentenceId,
+                    text: trimmedText,
+                    characterId: characterId,
+                    textHash: textHash, // 新增：用于缓存查找的哈希值
+                    type: 'SENTENCE'
+                };
                 
                 // 添加到缓冲区和已完成句子列表
                 this.buffer.push(sentenceObj);
@@ -428,13 +447,7 @@ class StreamProcessor {
         return this.currentPlayingSentenceId;
     }
 
-    /**
-     * 获取下一个未播放的句子
-     */
-    getNextUnplayedSentence() {
-        // 查找ID大于当前播放ID的第一个句子
-        return this.completedSentences.find(sentence => sentence.id > this.currentPlayingSentenceId) || null;
-    }
+
 
 }
 

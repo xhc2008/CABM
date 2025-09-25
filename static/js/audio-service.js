@@ -1,8 +1,20 @@
 // 音频服务模块
 import { loadingIndicator, currentMessage, errorMessage, errorContainer } from './dom-elements.js';
 
+// 简单的哈希函数，与stream_processor.js中的保持一致
+function generateTextHash(text, characterId) {
+    const input = `${text}_${characterId || 'default'}`;
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        const char = input.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 转换为32位整数
+    }
+    return Math.abs(hash).toString(36); // 转换为36进制字符串
+}
+
 // 音频缓存对象和首次播放标记
-const audioCache = {};
+const audioCache = {}; // 现在使用哈希值作为键
 let firstAudioPlay = true;
 let audioEnabled = true; // 音频是否已被用户启用
 
@@ -57,10 +69,12 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
     // 停止当前正在播放的音频，防止多个音频同时播放
     stopCurrentAudio();
 
-    // 判断缓存
-    let audioBlob = audioCache[textToPlay];
+    // 使用哈希值查找缓存
+    const characterId = currentCharacter ? currentCharacter.id : null;
+    const textHash = generateTextHash(textToPlay, characterId);
+    let audioBlob = audioCache[textHash];
     if (audioBlob) {
-        console.log('[playTextAudio] 命中缓存:', textToPlay);
+        console.log('[playTextAudio] 命中缓存 (hash:', textHash + '):', textToPlay);
         try {
             const audio = new Audio();
             const url = URL.createObjectURL(audioBlob);
@@ -91,7 +105,7 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
         }
         return;
     } else {
-        console.log('[playTextAudio] 未命中缓存，重新合成:', textToPlay);
+        console.log('[playTextAudio] 未命中缓存 (hash:', textHash + ')，重新合成:', textToPlay);
         if (!autoPlay) {
             showLoading(); // 只有用户主动播放时才显示加载
         }
@@ -124,8 +138,8 @@ export async function playTextAudio(text, currentCharacter, autoPlay = true) {
             throw new Error('收到的音频数据为空');
         }
         
-        // 缓存音频
-        audioCache[textToPlay] = blob;
+        // 缓存音频（使用哈希值作为键）
+        audioCache[textHash] = blob;
 
         const audio = new Audio();
         const url = URL.createObjectURL(blob);
@@ -191,10 +205,13 @@ export async function playAudio(currentCharacter, autoPlay = true) {
     // 停止当前正在播放的音频，防止多个音频同时播放
     stopCurrentAudio();
 
-    // 判断缓存
-    let audioBlob = audioCache[text];
+    // 使用哈希值查找缓存
+    const characterId = currentCharacter ? currentCharacter.id : null;
+    console.log("text:",text,"characterId",characterId)
+    const textHash = generateTextHash(text, characterId);
+    let audioBlob = audioCache[textHash];
     if (audioBlob) {
-        console.log('[playAudio] 命中缓存:', text);
+        console.log('[playAudio] 命中缓存 (hash:', textHash + '):', text);
         try {
             const audio = new Audio();
             const url = URL.createObjectURL(audioBlob);
@@ -208,7 +225,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             window.currentAudio = audio;
             
             // 尝试播放
-            const playResult = await audio.play();
+            await audio.play();
             
             // 如果是用户首次主动播放，标记音频已启用
             if (!autoPlay) {
@@ -225,7 +242,7 @@ export async function playAudio(currentCharacter, autoPlay = true) {
         }
         return;
     } else {
-        console.log('[playAudio] 未命中缓存，重新合成:', text);
+        console.log('[playAudio] 未命中缓存 (hash:', textHash + ')，重新合成:', text);
         if (!autoPlay) {
             showLoading(); // 只有用户主动播放时才显示加载
         }
@@ -258,8 +275,8 @@ export async function playAudio(currentCharacter, autoPlay = true) {
             throw new Error('收到的音频数据为空');
         }
         
-        // 缓存音频
-        audioCache[text] = blob;
+        // 缓存音频（使用哈希值作为键）
+        audioCache[textHash] = blob;
 
         const audio = new Audio();
         const url = URL.createObjectURL(blob);
@@ -327,11 +344,18 @@ export function preloadAudioForSentence(sentenceObj) {
 
     const textToProcess = sentenceObj.text.trim();
     const sentenceId = sentenceObj.id;
+    const textHash = sentenceObj.textHash; // 使用句子对象中的哈希值
+    
+    // 检查是否已经缓存
+    if (audioBlobCache.has(sentenceId)) {
+        console.log(`[AudioService] 音频 #${sentenceId} 已在缓存中`);
+        return;
+    }
     
     // 将句子信息加入队列
     audioQueue.set(sentenceId, sentenceObj);
 
-    console.log(`[AudioService] 开始预加载音频 #${sentenceId}:`, sentenceObj.characterId,textToProcess);
+    console.log(`[AudioService] 开始预加载音频 #${sentenceId} (hash: ${textHash}):`, sentenceObj.characterId, textToProcess);
 
     // 开始预加载
     fetch('/api/tts', {
@@ -352,7 +376,9 @@ export function preloadAudioForSentence(sentenceObj) {
     .then(blob => {
         if (blob && blob.size > 0) {
             audioBlobCache.set(sentenceId, blob);
-            console.log(`[AudioService] 音频预加载完成 #${sentenceId}`);
+            // 同时存储到哈希缓存中，供用户手动播放使用
+            audioCache[textHash] = blob;
+            console.log(`[AudioService] 音频预加载完成 #${sentenceId}，同时存储到哈希缓存 ${textHash}`);
         }
     })
     .catch(error => {
@@ -387,8 +413,8 @@ export function playNextAudioBySentenceId(sentenceId) {
         playAudioBlobById(sentenceId, audioBlob, () => {
             // 播放完成后的回调
             processor.setCurrentPlayingSentenceId(sentenceId);
-            // 清理已播放的音频缓存
-            audioBlobCache.delete(sentenceId);
+            // 不立即清理缓存，保留给用户手动播放使用
+            // 只清理队列信息
             audioQueue.delete(sentenceId);
         });
     } else {
@@ -405,8 +431,8 @@ export function playNextAudioBySentenceId(sentenceId) {
                 playAudioBlobById(sentenceId, audioBlob, () => {
                     // 播放完成后的回调
                     processor.setCurrentPlayingSentenceId(sentenceId);
-                    // 清理已播放的音频缓存
-                    audioBlobCache.delete(sentenceId);
+                    // 不立即清理缓存，保留给用户手动播放使用
+                    // 只清理队列信息
                     audioQueue.delete(sentenceId);
                 });
             } else if (retryCount >= maxRetries) {
@@ -465,6 +491,8 @@ async function playAudioBlobById(sentenceId, audioBlob, onPlayComplete = null) {
 export function resetAudioQueue() {
     audioQueue.clear();
     audioBlobCache.clear();
+    // 清理哈希缓存
+    Object.keys(audioCache).forEach(key => delete audioCache[key]);
     stopCurrentAudio();
     streamProcessor = null;
 }
