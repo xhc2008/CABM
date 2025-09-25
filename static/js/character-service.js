@@ -531,7 +531,7 @@ function updateCurrentMessage(role, content) {
             characterName.textContent = currentCharacter.name;
             characterName.style.color = currentCharacter.color;
         } else {
-            characterName.textContent = 'AI';
+            characterName.textContent = '？？？';
             characterName.style.color = '#ffeb3b';
         }
     } else if (role === 'system') {

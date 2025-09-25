@@ -96,6 +96,7 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
         // 需要从角色服务获取当前角色
         const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
         if (currentCharacter) {
+            console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<更新角色名称",currentCharacter.name, currentCharacter.color)
             updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
         } else {
             updateCharacterDisplay('？？？', '#ffeb3b', role);
@@ -114,15 +115,15 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
             const basicCharacter = window.getCharacterBasicInfo ? window.getCharacterBasicInfo(role) : null;
             
             if (basicCharacter && basicCharacter.name) {
-                updateCharacterDisplay(basicCharacter.name, basicCharacter.color || '#ffeb3b', role);
+                updateCharacterDisplay(basicCharacter.name, basicCharacter.color, role);
                 console.log("多角色模式 - 角色：", basicCharacter.name);
             } else {
                 // 如果基本信息中没有名称，尝试异步获取完整信息
                 if (window.getCharacterById && (!isStreaming || lastDisplayedRole !== role)) {
                     // 只在非流式输出或角色变化时才发起异步请求
                     window.getCharacterById(role).then(targetCharacter => {
-                        if (targetCharacter && targetCharacter.name) {
-                            updateCharacterDisplay(targetCharacter.name, targetCharacter.color || '#ffeb3b', role);
+                        if (targetCharacter) {
+                            updateCharacterDisplay(targetCharacter.name, targetCharacter.color, role);
                             console.log("多角色模式 - 异步获取角色：", targetCharacter.name);
                         }
                     }).catch(error => {
@@ -131,12 +132,12 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
                 }
                 
                 // 使用当前角色或默认值作为临时显示
-                const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
-                if (currentCharacter) {
-                    updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
-                } else {
-                    updateCharacterDisplay('？？？', '#ffeb3b', role);
-                }
+                // const currentCharacter = window.getCurrentCharacter ? window.getCurrentCharacter() : null;
+                // if (currentCharacter) {
+                //     updateCharacterDisplay(currentCharacter.name, currentCharacter.color, role);
+                // } else {
+                //     updateCharacterDisplay('？？？', '#ffeb3b', role);
+                // }
             }
         } else {
             // 非多角色模式，使用默认处理
@@ -154,6 +155,7 @@ export function updateCurrentMessage(role, content, isStreaming = false) {
 
 // 辅助函数：更新角色显示信息并缓存
 function updateCharacterDisplay(name, color, role) {
+    console.log(">>>>>>>>>>>>角色名称更新：",name,color)
     characterName.textContent = name;
     characterName.style.color = color;
     
