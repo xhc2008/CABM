@@ -221,6 +221,7 @@ async function initializeChatContent() {
         if (currentMessageElement && window.storyData) {
             const defaultMessage = `欢迎来到《${window.storyData.metadata.title}》！${window.storyData.summary.text}`;
             currentMessageElement.textContent = defaultMessage;
+            updateCharacterNameDisplay('系统', '#4caf50');
         }
 
         // 显示默认角色名称
@@ -244,6 +245,7 @@ async function initializeChatContent() {
         if (currentMessageElement && window.storyData) {
             const defaultMessage = `欢迎来到《${window.storyData.metadata.title}》！${window.storyData.summary.text}`;
             currentMessageElement.textContent = defaultMessage;
+            updateCharacterNameDisplay('系统', '#4caf50');
         }
 
         // 显示默认角色名称
@@ -727,13 +729,12 @@ async function sendStoryMessage() {
 document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log('开始初始化剧情聊天页面...');
-
+        const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
+                window.storyData?.characters?.length > 1;
         // 如果有当前角色信息，直接设置
         if (window.currentCharacter) {
             console.log('剧情模式 - 当前角色信息:', window.currentCharacter);
             // 直接设置当前角色，不需要通过API加载
-            const isMultiCharacter = window.storyData?.characters?.list?.length > 1 ||
-                window.storyData?.characters?.length > 1;
             if (!isMultiCharacter) {
                 window.setCurrentCharacterDirect(window.currentCharacter);
             }
@@ -755,7 +756,9 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeChatContent();
 
         // 加载角色数据（用于角色选择模态框）
-        loadCharacters();
+        if(!isMultiCharacter){
+            loadCharacters();
+        }
 
         // 绑定按钮事件
         const playAudioButton = document.getElementById('playaudioButton');
