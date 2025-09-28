@@ -34,7 +34,6 @@ CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式
 - （特性）话说一半查看历史会显示完整对话
 - （特性）加载角色时文件无法加载（浏览器安全限制）
 - （特性）electron上，关闭logo选项无效
-- （特性）bgm禁忌二重奏
 
 **已完成功能：**
 - 基本的AI对话功能，包含最近的历史记录
@@ -66,9 +65,10 @@ CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式
 - 更多的bug
 
 ## 声明
-- 本项目为个人非营利性兴趣项目，无意且不参与任何形式的同业竞争。
-- 本项目采用GNU通用公共许可证(GPL)开源协议，禁止闭源商业化改造。详见[GNU General Public License v3.0](LICENSE)
+- 本项目为个人非营利性兴趣项目，无意且不参与任何形式的同业竞争
+- 本项目采用GNU通用公共许可证(GPL)开源协议，详见[GNU General Public License v3.0](LICENSE)
 - 使用者需自行承担因调用第三方AI服务产生的API费用，此类费用与项目作者无关
+- 作者与文档中提及的任何第三方服务平台或公司均无商业关联或授权关系
 - 本项目涉及人工智能生成内容，作者不对AI生成内容的准确性、合法性及可能引发的后果承担任何责任。
 - 欢迎提出建设性意见或提交Pull Requests，但作者保留是否采纳的最终决定权，建议提前和作者联系。
 - 作者保留对本声明条款的最终解释权及修改权。
@@ -82,11 +82,11 @@ CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式
 - 语音合成，多模态输出
 - 对话历史记录查看
 - 响应式设计，适配不同设备
-<a id="install"></a>
+
 ## 安装说明
 
 ### 🎮方法一：无脑安装（仅限Windows）
-1. [点击下载安装包](https://github.com/leletxh/CABM-run/releases/download/v1.1.0/-v1.1.0-win-x64.zip)
+1. [点击下载安装包](https://github.com/leletxh/CABM-run/releases/download/V1.1.1/-V1.1.1-win-x64.zip)
 2. 解压
 3. 双击“启动器.exe”
 4. 去[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API密钥
@@ -102,119 +102,14 @@ CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式
 >5. 点击密钥进行复制
 
 ### 🐳方法二：Docker 快速部署
-
-#### 🚀 直接拉取镜像部署（最简单）
-
-无需克隆代码，直接使用预构建镜像：
-
-```bash
-# Linux/macOS 一键部署
-curl -o deploy.sh https://raw.githubusercontent.com/leletxh/CABM/main/deploy.sh
-chmod +x deploy.sh
-./deploy.sh
-```
-
-```powershell
-# Windows PowerShell 一键部署
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/leletxh/CABM/main/deploy.ps1" -OutFile "deploy.ps1"
-PowerShell -ExecutionPolicy Bypass -File deploy.ps1
-```
-
-**[📖 Docker 镜像直接拉取部署指南](/docs/DOCKER_PULL_GUIDE.md)**
-
-#### 源码构建部署
-
-```bash
-# 克隆项目
-git clone https://github.com/leletxh/CABM.git
-cd CABM
-```
-> 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key
-```bash
-# 一键部署
-./deploy-docker.sh deploy
-```
-
-#### 手动部署
-
-```bash
-# 1. 配置环境变量
-cp .env.docker .env.docker
-```
-> 编辑 .env.docker 文件，需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key
-```bash
-# 2. 构建镜像
-./deploy-docker.sh build
-
-# 3. 运行容器
-./deploy-docker.sh run
-
-# 4. 访问应用
-# http://localhost:5000
-```
-
-**更多部署选项：**
-- [📖 Docker 镜像直接拉取部署指南](/docs/DOCKER_PULL_GUIDE.md)
-- [详细的部署指南](/docs/DOCKER_DEPLOYMENT.md)
-- [问题解决方案](/docs/DOCKER_SOLUTION.md)
-
-#### Docker 管理命令
-
-```bash
-./docker-start.sh start      # 启动服务
-./docker-start.sh stop       # 停止服务
-./docker-start.sh restart    # 重启服务
-./docker-start.sh logs       # 查看日志
-./docker-start.sh status     # 查看状态
-./docker-start.sh package    # 打包镜像
-./docker-start.sh cleanup    # 清理资源
-```
+[点击查看](docs/Docker_Method.md)
 
 ### 📦方法三：传统安装方式（适合开发者）
+[点击查看](docs/Traditional_Method.md)
 
-#### 1. 安装依赖
-
-使用 pip 安装项目依赖：
-
-```bash
-pip install -r requirements.txt
-```
-
-#### 2. 配置环境变量
-
-复制`.env.example`文件为`.env`，并填写API密钥和URL：
-
-```bash
-cp .env.example .env
-```
-编辑`.env`文件，填写API_KEY（将里面所有的`your_api_key_here`替换成你的API密钥）。
-
-需前往[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API Key；
-如果使用其他平台或模型，需要替换对应的API_BASE_URL和MODEL
-
-#### 如果你有独立显卡，推荐[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)
-
-### 🚀 Docker 优势
-
-- **一键部署**：无需手动安装依赖，自动配置环境
-- **环境隔离**：避免与其他应用冲突
-- **跨平台**：支持 Linux、Windows、macOS
-- **易于管理**：统一的启动、停止、重启命令
-- **生产就绪**：包含健康检查和自动重启
-- **资源限制**：可控制内存和CPU使用
-
-### 📋 环境要求
-
-#### Docker 环境
-- Docker 20.10+
-- Docker Compose 2.0+
-- 2GB以上的可用内存
-- 1GB以上的可用存储空间
-
-#### 传统环境
-- Python 3.8+
-- 500MB以上的可用存储空间
-
+### ✨可选安装
+- 如果你有独立显卡，推荐[使用GPT-SoVITS语音合成](docs/TTS_GPTSoVITS.md)（因为硅基流动的TTS太贵了）
+- Node.js 安装与启动（带UI界面）[点击查看](docs/NodeJS.md)
 ## 使用说明
 
 ### 启动应用
@@ -224,43 +119,6 @@ cp .env.example .env
 双击 `start.bat` 文件或在命令行中运行
 ```bash
 ./start.bat
-```
-
-## Node.js 安装与启动（带UI界面）
-
-### 1. 安装 Node.js 依赖
-
-请确保已安装 Node.js（推荐 18.x 及以上），然后在项目根目录下运行：
-
-```bash
-npm install
-```
-
-### 2. 启动带UI的 Electron 应用
-
-在命令行中运行：
-
-```bash
-npm run electron:start
-```
-
-或直接运行 Electron 主程序：
-
-```bash
-node electron/main.js
-```
-
-启动后会自动弹出带有UI的主界面，后端服务会自动启动并在 http://localhost:5000 提供 API。
-
-> 如果端口 5000 已被占用，Electron 会自动连接已运行的服务。
-
-### 3. 关闭应用
-
-关闭所有窗口时，系统会自动通知后端退出并关闭服务。
-
----
-```cmd
-start.bat
 ```
 
 #### Linux/macOS
@@ -300,28 +158,29 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 ### 基本操作
 
 - **发送消息**：在右上角输入框中输入消息，点击"发送"按钮或按回车键发送
-- **查看历史**：点击"历史"按钮查看完整对话历史
+- **查看历史**：点击"历史"按钮查看对话历史
 - **播放语音**：点击"播放语音"按钮再次播放语音
 - **更换背景**：点击"更换背景"按钮选择背景或生成新的背景图片
 
-## 注意事项
-
-- 手机可以访问，但是排版会有问题
-- bgm有时可能会出现二重奏，尝试刷新一下
-
-## 自定义角色
-### [点击查看详细说明](docs/custom_character.md)
-现在可以在前端UI自定义角色。你需要准备：
+## 自定义内容
+### 自定义角色
+#### 可以到[我们群里](https://qm.qq.com/q/oi33LF73jy)获取角色包导入
+也可以在前端UI自定义角色，你需要准备：
 - 角色的**无背景**立绘（如果有多个，尽量保持角色的大小相同）
 - 角色的简介（包括给人看的和给AI看的）
 - 角色的一句语音及其文本，3-10秒（以使用语音功能）
 - 角色的详细信息、背景故事等等，需要按要求整理好（非必须）
+#### [点击查看详细说明](docs/custom_character.md)
 
-## 自定义bgm
+### 自定义bgm
 直接在static/bgm/里进行修改，支持音频类型文件
 
-## 自定义背景
+### 自定义背景
 在data/backgrounds/中修改，支持图片类型文件。同时需要在background.json同步图片名称、描述等
+
+## 其他注意事项
+- 手机可以访问，但是排版会有问题
+- bgm有时可能会出现二重奏，尝试刷新一下
 
 ## 贡献
 > 注：按周结算没有并不代表没有
