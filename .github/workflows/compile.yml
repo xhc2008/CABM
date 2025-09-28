@@ -1,5 +1,7 @@
 name: Build Executables with Nuitka (Multi-Arch)
 
+# 添加 schedule 触发器，这里设置为每天（UTC 时间）凌晨 2 点执行
+# 您可以根据需要调整 cron 表达式
 on:
   workflow_dispatch:
     inputs:
@@ -15,6 +17,10 @@ on:
         description: '构建描述 (optional)'
         required: true
         default: '支持 Windows/Linux/macOS 多架构'
+  # --- 新增的定时触发器 ---
+  schedule:
+    - cron: '0 7 * * 1' 
+  # -----------------------
 
 permissions:
   contents: write
@@ -682,6 +688,8 @@ jobs:
 
   # ==================== PUBLISH ALL ====================
   publish-release:
+    # 为定时任务添加一个条件，使其不执行（因为定时任务会触发自己的发布）
+    if: github.event_name == 'workflow_dispatch'
     needs:
       - build-windows-x64-full
       - build-windows-x64-lite
@@ -733,3 +741,124 @@ jobs:
             macOS-x64-Lite-Release-${{ inputs.version }}.zip \
             macOS-ARM64-Full-Release-${{ inputs.version }}.zip \
             macOS-ARM64-Lite-Release-${{ inputs.version }}.zip
+
+  # ==================== SCHEDULED BUILD JOB ====================
+  scheduled-build:
+    # 确保此任务只在 schedule 触发时运行
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # 此任务本身应该很快
+    outputs:
+      new_version: ${{ steps.generate_version.outputs.new_version }}
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+        with:
+          # 需要获取 token 以允许后续步骤推送更改
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔍 Read current version from /api/tag
+        id: read_version
+        run: |
+          if [ -f /api/tag ]; then
+            CURRENT_VERSION=$(cat /api/tag | xargs) # xargs 去除可能的前后空格
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "Found current version: $CURRENT_VERSION"
+          else
+            echo "Error: /api/tag file not found in repository root."
+            exit 1
+          fi
+
+      - name: 🔢 Generate new version
+        id: generate_version
+        run: |
+          CURRENT="${{ steps.read_version.outputs.current_version }}"
+          # 假设版本格式为 x.y.z
+          # 提取数字部分，例如 0.4.8 -> 0 4 8
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          # 尝试从 PATCH 部分的末尾提取数字，如果没有，则默认为 0
+          if [[ $PATCH =~ ^([0-9]+)([0-9]*)$ ]]; then
+              BASE_NUM="${BASH_REMATCH[1]}"
+              SUFFIX_NUM="${BASH_REMATCH[2]:-0}"
+          else
+              BASE_NUM="$PATCH"
+              SUFFIX_NUM="0"
+          fi
+          # 生成新版本号，例如 0.4.8 -> 0.4.81 -> 0.4.82
+          NEW_VERSION="${MAJOR}.${MINOR}.${BASE_NUM}${SUFFIX_NUM}1"
+          echo "Generated new version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 📝 Update /api/tag file locally
+        run: |
+          NEW_VERSION="${{ steps.generate_version.outputs.new_version }}"
+          echo "$NEW_VERSION" > /api/tag
+          echo "Updated /api/tag file locally with: $NEW_VERSION"
+
+      - name: 🚀 Trigger workflow with new version (Full Release)
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Build Executables with Nuitka (Multi-Arch)
+          inputs: '{"version": "${{ steps.generate_version.outputs.new_version }}", "release_name": "Scheduled Build ${{ steps.generate_version.outputs.new_version }}", "release_text": "Automated build triggered by schedule. Version based on /api/tag."}'
+          ref: ${{ github.ref }}
+
+  # ==================== SCHEDULED PUBLISH JOB (NEW) ====================
+  # 新增一个发布任务，专门用于定时构建后的发布和文件更新
+  publish-scheduled-release:
+    needs: scheduled-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # 确保此任务只在 schedule 触发时运行
+    if: github.event_name == 'schedule'
+    steps:
+      - name: 🛒 Checkout code (for tag update)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📥 Download all artifacts from scheduled run
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 🗑️ Delete existing release/tag if exists (for scheduled version)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ needs.scheduled-build.outputs.new_version }}"
+          gh release delete "$NEW_VERSION" --yes 2>/dev/null || echo "No existing release $NEW_VERSION to delete."
+          git tag -d "$NEW_VERSION" 2>/dev/null || echo "No local tag $NEW_VERSION to delete."
+          git push --delete origin "$NEW_VERSION" 2>/dev/null || echo "No remote tag $NEW_VERSION to delete."
+
+      - name: 🚀 Create Release and Upload Assets (for scheduled version)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ needs.scheduled-build.outputs.new_version }}"
+          cd artifacts
+          # Flatten all zip files to current dir
+          find . -type f -name "*.zip" -exec mv {} . \; 2>/dev/null || true
+          # Remove any left empty dirs
+          find . -type d -empty -delete
+
+          gh release create "$NEW_VERSION" \
+            --title "Scheduled Build $NEW_VERSION" \
+            --notes "Automated build triggered by schedule. Version based on /api/tag." \
+            Windows-x64-Full-Release-$NEW_VERSION.zip \
+            Windows-x64-Lite-Release-$NEW_VERSION.zip \
+            Windows-x86-Lite-Release-$NEW_VERSION.zip \
+            Linux-x64-Full-Release-$NEW_VERSION.zip \
+            Linux-x64-Lite-Release-$NEW_VERSION.zip \
+            macOS-x64-Full-Release-$NEW_VERSION.zip \
+            macOS-x64-Lite-Release-$NEW_VERSION.zip \
+            macOS-ARM64-Full-Release-$NEW_VERSION.zip \
+            macOS-ARM64-Lite-Release-$NEW_VERSION.zip
+
+      - name: 📝 Commit and push updated /api/tag file
+        run: |
+          NEW_VERSION="${{ needs.scheduled-build.outputs.new_version }}"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add /api/tag
+          git commit -m "Update /api/tag to $NEW_VERSION [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref_name }} # Push to the current branch (e.g., main)
