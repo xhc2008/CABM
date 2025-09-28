@@ -27,6 +27,7 @@ data/temp_images/
 # 静态资源
 static/images/
 static/images/default/
+static/bgm/
 
 # ==================== #
 # 开发与IDE文件
