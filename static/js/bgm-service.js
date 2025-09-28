@@ -1,15 +1,30 @@
 /**
- * BGM Service (Web Audio 版)
- * 支持与其它 <audio>/<video> 同时播放
- * 支持每个页面独立的BGM配置
+ * BGM Service (Web Audio 版) - 改进版
+ * 解决重复播放问题
  */
 class BGMService {
     constructor() {
-        // 如果已存在实例，返回该实例
+        // 强制单例模式
         if (window.bgmServiceInstance) {
+            console.log('BGM Service: 返回现有实例');
             return window.bgmServiceInstance;
         }
-        
+
+        // 防止并发创建
+        if (window.bgmServiceCreating) {
+            console.warn('BGM Service: 正在创建中，等待完成');
+            return new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (window.bgmServiceInstance) {
+                        clearInterval(checkInterval);
+                        resolve(window.bgmServiceInstance);
+                    }
+                }, 50);
+            });
+        }
+
+        window.bgmServiceCreating = true;
+
         this.ctx = null;
         this.source = null;
         this.gainNode = null;
@@ -22,79 +37,110 @@ class BGMService {
         this.enabled = true;
         this.pageConfigs = {};
         this.currentPage = null;
-        
-        // 新增：防重复播放机制
+
+        // 防重复播放机制
         this.lastPlayTime = 0;
-        this.playCooldown = 5000; // 5秒冷却时间
-        
+        this.playCooldown = 2000; // 2秒冷却时间
+        this.playingPromise = null; // 跟踪播放状态
+
         // 存储单例实例
         window.bgmServiceInstance = this;
-        
+        window.bgmServiceCreating = false;
+
+        console.log('BGM Service: 创建新实例');
         this.init();
     }
 
     async init() {
+        console.log('BGM Service: 开始初始化');
+
         // 1. 创建或复用 AudioContext
-        if (!window.bgmAudioContext) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            window.bgmAudioContext = this.ctx;
+        if (!window.sharedBGMAudioContext) {
+            try {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                window.sharedBGMAudioContext = this.ctx;
+                console.log('BGM Service: 创建新的 AudioContext');
+            } catch (error) {
+                console.error('BGM Service: 创建 AudioContext 失败:', error);
+                return;
+            }
         } else {
-            this.ctx = window.bgmAudioContext;
+            this.ctx = window.sharedBGMAudioContext;
+            console.log('BGM Service: 复用现有 AudioContext');
         }
-        
+
         // 2. 加载歌单
         await this.loadTracks();
-        
+
         // 3. 从localStorage加载设置
         const savedVolume = localStorage.getItem('bgmVolume');
         const bgmEnabled = localStorage.getItem('bgmEnabled') !== 'false';
         const savedPageConfigs = localStorage.getItem('pageBgmConfigs');
-        
+
         if (savedVolume) {
             this.volume = parseFloat(savedVolume) / 100;
         }
         this.enabled = bgmEnabled;
-        
+
         if (savedPageConfigs) {
             try {
                 this.pageConfigs = JSON.parse(savedPageConfigs);
             } catch (e) {
-                console.warn('Failed to parse page BGM configs:', e);
+                console.warn('BGM Service: 解析页面配置失败:', e);
                 this.pageConfigs = {};
             }
         }
-        
+
         // 设置默认页面配置
         this.setDefaultPageConfigs();
-        
-        console.log('BGM Service (Web Audio) ready:', this.tracks);
-        
-        // 4. 如果启用BGM，尝试自动播放（根据当前页面配置）
-        if (this.enabled && this.tracks.length) {
-            // 如果当前页面已设置，播放页面BGM，否则播放随机
-            if (this.currentPage) {
-                this.playPageBGM();
-            } else {
-                this.playRandom();
+
+        // 设置用户交互解锁
+        this.setupUserInteractionUnlock();
+
+        console.log('BGM Service: 初始化完成，曲目数量:', this.tracks.length);
+    }
+
+    setupUserInteractionUnlock() {
+        if (window.bgmUnlocked) return;
+
+        const unlock = () => {
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume().then(() => {
+                    console.log('BGM Service: AudioContext 已解锁');
+                    if (!this.isPlaying && this.tracks.length && this.enabled && this.currentPage) {
+                        this.playPageBGM();
+                    }
+                });
             }
-        }
+
+            if (!window.bgmUnlocked) {
+                ['click', 'keydown', 'touchstart'].forEach(e =>
+                    document.removeEventListener(e, unlock));
+                window.bgmUnlocked = true;
+            }
+        };
+
+        ['click', 'keydown', 'touchstart'].forEach(e =>
+            document.addEventListener(e, unlock));
     }
 
     async loadTracks() {
         try {
             const res = await fetch('/api/bgm-tracks');
             this.tracks = res.ok ? await res.json() : ['bgm01.aac'];
-        } catch {
+            console.log('BGM Service: 加载曲目列表:', this.tracks);
+        } catch (error) {
+            console.warn('BGM Service: 加载曲目失败:', error);
             this.tracks = ['bgm01.aac'];
         }
     }
 
     setDefaultPageConfigs() {
-        const pages = ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings'];
+        const pages = ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings', 'about'];
         pages.forEach(page => {
             if (!this.pageConfigs[page]) {
                 this.pageConfigs[page] = {
-                    track: 'random', // 'random', 'off', or specific track
+                    track: 'random',
                     enabled: true
                 };
             }
@@ -102,22 +148,34 @@ class BGMService {
     }
 
     setCurrentPage(page) {
-        // 如果页面没有变化，不需要重新播放
-        if (this.currentPage === page) return;
-        
+        if (this.currentPage === page) {
+            console.log(`BGM Service: 页面未变化 (${page})，跳过重新播放`);
+            return;
+        }
+
+        console.log(`BGM Service: 切换页面 ${this.currentPage} -> ${page}`);
         this.currentPage = page;
-        this.playPageBGM();
+
+        // 延迟执行，避免页面切换时的竞态条件
+        clearTimeout(this.pageChangeTimeout);
+        this.pageChangeTimeout = setTimeout(() => {
+            this.playPageBGM();
+        }, 200);
     }
 
     async playPageBGM() {
-        if (!this.currentPage || !this.enabled) return;
-        
+        if (!this.currentPage || !this.enabled) {
+            console.log('BGM Service: 页面未设置或BGM已禁用');
+            return;
+        }
+
         const config = this.pageConfigs[this.currentPage];
         if (!config || !config.enabled || config.track === 'off') {
+            console.log(`BGM Service: 页面 ${this.currentPage} BGM已禁用`);
             this.stop();
             return;
         }
-        
+
         if (config.track === 'random') {
             await this.playRandom();
         } else {
@@ -132,15 +190,14 @@ class BGMService {
     setPageConfig(page, config) {
         this.pageConfigs[page] = config;
         localStorage.setItem('pageBgmConfigs', JSON.stringify(this.pageConfigs));
-        
-        // 如果当前页面就是设置的页面，立即应用更改
+
         if (page === this.currentPage) {
             this.playPageBGM();
         }
     }
 
     getAvailablePages() {
-        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings','about'];
+        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings', 'about'];
     }
 
     getPageDisplayName(page) {
@@ -165,19 +222,46 @@ class BGMService {
     }
 
     async playTrack(trackName) {
-        if (!this.enabled) return;
-        
-        // 新增：防重复播放检查
-        const now = Date.now();
-        if (now - this.lastPlayTime < this.playCooldown) {
-            console.log(`BGM播放冷却中，跳过: ${trackName}`);
+        if (!this.enabled) {
+            console.log('BGM Service: BGM已禁用，跳过播放');
             return;
         }
-        
+
+        // 防重复播放检查
+        const now = Date.now();
+        if (now - this.lastPlayTime < this.playCooldown) {
+            console.log(`BGM Service: 播放冷却中，跳过: ${trackName}`);
+            return;
+        }
+
+        // 如果正在播放相同的曲目，不需要重新播放
+        if (this.isPlaying && this.currentTrack === trackName) {
+            console.log(`BGM Service: 已在播放 ${trackName}，跳过重复播放`);
+            return;
+        }
+
+        // 如果有正在进行的播放操作，等待完成
+        if (this.playingPromise) {
+            console.log('BGM Service: 等待当前播放操作完成');
+            await this.playingPromise;
+        }
+
+        // 创建播放Promise
+        this.playingPromise = this._doPlayTrack(trackName);
+
+        try {
+            await this.playingPromise;
+        } finally {
+            this.playingPromise = null;
+        }
+    }
+
+    async _doPlayTrack(trackName) {
         // 确保停止当前播放
         this.stop();
-        
+
         try {
+            console.log(`BGM Service: 开始加载 ${trackName}`);
             this.buffer = await this.fetchAndDecode(trackName);
             this.source = this.ctx.createBufferSource();
             this.source.buffer = this.buffer;
@@ -190,17 +274,19 @@ class BGMService {
             this.source.start();
             this.isPlaying = true;
             this.currentTrack = trackName;
-            this.lastPlayTime = now; // 记录播放时间
-            console.log(`Playing BGM: ${trackName}`);
+            this.lastPlayTime = Date.now();
+            console.log(`BGM Service: 开始播放 ${trackName}`);
         } catch (error) {
-            console.error('播放BGM失败:', error);
+            console.error('BGM Service: 播放失败:', error);
+            this.isPlaying = false;
+            this.currentTrack = null;
         }
     }
 
-    // 修改清理方法
     cleanup() {
+        console.log('BGM Service: 开始清理');
+        clearTimeout(this.pageChangeTimeout);
         this.stop();
-        // 不要关闭全局的 AudioContext，只需停止当前播放
         this.source = null;
         this.gainNode = null;
         this.buffer = null;
@@ -217,12 +303,14 @@ class BGMService {
         if (!this.ctx || this.ctx.state === 'suspended') return;
         this.ctx.suspend();
         this.isPlaying = false;
+        console.log('BGM Service: 暂停播放');
     }
 
     resume() {
         if (!this.enabled || !this.ctx) return;
         this.ctx.resume().then(() => {
             this.isPlaying = true;
+            console.log('BGM Service: 恢复播放');
         });
     }
 
@@ -230,8 +318,9 @@ class BGMService {
         if (this.source) {
             try {
                 this.source.stop();
+                console.log(`BGM Service: 停止播放 ${this.currentTrack}`);
             } catch (e) {
-                console.warn('Error stopping source:', e);
+                console.warn('BGM Service: 停止播放时出错:', e);
             }
             this.source = null;
             this.isPlaying = false;
@@ -247,6 +336,7 @@ class BGMService {
     setVolume(v) {
         this.volume = Math.max(0, Math.min(1, v));
         if (this.gainNode) this.gainNode.gain.value = this.volume;
+        console.log(`BGM Service: 设置音量 ${Math.round(this.volume * 100)}%`);
     }
 
     getVolume() { return this.volume; }
@@ -256,41 +346,27 @@ class BGMService {
     async refreshTracks() { await this.loadTracks(); }
 }
 
-// 修改全局初始化代码
-if (!window.bgmService) {
-    // 确保只绑定一次事件监听器
-    if (!window.bgmEventListenersBound) {
+
+
+// 全局初始化 - 确保只创建一个实例
+(function initBGMService() {
+    if (window.bgmServiceInitialized) {
+        console.log('BGM Service: 已初始化，跳过');
+        return;
+    }
+
+    window.bgmServiceInitialized = true;
+
+    if (!window.bgmService) {
         window.bgmService = new BGMService();
-        
-        // 页面卸载时清理资源但不关闭全局 AudioContext
+
+        // 页面卸载时清理
         window.addEventListener('beforeunload', () => {
             if (window.bgmService) {
                 window.bgmService.cleanup();
             }
         });
-        
-        // 用户第一次交互后启动 AudioContext
-        const unlock = () => {
-            if (window.bgmService && window.bgmService.ctx) {
-                window.bgmService.ctx.resume().then(() => {
-                    if (!window.bgmService.isPlaying && 
-                        window.bgmService.tracks.length && 
-                        window.bgmService.enabled) {
-                        window.bgmService.playRandom();
-                    }
-                });
-                // 只移除一次事件监听器
-                if (!window.bgmUnlocked) {
-                    ['click', 'keydown', 'touchstart'].forEach(e => 
-                        document.removeEventListener(e, unlock));
-                    window.bgmUnlocked = true;
-                }
-            }
-        };
-        
-        ['click', 'keydown', 'touchstart'].forEach(e => 
-            document.addEventListener(e, unlock));
-        
-        window.bgmEventListenersBound = true;
+
+        console.log('BGM Service: 全局实例已创建');
     }
-}
+})();
