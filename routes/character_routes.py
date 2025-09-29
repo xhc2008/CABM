@@ -80,6 +80,10 @@ def select_character_page():
 def custom_character_page():
     return render_template('custom_character.html')
 
+@bp.route('/resource-management')
+def resource_management_page():
+    return render_template('resource_management.html')
+
 # ------------------------------------------------------------------
 # API 路由
 # ------------------------------------------------------------------
@@ -730,3 +734,55 @@ def import_character():
     except Exception as e:
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'导入失败: {str(e)}'}), 500
+
+@bp.route('/api/delete-character/<character_id>', methods=['DELETE'])
+def delete_character(character_id):
+    """删除角色API"""
+    try:
+        # 验证角色ID格式
+        if not re.match(r'^[a-zA-Z0-9_]+$', character_id):
+            return jsonify({'success': False, 'error': '角色ID格式不正确'}), 400
+
+        # 检查角色是否存在
+        character_toml_path = project_root / 'characters' / f"{character_id}.toml"
+        character_py_path = project_root / 'characters' / f"{character_id}.py"
+        
+        if not character_toml_path.exists() and not character_py_path.exists():
+            return jsonify({'success': False, 'error': f'角色 {character_id} 不存在'}), 404
+
+        # 删除角色配置文件
+        if character_toml_path.exists():
+            character_toml_path.unlink()
+        if character_py_path.exists():
+            character_py_path.unlink()
+
+        # 删除角色详细信息文件
+        detail_file_path = project_root / 'data' / 'details' / f"{character_id}.json"
+        if detail_file_path.exists():
+            detail_file_path.unlink()
+
+        # 删除参考音频目录
+        ref_audio_dir = project_root / 'data' / 'ref_audio' / character_id
+        if ref_audio_dir.exists():
+            shutil.rmtree(ref_audio_dir)
+
+        # 删除角色图片目录
+        image_dir = project_root / 'static' / 'images' / character_id
+        if image_dir.exists():
+            shutil.rmtree(image_dir)
+
+        # 删除历史记录文件
+        app_conf = config_service.get_app_config()
+        history_dir = app_conf.get("history_dir", project_root / "data" / "history")
+        history_file = Path(history_dir) / f"{character_id}_history.log"
+        if history_file.exists():
+            history_file.unlink()
+
+        return jsonify({
+            'success': True,
+            'message': f'角色 {character_id} 删除成功'
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'删除失败: {str(e)}'}), 500

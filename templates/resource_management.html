@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CABM - 资源管理</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
+    <link rel="stylesheet" href="/static/css/media.css">
+    <style>
+        .resource-tabs {
+            display: flex;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .resource-tab {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+        .resource-tab.active {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .resource-tab:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .character-actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .character-list {
+            display: grid;
+            gap: 15px;
+        }
+        .character-item {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+        }
+        .character-item:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-2px);
+        }
+        .character-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+        }
+        .character-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .character-id {
+            font-size: 14px;
+            opacity: 0.7;
+            color: rgba(255,255,255,0.6);
+        }
+        .character-actions-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .character-actions-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,0.6);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(30,30,50,0.95));
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 20px;
+        }
+        .modal-body {
+            padding: 25px;
+        }
+        .character-detail {
+            display: flex;
+            gap: 25px;
+            align-items: flex-start;
+        }
+        .character-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .character-profile {
+            flex: 1;
+        }
+        .profile-item {
+            margin-bottom: 15px;
+        }
+        .profile-label {
+            font-weight: 600;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 5px;
+        }
+        .profile-value {
+            color: #fff;
+            line-height: 1.4;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        .confirm-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+        .confirm-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        .danger-btn {
+            background: rgba(220,53,69,0.8);
+            border: 1px solid rgba(220,53,69,0.6);
+        }
+        .danger-btn:hover {
+            background: rgba(220,53,69,1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="resourceManagementPage" class="page active">
+            <div class="home-background"></div>
+            <div class="chat-header" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.6));">
+                <a href="/" class="btn back-btn">首页</a>
+                <h2>资源管理</h2>
+            </div>
+            
+            <div style="padding: 100px 24px 24px;">
+                <!-- 选项卡 -->
+                <div class="resource-tabs">
+                    <button class="resource-tab active" data-tab="characters">角色</button>
+                    <button class="resource-tab" data-tab="backgrounds">背景</button>
+                    <button class="resource-tab" data-tab="music">音乐</button>
+                </div>
+
+                <!-- 角色管理 -->
+                <div id="characters-tab" class="tab-content active">
+                    <div class="character-actions">
+                        <button id="importCharacterBtn" class="btn secondary-btn">导入角色</button>
+                        <button id="createCharacterBtn" class="btn primary-btn">创建角色</button>
+                    </div>
+                    
+                    <div id="charactersList" class="character-list">
+                        <!-- 角色列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 背景管理 -->
+                <div id="backgrounds-tab" class="tab-content">
+                    <div class="empty-state">
+                        <h3>背景管理</h3>
+                        <p>此功能正在开发中...</p>
+                    </div>
+                </div>
+
+                <!-- 音乐管理 -->
+                <div id="music-tab" class="tab-content">
+                    <div class="empty-state">
+                        <h3>音乐管理</h3>
+                        <p>此功能正在开发中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色详情模态框 -->
+    <div id="characterDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>角色详情</h3>
+                <button class="close-btn" onclick="closeCharacterDetail()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="character-detail">
+                    <img id="detailAvatar" class="character-avatar" src="" alt="角色头像">
+                    <div class="character-profile">
+                        <div class="profile-item">
+                            <div class="profile-label">角色名称</div>
+                            <div id="detailName" class="profile-value"></div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">角色ID</div>
+                            <div id="detailId" class="profile-value"></div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">英文名</div>
+                            <div id="detailEnglishName" class="profile-value"></div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">角色简介</div>
+                            <div id="detailDescription" class="profile-value"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="exportCharacterBtn" class="btn secondary-btn">导出</button>
+                    <button id="deleteCharacterBtn" class="btn danger-btn">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>确认删除</h3>
+                <button class="close-btn" onclick="closeDeleteConfirm()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>请输入角色ID以确认删除操作：</p>
+                <p><strong id="deleteCharacterName"></strong> (ID: <strong id="deleteCharacterId"></strong>)</p>
+                <input type="text" id="confirmDeleteInput" class="confirm-input" placeholder="请输入角色ID">
+                <div class="modal-actions">
+                    <button id="confirmDeleteBtn" class="btn danger-btn">确认删除</button>
+                    <button class="btn secondary-btn" onclick="closeDeleteConfirm()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入角色模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>导入角色</h3>
+                <button class="close-btn" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="importCharacterFile">角色文件</label>
+                    <div class="form-description">选择要导入的角色zip文件</div>
+                    <input type="file" id="importCharacterFile" class="form-file" accept=".zip">
+                </div>
+                <div class="modal-actions">
+                    <button id="confirmImportBtn" class="btn primary-btn">导入</button>
+                    <button class="btn secondary-btn" onclick="closeImportModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/resource-management.js"></script>
+    <script>
+        // 设置当前页面
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化TTS设置
+            window.ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+            window.ttsVolume = parseFloat(localStorage.getItem('ttsVolume') || '80') / 100;
+            
+            if (window.bgmService) {
+                window.bgmService.setCurrentPage('resource_management');
+            }
+        });
+    </script>
+    <script src="/static/js/logo.js"></script>
+    <script src="/static/js/sci-fi-effects.js"></script>
+    <script type="module" src="/static/js/bgm-service.js"></script>
+</body>
+</html>
