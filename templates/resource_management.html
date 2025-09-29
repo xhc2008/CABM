@@ -66,7 +66,7 @@
         }
         .character-list {
             display: grid;
-            gap: 15px;
+            gap: 30px;
         }
         .character-item {
             padding: 20px;
@@ -136,14 +136,15 @@
             backdrop-filter: blur(5px);
         }
         .modal-content {
-            background: linear-gradient(135deg, var(--dark-bg), var(--darker-bg));
-            margin: 5% auto;
+            background: linear-gradient(135deg, rgba(30,35,45,0.95), rgba(20,25,35,0.95));
+            backdrop-filter: blur(10px);
+            margin: 3% auto;
             padding: 0;
             border-radius: 15px;
-            width: 90%;
-            max-width: 600px;
+            width: 95%;
+            height: 100%;
             border: 1px solid var(--glass-border);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5), var(--glow-size) rgba(0,255,255,0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), var(--glow-size) rgba(0,255,255,0.2);
         }
         .modal-header {
             padding: 25px 30px;
@@ -151,7 +152,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--glass-bg);
+            background: linear-gradient(135deg, rgba(40,50,65,0.8), rgba(30,40,55,0.8));
+            border-radius: 15px 15px 0 0;
         }
         .modal-header h3 {
             margin: 0;
@@ -255,7 +257,7 @@
                 <h2>资源管理</h2>
             </div>
             
-            <div style="padding: 120px 24px 24px;">
+            <div style="padding: 50px 40px 40px;">
                 <!-- 选项卡 -->
                 <div class="resource-tabs">
                     <button class="resource-tab active" data-tab="characters">角色</button>
@@ -270,7 +272,7 @@
                         <button id="createCharacterBtn" class="btn sci-fi-btn primary">创建角色</button>
                     </div>
                     
-                    <div id="charactersList" class="character-list" style="margin-top: 20px;">
+                    <div id="charactersList" class="character-list" style="padding: 20px 0;">
                         <!-- 角色列表将通过JavaScript动态加载 -->
                     </div>
                 </div>
@@ -334,16 +336,30 @@
     <!-- 删除确认模态框 -->
     <div id="deleteConfirmModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>确认删除</h3>
+            <div class="modal-header danger-header">
+                <h3>危险操作确认</h3>
                 <button class="close-btn" onclick="closeDeleteConfirm()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>请输入角色ID以确认删除操作：</p>
-                <p><strong id="deleteCharacterName"></strong> (ID: <strong id="deleteCharacterId"></strong>)</p>
-                <input type="text" id="confirmDeleteInput" class="sci-fi-input confirm-input" placeholder="请输入角色ID">
+                <div class="warning-message">
+                    <p>即将执行<strong class="danger-text">不可恢复的删除操作</strong>！</p>
+                    <p>此操作将<strong class="danger-text">永久删除（真的很久！）</strong>：</p>
+                </div>
+                <div class="delete-target-info">
+                    <p><strong id="deleteCharacterName"></strong> (ID: <strong id="deleteCharacterId"></strong>)</p>
+                </div>
+                <div class="confirmation-step">
+                    <p>请输入角色ID<strong id="confirmCharacterId"></strong>以确认删除：</p>
+                    <input type="text" id="confirmDeleteInput" class="sci-fi-input confirm-input danger-input" 
+                        placeholder="请输入上方显示的角色ID">
+                    <div class="warning-hint">
+                        <span>⚠️ 此操作无法撤销，请谨慎确认！</span>
+                    </div>
+                </div>
                 <div class="modal-actions">
-                    <button id="confirmDeleteBtn" class="btn sci-fi-btn danger-btn">确认删除</button>
+                    <button id="confirmDeleteBtn" class="btn sci-fi-btn danger-btn confirm-delete-btn">
+                        删除
+                    </button>
                     <button class="btn sci-fi-btn secondary" onclick="closeDeleteConfirm()">取消</button>
                 </div>
             </div>
