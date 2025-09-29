@@ -103,19 +103,8 @@ class CustomCharacterManager {
     }
 
     showHomePage() {
-        const customPage = document.getElementById('customCharacterPage');
-        const homePage = document.getElementById('homePage');
-        
-        if (customPage) {
-            customPage.classList.remove('active');
-        }
-        
-        if (homePage) {
-            homePage.classList.add('active');
-        } else {
-            // 如果没有主页，则重定向到根路径
-            window.location.href = '/';
-        }
+        // 返回到资源管理页面
+        window.location.href = '/resource-management';
     }
 
     validateCharacterId(input) {

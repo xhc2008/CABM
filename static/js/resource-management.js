@@ -90,7 +90,7 @@ function renderCharactersList() {
     
     if (currentCharacters.length === 0) {
         container.innerHTML = `
-            <div class="empty-state">
+            <div class="empty-state glass-panel">
                 <h3>暂无角色</h3>
                 <p>请先创建或导入角色</p>
             </div>
@@ -99,7 +99,7 @@ function renderCharactersList() {
     }
     
     container.innerHTML = currentCharacters.map(character => `
-        <div class="character-item">
+        <div class="character-item glass-panel">
             <div class="character-info">
                 <div>
                     <div class="character-name" style="color: ${character.color || '#ffffff'};">
@@ -108,7 +108,7 @@ function renderCharactersList() {
                     <div class="character-id">ID: ${character.id}</div>
                 </div>
             </div>
-            <button class="character-actions-btn" onclick="showCharacterDetail('${character.id}')">
+            <button class="character-actions-btn sci-fi-btn secondary" onclick="showCharacterDetail('${character.id}')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>

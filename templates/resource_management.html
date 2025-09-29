@@ -8,34 +8,53 @@
     <link rel="stylesheet" href="/static/css/sci-fi-theme.css">
     <link rel="stylesheet" href="/static/css/media.css">
     <style>
+        /* 资源管理页面特有样式 */
         .resource-tabs {
             display: flex;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
             margin: 20px 0;
             overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,150,255,0.1);
         }
         .resource-tab {
             flex: 1;
-            padding: 12px 20px;
+            padding: 15px 20px;
             background: transparent;
             border: none;
-            color: rgba(255,255,255,0.7);
+            color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--animation-speed) ease;
             font-size: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .resource-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        .resource-tab:hover::before {
+            left: 100%;
         }
         .resource-tab.active {
-            background: rgba(255,255,255,0.2);
-            color: #fff;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
+            color: var(--text-primary);
+            box-shadow: inset 0 0 20px rgba(0,255,255,0.3);
         }
         .resource-tab:hover {
-            background: rgba(255,255,255,0.15);
-            color: #fff;
+            background: rgba(0,150,255,0.15);
+            color: var(--text-primary);
         }
         .tab-content {
             display: none;
-            padding: 20px 0;
+            padding: 40px 0 20px 0;
         }
         .tab-content.active {
             display: block;
@@ -50,51 +69,60 @@
             gap: 15px;
         }
         .character-item {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
             padding: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .character-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .character-item:hover::before {
+            left: 100%;
         }
         .character-item:hover {
-            background: rgba(255,255,255,0.12);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
         .character-info {
             display: flex;
             align-items: center;
             gap: 20px;
             flex: 1;
+            position: relative;
+            z-index: 1;
         }
         .character-name {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 5px;
+            text-shadow: 0 0 10px currentColor;
         }
         .character-id {
             font-size: 14px;
             opacity: 0.7;
-            color: rgba(255,255,255,0.6);
+            color: var(--text-secondary);
         }
         .character-actions-btn {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            padding: 8px 12px;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .character-actions-btn:hover {
-            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
         }
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: rgba(255,255,255,0.6);
+            padding: 80px 20px;
+            color: var(--text-secondary);
         }
         .modal {
             display: none;
@@ -104,32 +132,35 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
         }
         .modal-content {
-            background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(30,30,50,0.95));
+            background: linear-gradient(135deg, var(--dark-bg), var(--darker-bg));
             margin: 5% auto;
             padding: 0;
-            border-radius: 12px;
+            border-radius: 15px;
             width: 90%;
             max-width: 600px;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), var(--glow-size) rgba(0,255,255,0.1);
         }
         .modal-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 25px 30px;
+            border-bottom: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: var(--glass-bg);
         }
         .modal-header h3 {
             margin: 0;
-            color: #fff;
-            font-size: 20px;
+            color: var(--text-primary);
+            font-size: 22px;
+            text-shadow: 0 0 10px var(--primary-cyan);
         }
         .modal-body {
-            padding: 25px;
+            padding: 30px;
         }
         .character-detail {
             display: flex;
@@ -141,65 +172,77 @@
             height: 120px;
             border-radius: 12px;
             object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.2);
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--glow-size) rgba(0,255,255,0.2);
         }
         .character-profile {
             flex: 1;
         }
         .profile-item {
-            margin-bottom: 15px;
+            margin-bottom: 18px;
         }
         .profile-label {
             font-weight: 600;
-            color: rgba(255,255,255,0.8);
-            margin-bottom: 5px;
+            color: var(--text-accent);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
         }
         .profile-value {
-            color: #fff;
-            line-height: 1.4;
+            color: var(--text-primary);
+            line-height: 1.5;
+            font-size: 15px;
         }
         .modal-actions {
             display: flex;
             gap: 15px;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid var(--glass-border);
         }
         .close-btn {
             background: none;
             border: none;
-            color: rgba(255,255,255,0.6);
+            color: var(--text-secondary);
             font-size: 24px;
             cursor: pointer;
             padding: 0;
-            width: 30px;
-            height: 30px;
+            width: 35px;
+            height: 35px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 50%;
+            transition: all var(--animation-speed) ease;
         }
         .close-btn:hover {
-            color: #fff;
+            color: var(--text-primary);
+            background: var(--glass-bg);
         }
         .confirm-input {
             width: 100%;
-            padding: 12px;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
+            padding: 15px;
             font-size: 14px;
             margin-top: 15px;
         }
-        .confirm-input::placeholder {
-            color: rgba(255,255,255,0.5);
-        }
         .danger-btn {
-            background: rgba(220,53,69,0.8);
-            border: 1px solid rgba(220,53,69,0.6);
+            background: linear-gradient(135deg, rgba(220,53,69,0.8), rgba(200,30,50,0.8)) !important;
+            border: 1px solid rgba(220,53,69,0.6) !important;
         }
         .danger-btn:hover {
-            background: rgba(220,53,69,1);
+            background: linear-gradient(135deg, rgba(220,53,69,1), rgba(200,30,50,1)) !important;
+            box-shadow: 0 4px 15px rgba(220,53,69,0.4) !important;
+        }
+        .form-file {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+        }
+        .form-description {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -212,7 +255,7 @@
                 <h2>资源管理</h2>
             </div>
             
-            <div style="padding: 100px 24px 24px;">
+            <div style="padding: 120px 24px 24px;">
                 <!-- 选项卡 -->
                 <div class="resource-tabs">
                     <button class="resource-tab active" data-tab="characters">角色</button>
@@ -223,18 +266,18 @@
                 <!-- 角色管理 -->
                 <div id="characters-tab" class="tab-content active">
                     <div class="character-actions">
-                        <button id="importCharacterBtn" class="btn secondary-btn">导入角色</button>
-                        <button id="createCharacterBtn" class="btn primary-btn">创建角色</button>
+                        <button id="importCharacterBtn" class="btn sci-fi-btn secondary">导入角色</button>
+                        <button id="createCharacterBtn" class="btn sci-fi-btn primary">创建角色</button>
                     </div>
                     
-                    <div id="charactersList" class="character-list">
+                    <div id="charactersList" class="character-list" style="margin-top: 20px;">
                         <!-- 角色列表将通过JavaScript动态加载 -->
                     </div>
                 </div>
 
                 <!-- 背景管理 -->
                 <div id="backgrounds-tab" class="tab-content">
-                    <div class="empty-state">
+                    <div class="empty-state glass-panel">
                         <h3>背景管理</h3>
                         <p>此功能正在开发中...</p>
                     </div>
@@ -242,7 +285,7 @@
 
                 <!-- 音乐管理 -->
                 <div id="music-tab" class="tab-content">
-                    <div class="empty-state">
+                    <div class="empty-state glass-panel">
                         <h3>音乐管理</h3>
                         <p>此功能正在开发中...</p>
                     </div>
@@ -281,8 +324,8 @@
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button id="exportCharacterBtn" class="btn secondary-btn">导出</button>
-                    <button id="deleteCharacterBtn" class="btn danger-btn">删除</button>
+                    <button id="exportCharacterBtn" class="btn sci-fi-btn secondary">导出</button>
+                    <button id="deleteCharacterBtn" class="btn sci-fi-btn danger-btn">删除</button>
                 </div>
             </div>
         </div>
@@ -298,10 +341,10 @@
             <div class="modal-body">
                 <p>请输入角色ID以确认删除操作：</p>
                 <p><strong id="deleteCharacterName"></strong> (ID: <strong id="deleteCharacterId"></strong>)</p>
-                <input type="text" id="confirmDeleteInput" class="confirm-input" placeholder="请输入角色ID">
+                <input type="text" id="confirmDeleteInput" class="sci-fi-input confirm-input" placeholder="请输入角色ID">
                 <div class="modal-actions">
-                    <button id="confirmDeleteBtn" class="btn danger-btn">确认删除</button>
-                    <button class="btn secondary-btn" onclick="closeDeleteConfirm()">取消</button>
+                    <button id="confirmDeleteBtn" class="btn sci-fi-btn danger-btn">确认删除</button>
+                    <button class="btn sci-fi-btn secondary" onclick="closeDeleteConfirm()">取消</button>
                 </div>
             </div>
         </div>
@@ -318,11 +361,11 @@
                 <div class="form-group">
                     <label for="importCharacterFile">角色文件</label>
                     <div class="form-description">选择要导入的角色zip文件</div>
-                    <input type="file" id="importCharacterFile" class="form-file" accept=".zip">
+                    <input type="file" id="importCharacterFile" class="sci-fi-input form-file" accept=".zip">
                 </div>
                 <div class="modal-actions">
-                    <button id="confirmImportBtn" class="btn primary-btn">导入</button>
-                    <button class="btn secondary-btn" onclick="closeImportModal()">取消</button>
+                    <button id="confirmImportBtn" class="btn sci-fi-btn primary">导入</button>
+                    <button class="btn sci-fi-btn secondary" onclick="closeImportModal()">取消</button>
                 </div>
             </div>
         </div>

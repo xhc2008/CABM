@@ -16,7 +16,7 @@
         <div id="customCharacterPage" class="page active">
             <div class="custom-character-background"></div>
             <div class="custom-character-header">
-                <a href="/" class="btn back-btn">返回</a>
+                <a href="/resource-management" class="btn back-btn">返回</a>
                 <h2>自定义角色</h2>
             </div>
             <div class="custom-character-container">
@@ -158,45 +158,7 @@
             </div>
         </div>
 
-        <div class="modal" id="exportModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>导出角色</h3>
-                    <button id="closeExportButton" class="btn close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="exportCharacterId">角色ID</label>
-                        <div class="form-description">输入要导出的角色ID</div>
-                        <input type="text" id="exportCharacterId" class="form-input" placeholder="请输入角色ID">
-                    </div>
-                    <div class="modal-buttons">
-                        <button id="confirmExportButton" class="btn primary-btn">导出</button>
-                        <button id="cancelExportButton" class="btn secondary-btn">取消</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="modal" id="importModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>导入角色</h3>
-                    <button id="closeImportButton" class="btn close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="importCharacterFile">角色文件</label>
-                        <div class="form-description">选择要导入的角色zip文件</div>
-                        <input type="file" id="importCharacterFile" class="form-file" accept=".zip">
-                    </div>
-                    <div class="modal-buttons">
-                        <button id="confirmImportButton" class="btn primary-btn">导入</button>
-                        <button id="cancelImportButton" class="btn secondary-btn">取消</button>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div class="loading-container" id="loadingIndicator">
             <div class="loading-spinner"></div>
             <p>处理中...</p>
