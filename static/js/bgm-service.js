@@ -136,7 +136,7 @@ class BGMService {
     }
 
     setDefaultPageConfigs() {
-        const pages = ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings', 'about'];
+        const pages = ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings', 'about', 'resource_management'];
         pages.forEach(page => {
             if (!this.pageConfigs[page]) {
                 this.pageConfigs[page] = {
@@ -197,7 +197,7 @@ class BGMService {
     }
 
     getAvailablePages() {
-        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings', 'about'];
+        return ['index', 'chat', 'story', 'story_chat', 'custom_character', 'select_character', 'settings', 'about', 'resource_management'];
     }
 
     getPageDisplayName(page) {
@@ -209,7 +209,8 @@ class BGMService {
             'custom_character': '自定义角色',
             'select_character': '选择角色',
             'settings': '设置页面',
-            'about': '关于页面'
+            'about': '关于页面',
+            'resource_management': '资源管理'
         };
         return names[page] || page;
     }

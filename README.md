@@ -173,7 +173,7 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 #### [点击查看详细说明](docs/custom_character.md)
 
 ### 自定义bgm
-直接在static/bgm/里进行修改，支持音频类型文件
+直接在资源管理里上传，支持音频类型文件
 
 ### 自定义背景
 在data/backgrounds/中修改，支持图片类型文件。同时需要在background.json同步图片名称、描述等

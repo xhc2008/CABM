@@ -67,6 +67,7 @@
         .character-list {
             display: grid;
             gap: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
         }
         .character-item {
             padding: 20px;
@@ -246,6 +247,103 @@
             font-size: 13px;
             margin-bottom: 10px;
         }
+        .music-list {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .music-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            border-bottom: 1px solid var(--glass-border);
+            transition: all var(--animation-speed) ease;
+            background: transparent;
+        }
+        .music-item:last-child {
+            border-bottom: none;
+        }
+        .music-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .music-item:hover::before {
+            left: 100%;
+        }
+        .music-item:hover {
+            background: rgba(0,150,255,0.05);
+        }
+        .music-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+        .music-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        .music-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        .music-actions {
+            display: flex;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .music-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--animation-speed) ease;
+        }
+        .music-btn:hover {
+            background: var(--primary-blue);
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 10px rgba(0,150,255,0.3);
+        }
+        .music-btn.playing {
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+            color: white;
+        }
+        .music-btn.delete-confirm {
+            background: linear-gradient(135deg, rgba(220,53,69,0.8), rgba(200,30,50,0.8));
+            border-color: rgba(220,53,69,0.6);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -287,9 +385,14 @@
 
                 <!-- 音乐管理 -->
                 <div id="music-tab" class="tab-content">
-                    <div class="empty-state glass-panel">
-                        <h3>音乐管理</h3>
-                        <p>此功能正在开发中...</p>
+                    <div class="character-actions">
+                        <button id="addMusicBtn" class="btn sci-fi-btn primary">添加音乐</button>
+                        <button id="refreshMusicBtn" class="btn sci-fi-btn secondary">刷新列表</button>
+                        <input type="file" id="hiddenMusicFileInput" style="display: none;" accept=".mp3,.wav,.aac,.ogg,.m4a,.flac">
+                    </div>
+                    
+                    <div id="musicList" class="music-list">
+                        <!-- 音乐列表将通过JavaScript动态加载 -->
                     </div>
                 </div>
             </div>
@@ -386,6 +489,8 @@
             </div>
         </div>
     </div>
+
+
 
     <script src="/static/js/resource-management.js"></script>
     <script>
