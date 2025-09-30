@@ -68,6 +68,29 @@
             display: grid;
             gap: 30px;
             grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            padding: 20px;
+            height: 500px;
+            max-height: 500px;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            background: var(--glass-bg);
+            box-sizing: border-box;
+        }
+        .character-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .character-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        .character-list::-webkit-scrollbar-thumb {
+            background: var(--primary-blue);
+            border-radius: 4px;
+        }
+        .character-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-cyan);
         }
         .character-item {
             padding: 20px;
@@ -252,8 +275,24 @@
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             overflow: hidden;
-            max-height: 60vh;
-            overflow-y: auto;
+            height: 500px;
+            max-height: 500px;
+            overflow-y: scroll;
+            box-sizing: border-box;
+        }
+        .music-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .music-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        .music-list::-webkit-scrollbar-thumb {
+            background: var(--primary-blue);
+            border-radius: 4px;
+        }
+        .music-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-cyan);
         }
         .music-item {
             padding: 15px 20px;
@@ -348,8 +387,8 @@
         /* 背景管理样式 */
         .backgrounds-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
             padding: 20px;
             height: 500px;
             max-height: 500px;
@@ -382,6 +421,9 @@
             transition: all var(--animation-speed) ease;
             cursor: pointer;
             position: relative;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
         }
         .background-item::before {
             content: '';
@@ -402,21 +444,30 @@
         }
         .background-thumbnail {
             width: 100%;
-            height: 180px;
+            height: 160px;
             object-fit: cover;
             display: block;
+            flex-shrink: 0;
         }
         .background-info {
             padding: 15px;
             position: relative;
             z-index: 1;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 60px;
         }
         .background-name {
             font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            margin: 0;
             text-shadow: 0 0 10px currentColor;
+            text-align: center;
+            word-wrap: break-word;
+            line-height: 1.3;
         }
         .background-desc {
             font-size: 14px;
@@ -491,13 +542,14 @@
                         <button id="createCharacterBtn" class="btn sci-fi-btn primary">创建角色</button>
                     </div>
                     
-                    <div id="charactersList" class="character-list" style="padding: 20px 0;">
+                    <div id="charactersList" class="character-list">
                         <!-- 角色列表将通过JavaScript动态加载 -->
                     </div>
                 </div>
 
                 <!-- 背景管理 -->
                 <div id="backgrounds-tab" class="tab-content">
+                    <p>此功能存在问题，暂时可能无法正常使用...</p>
                     <div class="character-actions">
                         <button id="addBackgroundBtn" class="btn sci-fi-btn primary">添加背景</button>
                         <button id="refreshBackgroundsBtn" class="btn sci-fi-btn secondary">刷新列表</button>
