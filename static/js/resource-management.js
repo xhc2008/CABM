@@ -4,6 +4,8 @@ let currentCharacters = [];
 let currentCharacterDetail = null;
 let currentMusicTracks = [];
 let currentPlayingTrack = null;
+let currentBackgrounds = {};
+let currentBackgroundDetail = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -23,6 +25,9 @@ function initResourceManagement() {
     
     // 加载音乐列表
     loadMusicTracks();
+    
+    // 加载背景列表
+    loadBackgrounds();
 }
 
 // 初始化选项卡
@@ -45,6 +50,11 @@ function initTabs() {
             // 如果切换到音乐选项卡，刷新音乐列表
             if (targetTab === 'music') {
                 loadMusicTracks();
+            }
+            
+            // 如果切换到背景选项卡，刷新背景列表
+            if (targetTab === 'backgrounds') {
+                loadBackgrounds();
             }
         });
     });
@@ -86,6 +96,21 @@ function initButtons() {
         if (e.target.files.length > 0) {
             addMusic(e.target.files[0]);
         }
+    });
+    
+    // 背景管理按钮
+    document.getElementById('addBackgroundBtn').addEventListener('click', function() {
+        // 清空表单并重置为添加模式
+        resetAddBackgroundModal();
+        document.getElementById('addBackgroundModal').style.display = 'block';
+    });
+    
+    document.getElementById('refreshBackgroundsBtn').addEventListener('click', loadBackgrounds);
+    
+    // 添加背景表单提交
+    document.getElementById('addBackgroundForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addBackground();
     });
 }
 
@@ -528,6 +553,298 @@ async function addMusic(file) {
 }
 
 
+
+// 背景管理功能
+
+// 加载背景列表
+async function loadBackgrounds() {
+    try {
+        const response = await fetch('/api/background/list');
+        const data = await response.json();
+        
+        if (data.success) {
+            currentBackgrounds = data.backgrounds || {};
+            renderBackgroundsList();
+        } else {
+            console.error('加载背景列表失败:', data.error);
+            showError('加载背景列表失败: ' + data.error);
+        }
+    } catch (error) {
+        console.error('加载背景列表失败:', error);
+        showError('加载背景列表失败: ' + error.message);
+    }
+}
+
+// 渲染背景列表
+function renderBackgroundsList() {
+    const container = document.getElementById('backgroundsList');
+    
+    if (Object.keys(currentBackgrounds).length === 0) {
+        container.innerHTML = `
+            <div class="empty-state glass-panel">
+                <h3>暂无背景</h3>
+                <p>请先添加背景图片</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = Object.entries(currentBackgrounds).map(([filename, info]) => `
+        <div class="background-item" onclick="showBackgroundDetail('${filename}')">
+            <div class="background-actions">
+                <button class="background-action-btn" onclick="event.stopPropagation(); editBackground('${filename}')" title="编辑">
+                    ✏️
+                </button>
+                <button class="background-action-btn delete" onclick="event.stopPropagation(); showDeleteBackgroundConfirm('${filename}')" title="删除">
+                    🗑️
+                </button>
+            </div>
+            <img src="/static/images/backgrounds/${filename}" 
+                 alt="${info.name}" 
+                 class="background-thumbnail" 
+                 onerror="this.src='/static/images/default.svg'">
+            <div class="background-info">
+                <div class="background-name">${info.name}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 显示背景详情
+async function showBackgroundDetail(filename) {
+    try {
+        const response = await fetch(`/api/background/info/${filename}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            currentBackgroundDetail = { filename, ...data.info };
+            
+            // 填充详情信息
+            document.getElementById('detailBackgroundImage').src = data.url;
+            document.getElementById('detailBackgroundName').textContent = data.info.name;
+            document.getElementById('detailBackgroundFilename').textContent = filename;
+            document.getElementById('detailBackgroundDesc').textContent = data.info.desc || '无描述';
+            document.getElementById('detailBackgroundPrompt').textContent = data.info.prompt || '无提示词';
+            
+            // 显示模态框
+            document.getElementById('backgroundDetailModal').style.display = 'block';
+        } else {
+            showError('获取背景详情失败: ' + data.error);
+        }
+    } catch (error) {
+        console.error('获取背景详情失败:', error);
+        showError('获取背景详情失败: ' + error.message);
+    }
+}
+
+// 关闭背景详情
+function closeBackgroundDetail() {
+    document.getElementById('backgroundDetailModal').style.display = 'none';
+    currentBackgroundDetail = null;
+}
+
+// 添加背景
+async function addBackground() {
+    const name = document.getElementById('backgroundNameInput').value.trim();
+    const desc = document.getElementById('backgroundDescInput').value.trim();
+    const prompt = document.getElementById('backgroundPromptInput').value.trim();
+    const fileInput = document.getElementById('backgroundFileInput');
+    
+    if (!name) {
+        showError('请输入背景名称');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('confirmAddBackgroundBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '添加中...';
+    
+    try {
+        if (fileInput.files.length > 0) {
+            // 上传图片文件
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('name', name);
+            formData.append('desc', desc);
+            formData.append('prompt', prompt);
+            
+            const response = await fetch('/api/background/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // showSuccess('背景添加成功');
+                closeAddBackgroundModal();
+                loadBackgrounds();
+            } else {
+                showError('添加背景失败: ' + data.error);
+            }
+        } else {
+            // 仅添加信息，生成占位图片
+            const response = await fetch('/api/background/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, desc, prompt })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // showSuccess('背景添加成功');
+                closeAddBackgroundModal();
+                loadBackgrounds();
+            } else {
+                showError('添加背景失败: ' + data.error);
+            }
+        }
+    } catch (error) {
+        console.error('添加背景失败:', error);
+        showError('添加背景失败: ' + error.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+// 关闭添加背景模态框
+function closeAddBackgroundModal() {
+    document.getElementById('addBackgroundModal').style.display = 'none';
+    resetAddBackgroundModal();
+}
+
+// 重置添加背景模态框
+function resetAddBackgroundModal() {
+    // 清空表单
+    document.getElementById('addBackgroundForm').reset();
+    
+    // 重置表单提交行为为添加模式
+    const form = document.getElementById('addBackgroundForm');
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        addBackground();
+    };
+    
+    // 重置按钮文字
+    document.getElementById('confirmAddBackgroundBtn').textContent = '添加背景';
+}
+
+// 编辑背景
+function editBackground(filename) {
+    const info = currentBackgrounds[filename];
+    if (!info) return;
+    
+    // 填充表单
+    document.getElementById('backgroundNameInput').value = info.name;
+    document.getElementById('backgroundDescInput').value = info.desc || '';
+    document.getElementById('backgroundPromptInput').value = info.prompt || '';
+    
+    // 显示模态框
+    document.getElementById('addBackgroundModal').style.display = 'block';
+    
+    // 修改表单提交行为为更新
+    const form = document.getElementById('addBackgroundForm');
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        updateBackground(filename);
+    };
+    
+    // 修改按钮文字
+    document.getElementById('confirmAddBackgroundBtn').textContent = '更新背景';
+}
+
+// 更新背景
+async function updateBackground(filename) {
+    const name = document.getElementById('backgroundNameInput').value.trim();
+    const desc = document.getElementById('backgroundDescInput').value.trim();
+    const prompt = document.getElementById('backgroundPromptInput').value.trim();
+    
+    if (!name) {
+        showError('请输入背景名称');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('confirmAddBackgroundBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '更新中...';
+    
+    try {
+        const response = await fetch(`/api/background/update/${filename}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, desc, prompt })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // showSuccess('背景更新成功');
+            closeAddBackgroundModal();
+            loadBackgrounds();
+            
+            // 恢复表单提交行为
+            resetAddBackgroundModal();
+        } else {
+            showError('更新背景失败: ' + data.error);
+        }
+    } catch (error) {
+        console.error('更新背景失败:', error);
+        showError('更新背景失败: ' + error.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+// 显示删除背景确认
+function showDeleteBackgroundConfirm(filename) {
+    const info = currentBackgrounds[filename];
+    if (!info) return;
+    
+    document.getElementById('deleteBackgroundName').textContent = info.name;
+    document.getElementById('deleteBackgroundFilename').textContent = filename;
+    document.getElementById('deleteBackgroundConfirmModal').style.display = 'block';
+    
+    // 设置确认删除按钮的点击事件
+    document.getElementById('confirmDeleteBackgroundBtn').onclick = function() {
+        deleteBackground(filename);
+    };
+}
+
+// 关闭删除背景确认
+function closeDeleteBackgroundConfirm() {
+    document.getElementById('deleteBackgroundConfirmModal').style.display = 'none';
+}
+
+// 删除背景
+async function deleteBackground(filename) {
+    try {
+        const response = await fetch(`/api/background/delete/${filename}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess('背景删除成功');
+            closeDeleteBackgroundConfirm();
+            loadBackgrounds();
+        } else {
+            showError('删除背景失败: ' + data.error);
+        }
+    } catch (error) {
+        console.error('删除背景失败:', error);
+        showError('删除背景失败: ' + error.message);
+    }
+}
 
 // 点击模态框外部关闭
 window.addEventListener('click', function(event) {

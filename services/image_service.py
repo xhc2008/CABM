@@ -86,8 +86,19 @@ class ImageService:
         self.cache_dir = Path(self.config_service.get_app_config()["image_cache_dir"])
         os.makedirs(self.cache_dir, exist_ok=True)
         
+        # 背景管理相关目录和文件
+        self.project_root = Path(__file__).resolve().parent.parent
+        self.backgrounds_dir = self.project_root / 'data' / 'backgrounds'
+        self.background_config_file = self.project_root / 'data' / 'background.json'
+        
+        # 确保背景目录存在
+        self.backgrounds_dir.mkdir(parents=True, exist_ok=True)
+        
         # 当前背景图片路径
         self.current_background = None
+        
+        # 加载背景配置
+        self.backgrounds = self._load_backgrounds()
         
         # 初始化 OpenAI 客户端
         try:
@@ -312,6 +323,273 @@ class ImageService:
                     
         except Exception as e:
             print(f"清理旧图像时出错: {str(e)}")
+    
+    # 背景管理功能
+    def _load_backgrounds(self) -> Dict[str, Any]:
+        """加载背景配置文件"""
+        try:
+            if self.background_config_file.exists():
+                import json
+                with open(self.background_config_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            print(f"加载背景配置失败: {e}")
+            return {}
+    
+    def _save_backgrounds(self) -> bool:
+        """保存背景配置文件"""
+        try:
+            import json
+            with open(self.background_config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.backgrounds, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            print(f"保存背景配置失败: {e}")
+            return False
+    
+    def get_all_backgrounds(self) -> Dict[str, Any]:
+        """获取所有背景信息"""
+        # 检查文件是否存在，移除不存在的背景
+        valid_backgrounds = {}
+        for filename, info in self.backgrounds.items():
+            if (self.backgrounds_dir / filename).exists():
+                valid_backgrounds[filename] = info
+        
+        # 如果有变化，更新配置
+        if len(valid_backgrounds) != len(self.backgrounds):
+            self.backgrounds = valid_backgrounds
+            self._save_backgrounds()
+        
+        return self.backgrounds
+    
+    def add_background(self, name: str, desc: str = "", prompt: str = "", 
+                      image_data: bytes = None, filename: str = None) -> Dict[str, Any]:
+        """添加新背景"""
+        try:
+            import uuid
+            from PIL import Image
+            from io import BytesIO
+            
+            # 生成文件名
+            if not filename:
+                file_ext = '.png'  # 默认PNG格式
+                filename = f"{uuid.uuid4().hex}{file_ext}"
+            
+            # 如果提供了图片数据，保存图片
+            if image_data:
+                image_path = self.backgrounds_dir / filename
+                with open(image_path, 'wb') as f:
+                    f.write(image_data)
+            else:
+                # 如果没有提供图片，生成一个占位图片
+                self._create_placeholder_image(filename, name)
+            
+            # 添加到配置
+            self.backgrounds[filename] = {
+                'name': name,
+                'desc': desc,
+                'prompt': prompt
+            }
+            
+            # 保存配置
+            if self._save_backgrounds():
+                return {
+                    'success': True,
+                    'filename': filename,
+                    'message': '背景添加成功'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '保存配置失败'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'添加背景失败: {str(e)}'
+            }
+    
+    def _create_placeholder_image(self, filename: str, name: str):
+        """创建占位图片"""
+        try:
+            from PIL import Image
+            # 创建一个简单的占位图片
+            img = Image.new('RGB', (1920, 1080), color=(50, 50, 70))
+            
+            # 可以在这里添加文字或其他装饰
+            image_path = self.backgrounds_dir / filename
+            img.save(image_path, 'PNG')
+            
+        except Exception as e:
+            print(f"创建占位图片失败: {e}")
+    
+    def delete_background(self, filename: str) -> Dict[str, Any]:
+        """删除背景"""
+        try:
+            if filename not in self.backgrounds:
+                return {
+                    'success': False,
+                    'error': '背景不存在'
+                }
+            
+            # 删除文件
+            image_path = self.backgrounds_dir / filename
+            if image_path.exists():
+                image_path.unlink()
+            
+            # 从配置中移除
+            del self.backgrounds[filename]
+            
+            # 保存配置
+            if self._save_backgrounds():
+                return {
+                    'success': True,
+                    'message': '背景删除成功'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '保存配置失败'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'删除背景失败: {str(e)}'
+            }
+    
+    def get_background_info(self, filename: str) -> Optional[Dict[str, Any]]:
+        """获取单个背景信息"""
+        return self.backgrounds.get(filename)
+    
+    def update_background_info(self, filename: str, name: str = None, 
+                             desc: str = None, prompt: str = None) -> Dict[str, Any]:
+        """更新背景信息"""
+        try:
+            if filename not in self.backgrounds:
+                return {
+                    'success': False,
+                    'error': '背景不存在'
+                }
+            
+            # 更新信息
+            if name is not None:
+                self.backgrounds[filename]['name'] = name
+            if desc is not None:
+                self.backgrounds[filename]['desc'] = desc
+            if prompt is not None:
+                self.backgrounds[filename]['prompt'] = prompt
+            
+            # 保存配置
+            if self._save_backgrounds():
+                return {
+                    'success': True,
+                    'message': '背景信息更新成功'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '保存配置失败'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'更新背景信息失败: {str(e)}'
+            }
+    
+    def get_random_background(self) -> Optional[str]:
+        """获取随机背景"""
+        if not self.backgrounds:
+            return None
+        
+        return random.choice(list(self.backgrounds.keys()))
+    
+    def get_background_url(self, filename: str) -> str:
+        """获取背景图片URL"""
+        return f"/static/images/backgrounds/{filename}"
+    
+    def upload_background_image(self, file_data: bytes, original_filename: str,
+                               name: str, desc: str = "", prompt: str = "") -> Dict[str, Any]:
+        """上传背景图片"""
+        try:
+            import uuid
+            # 获取文件扩展名
+            file_ext = Path(original_filename).suffix.lower()
+            if file_ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                return {
+                    'success': False,
+                    'error': '不支持的图片格式'
+                }
+            
+            # 生成新文件名
+            new_filename = f"{uuid.uuid4().hex}{file_ext}"
+            
+            # 处理图片（可选：调整大小、压缩等）
+            processed_data = self._process_image(file_data)
+            
+            # 添加背景
+            return self.add_background(
+                name=name,
+                desc=desc,
+                prompt=prompt,
+                image_data=processed_data,
+                filename=new_filename
+            )
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'上传图片失败: {str(e)}'
+            }
+    
+    def _process_image(self, image_data: bytes) -> bytes:
+        """处理图片（调整大小、压缩等）"""
+        try:
+            from PIL import Image
+            from io import BytesIO
+            
+            # 打开图片
+            img = Image.open(BytesIO(image_data))
+            
+            # 转换为RGB（如果是RGBA或其他格式）
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # 调整大小（可选）
+            max_size = (1920, 1080)
+            if img.size[0] > max_size[0] or img.size[1] > max_size[1]:
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # 保存为字节流
+            output = BytesIO()
+            img.save(output, format='PNG', quality=85, optimize=True)
+            return output.getvalue()
+            
+        except Exception as e:
+            print(f"处理图片失败: {e}")
+            return image_data  # 返回原始数据
+    
+    def get_background_stats(self) -> Dict[str, Any]:
+        """获取背景统计信息"""
+        total_count = len(self.backgrounds)
+        total_size = 0
+        
+        try:
+            for filename in self.backgrounds.keys():
+                image_path = self.backgrounds_dir / filename
+                if image_path.exists():
+                    total_size += image_path.stat().st_size
+        except Exception as e:
+            print(f"计算背景统计信息失败: {e}")
+        
+        return {
+            'total_count': total_count,
+            'total_size': total_size,
+            'total_size_mb': round(total_size / (1024 * 1024), 2)
+        }
 
 # 创建全局图像服务实例
 image_service = ImageService()

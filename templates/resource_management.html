@@ -344,6 +344,125 @@
             border-color: rgba(220,53,69,0.6);
             color: white;
         }
+        
+        /* 背景管理样式 */
+        .backgrounds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            background: var(--glass-bg);
+        }
+        .backgrounds-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        .backgrounds-grid::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        .backgrounds-grid::-webkit-scrollbar-thumb {
+            background: var(--primary-blue);
+            border-radius: 4px;
+        }
+        .backgrounds-grid::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-cyan);
+        }
+        .background-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all var(--animation-speed) ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .background-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .background-item:hover::before {
+            left: 100%;
+        }
+        .background-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,150,255,0.2);
+        }
+        .background-thumbnail {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+        .background-info {
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        .background-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px currentColor;
+        }
+        .background-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            margin-bottom: 8px;
+            display: none; /* 隐藏描述，只在详情中显示 */
+        }
+        .background-prompt {
+            font-size: 12px;
+            color: var(--text-accent);
+            opacity: 0.8;
+            font-style: italic;
+            display: none; /* 隐藏提示词，只在详情中显示 */
+        }
+        .background-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity var(--animation-speed) ease;
+        }
+        .background-item:hover .background-actions {
+            opacity: 1;
+        }
+        .background-action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all var(--animation-speed) ease;
+        }
+        .background-action-btn:hover {
+            background: var(--primary-blue);
+            transform: scale(1.1);
+        }
+        .background-action-btn.delete:hover {
+            background: rgba(220,53,69,0.8);
+        }
     </style>
 </head>
 <body>
@@ -377,9 +496,15 @@
 
                 <!-- 背景管理 -->
                 <div id="backgrounds-tab" class="tab-content">
-                    <div class="empty-state glass-panel">
-                        <h3>背景管理</h3>
-                        <p>此功能正在开发中，暂时先用聊天页面的“切换背景”...</p>
+                    <div class="character-actions">
+                        <button id="addBackgroundBtn" class="btn sci-fi-btn primary">添加背景</button>
+                        <button id="refreshBackgroundsBtn" class="btn sci-fi-btn secondary">刷新列表</button>
+                        <input type="file" id="hiddenBackgroundFileInput" style="display: none;" accept=".jpg,.jpeg,.png,.gif,.webp">
+                    </div>
+                    
+                    <div id="backgroundsList" class="backgrounds-grid">
+                        <!-- 背景列表将通过JavaScript动态加载 -->
+
                     </div>
                 </div>
 
@@ -490,7 +615,102 @@
         </div>
     </div>
 
+    <!-- 背景详情模态框 -->
+    <div id="backgroundDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>背景详情</h3>
+                <button class="close-btn" onclick="closeBackgroundDetail()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="character-detail">
+                    <img id="detailBackgroundImage" class="character-avatar" src="" alt="背景图片" style="width: 200px; height: 120px;">
+                    <div class="character-profile">
+                        <div class="profile-item">
+                            <div class="profile-label">背景名称</div>
+                            <div id="detailBackgroundName" class="profile-value"></div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">文件名</div>
+                            <div id="detailBackgroundFilename" class="profile-value"></div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">背景描述</div>
+                            <div id="detailBackgroundDesc" class="profile-value"></div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">提示词</div>
+                            <div id="detailBackgroundPrompt" class="profile-value"></div>
+                        </div>
+                    </div>
+                </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加背景模态框 -->
+    <div id="addBackgroundModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加背景</h3>
+                <button class="close-btn" onclick="closeAddBackgroundModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addBackgroundForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="backgroundNameInput">背景名称 *</label>
+                        <input type="text" id="backgroundNameInput" class="sci-fi-input" required placeholder="请输入背景名称">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="backgroundDescInput">背景描述</label>
+                        <textarea id="backgroundDescInput" class="sci-fi-input" placeholder="背景的简介描述（可选）" rows="3" style="width: 100%; min-height: 80px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="backgroundPromptInput">提示词</label>
+                        <textarea id="backgroundPromptInput" class="sci-fi-input" placeholder="用于AI生成的提示词（可选）" rows="4" style="width: 100%; min-height: 100px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="backgroundFileInput">背景图片</label>
+                        <div class="form-description">选择背景图片文件（支持 JPG、PNG、GIF、WebP）</div>
+                        <input type="file" id="backgroundFileInput" class="sci-fi-input form-file" accept=".jpg,.jpeg,.png,.gif,.webp">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" id="confirmAddBackgroundBtn" class="btn sci-fi-btn primary">添加背景</button>
+                        <button type="button" class="btn sci-fi-btn secondary" onclick="closeAddBackgroundModal()">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除背景确认模态框 -->
+    <div id="deleteBackgroundConfirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header danger-header">
+                <h3>删除背景确认</h3>
+                <button class="close-btn" onclick="closeDeleteBackgroundConfirm()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-message">
+                    <p>确定要删除这个背景吗？</p>
+                    <p><strong class="danger-text">此操作不可恢复！</strong></p>
+                </div>
+                <div class="delete-target-info">
+                    <p>背景名称: <strong id="deleteBackgroundName"></strong></p>
+                    <p>文件名: <strong id="deleteBackgroundFilename"></strong></p>
+                </div>
+                <div class="modal-actions">
+                    <button id="confirmDeleteBackgroundBtn" class="btn sci-fi-btn danger-btn">确认删除</button>
+                    <button class="btn sci-fi-btn secondary" onclick="closeDeleteBackgroundConfirm()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/js/resource-management.js"></script>
     <script>

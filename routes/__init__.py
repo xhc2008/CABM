@@ -17,6 +17,7 @@ from .story_routes import bp as story_bp
 from .multi_character_routes import bp as multi_character_bp
 from .misc_routes import bp as misc_bp
 from .bgm_routes import bp as bgm_bp
+from .background_routes import bp as background_bp
 
 def register_blueprints(app: Flask):
     """把全部蓝图注册到 Flask 实例"""
@@ -27,3 +28,4 @@ def register_blueprints(app: Flask):
     app.register_blueprint(multi_character_bp)
     app.register_blueprint(misc_bp)
     app.register_blueprint(bgm_bp)
+    app.register_blueprint(background_bp)
