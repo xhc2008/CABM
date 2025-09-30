@@ -414,16 +414,63 @@ class ImageService:
     def _create_placeholder_image(self, filename: str, name: str):
         """创建占位图片"""
         try:
-            from PIL import Image
-            # 创建一个简单的占位图片
-            img = Image.new('RGB', (1920, 1080), color=(50, 50, 70))
+            from PIL import Image, ImageDraw, ImageFont
+            import random
             
-            # 可以在这里添加文字或其他装饰
+            # 创建一个渐变背景的占位图片
+            img = Image.new('RGB', (1920, 1080), color=(50, 50, 70))
+            draw = ImageDraw.Draw(img)
+            
+            # 创建简单的渐变效果
+            for y in range(1080):
+                color_value = int(50 + (y / 1080) * 50)  # 从50到100的渐变
+                draw.line([(0, y), (1920, y)], fill=(color_value, color_value, color_value + 20))
+            
+            # 尝试添加文字
+            try:
+                # 尝试使用系统字体
+                font_size = 72
+                try:
+                    # Windows系统字体
+                    font = ImageFont.truetype("arial.ttf", font_size)
+                except:
+                    try:
+                        # 备用字体
+                        font = ImageFont.truetype("C:/Windows/Fonts/simhei.ttf", font_size)
+                    except:
+                        # 使用默认字体
+                        font = ImageFont.load_default()
+                
+                # 计算文字位置（居中）
+                text = name
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                x = (1920 - text_width) // 2
+                y = (1080 - text_height) // 2
+                
+                # 绘制文字阴影
+                draw.text((x + 2, y + 2), text, font=font, fill=(0, 0, 0))
+                # 绘制文字
+                draw.text((x, y), text, font=font, fill=(200, 200, 255))
+                
+            except Exception as font_error:
+                print(f"添加文字失败: {font_error}")
+            
+            # 保存图片
             image_path = self.backgrounds_dir / filename
             img.save(image_path, 'PNG')
             
         except Exception as e:
             print(f"创建占位图片失败: {e}")
+            # 如果失败，创建一个最简单的图片
+            try:
+                from PIL import Image
+                img = Image.new('RGB', (1920, 1080), color=(50, 50, 70))
+                image_path = self.backgrounds_dir / filename
+                img.save(image_path, 'PNG')
+            except:
+                pass
     
     def delete_background(self, filename: str) -> Dict[str, Any]:
         """删除背景"""

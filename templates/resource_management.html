@@ -348,15 +348,17 @@
         /* 背景管理样式 */
         .backgrounds-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
-            padding: 20px 0;
-            max-height: 70vh;
-            overflow-y: auto;
+            padding: 20px;
+            height: 500px;
+            max-height: 500px;
+            overflow-y: scroll;
             overflow-x: hidden;
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             background: var(--glass-bg);
+            box-sizing: border-box;
         }
         .backgrounds-grid::-webkit-scrollbar {
             width: 8px;
@@ -624,7 +626,7 @@
             </div>
             <div class="modal-body">
                 <div class="character-detail">
-                    <img id="detailBackgroundImage" class="character-avatar" src="" alt="背景图片" style="width: 200px; height: 120px;">
+                    <img id="detailBackgroundImage" class="character-avatar" src="" alt="背景图片" style="width: 400px; height: 240px; object-fit: cover;">
                     <div class="character-profile">
                         <div class="profile-item">
                             <div class="profile-label">背景名称</div>
@@ -674,8 +676,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="backgroundFileInput">背景图片</label>
-                        <div class="form-description">选择背景图片文件（支持 JPG、PNG、GIF、WebP）</div>
+                        <label for="backgroundFileInput">背景图片（可选）</label>
+                        <div class="form-description">选择背景图片文件（支持 JPG、PNG、GIF、WebP）。如果不选择文件，将创建带有背景名称的占位图片。</div>
                         <input type="file" id="backgroundFileInput" class="sci-fi-input form-file" accept=".jpg,.jpeg,.png,.gif,.webp">
                     </div>
                     
