@@ -658,11 +658,12 @@ async function addBackground() {
     const submitBtn = document.getElementById('confirmAddBackgroundBtn');
     const originalText = submitBtn.textContent;
     submitBtn.disabled = true;
-    submitBtn.textContent = '添加中...';
 
     try {
         if (fileInput.files.length > 0) {
-            // 上传图片文件
+            // 用户上传了图片文件，直接使用上传的图片
+            submitBtn.textContent = '上传中...';
+            
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('name', name);
@@ -677,14 +678,22 @@ async function addBackground() {
             const data = await response.json();
 
             if (data.success) {
-                // showSuccess('背景添加成功');
+                showSuccess('背景添加成功');
                 closeAddBackgroundModal();
                 loadBackgrounds();
             } else {
                 showError('添加背景失败: ' + data.error);
             }
         } else {
-            // 没有上传文件，创建占位背景
+            // 没有上传文件
+            if (prompt.trim()) {
+                // 有提示词，使用AI生成
+                submitBtn.textContent = 'AI生成中...';
+            } else {
+                // 没有提示词，创建占位图片
+                submitBtn.textContent = '创建中...';
+            }
+            
             const response = await fetch('/api/background/add', {
                 method: 'POST',
                 headers: {
@@ -696,7 +705,11 @@ async function addBackground() {
             const data = await response.json();
 
             if (data.success) {
-                showSuccess('背景添加成功（已创建占位图片）');
+                if (prompt.trim()) {
+                    showSuccess('背景添加成功（AI生成）');
+                } else {
+                    showSuccess('背景添加成功（占位图片）');
+                }
                 closeAddBackgroundModal();
                 loadBackgrounds();
             } else {

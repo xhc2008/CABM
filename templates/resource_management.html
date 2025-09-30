@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,8 +17,9 @@
             border-radius: 12px;
             margin: 20px 0;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,150,255,0.1);
+            box-shadow: 0 4px 15px rgba(0, 150, 255, 0.1);
         }
+
         .resource-tab {
             flex: 1;
             padding: 15px 20px;
@@ -30,6 +32,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .resource-tab::before {
             content: '';
             position: absolute;
@@ -37,33 +40,40 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
             transition: left 0.5s ease;
         }
+
         .resource-tab:hover::before {
             left: 100%;
         }
+
         .resource-tab.active {
             background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
             color: var(--text-primary);
-            box-shadow: inset 0 0 20px rgba(0,255,255,0.3);
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.3);
         }
+
         .resource-tab:hover {
-            background: rgba(0,150,255,0.15);
+            background: rgba(0, 150, 255, 0.15);
             color: var(--text-primary);
         }
+
         .tab-content {
             display: none;
             padding: 40px 0 20px 0;
         }
+
         .tab-content.active {
             display: block;
         }
+
         .character-actions {
             display: flex;
             gap: 15px;
             margin-bottom: 30px;
         }
+
         .character-list {
             display: grid;
             gap: 30px;
@@ -78,20 +88,25 @@
             background: var(--glass-bg);
             box-sizing: border-box;
         }
+
         .character-list::-webkit-scrollbar {
             width: 8px;
         }
+
         .character-list::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
         }
+
         .character-list::-webkit-scrollbar-thumb {
             background: var(--primary-blue);
             border-radius: 4px;
         }
+
         .character-list::-webkit-scrollbar-thumb:hover {
             background: var(--primary-cyan);
         }
+
         .character-item {
             padding: 20px;
             display: flex;
@@ -100,6 +115,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .character-item::before {
             content: '';
             position: absolute;
@@ -107,15 +123,18 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
             transition: left 0.5s ease;
         }
+
         .character-item:hover::before {
             left: 100%;
         }
+
         .character-item:hover {
             transform: translateY(-3px);
         }
+
         .character-info {
             display: flex;
             align-items: center;
@@ -124,17 +143,20 @@
             position: relative;
             z-index: 1;
         }
+
         .character-name {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 5px;
             text-shadow: 0 0 10px currentColor;
         }
+
         .character-id {
             font-size: 14px;
             opacity: 0.7;
             color: var(--text-secondary);
         }
+
         .character-actions-btn {
             padding: 10px 15px;
             display: flex;
@@ -143,11 +165,13 @@
             position: relative;
             z-index: 1;
         }
+
         .empty-state {
             text-align: center;
             padding: 80px 20px;
             color: var(--text-secondary);
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -156,11 +180,12 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            background-color: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
         }
+
         .modal-content {
-            background: linear-gradient(135deg, rgba(30,35,45,0.95), rgba(20,25,35,0.95));
+            background: linear-gradient(135deg, rgba(30, 35, 45, 0.95), rgba(20, 25, 35, 0.95));
             backdrop-filter: blur(10px);
             margin: 3% auto;
             padding: 0;
@@ -168,45 +193,53 @@
             width: 95%;
             height: 100%;
             border: 1px solid var(--glass-border);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5), var(--glow-size) rgba(0,255,255,0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), var(--glow-size) rgba(0, 255, 255, 0.2);
         }
+
         .modal-header {
             padding: 25px 30px;
             border-bottom: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, rgba(40,50,65,0.8), rgba(30,40,55,0.8));
+            background: linear-gradient(135deg, rgba(40, 50, 65, 0.8), rgba(30, 40, 55, 0.8));
             border-radius: 15px 15px 0 0;
         }
+
         .modal-header h3 {
             margin: 0;
             color: var(--text-primary);
             font-size: 22px;
             text-shadow: 0 0 10px var(--primary-cyan);
         }
+
         .modal-body {
             padding: 30px;
         }
+
         .character-detail {
             display: flex;
             gap: 25px;
             align-items: flex-start;
         }
+
         .character-avatar {
             width: 120px;
             height: 120px;
             border-radius: 12px;
             object-fit: cover;
             border: 2px solid var(--glass-border);
-            box-shadow: var(--glow-size) rgba(0,255,255,0.2);
+            box-shadow: var(--glow-size) rgba(0, 255, 255, 0.2);
         }
+
         .character-profile {
             flex: 1;
         }
+
         .profile-item {
             margin-bottom: 18px;
         }
+
         .profile-label {
             font-weight: 600;
             color: var(--text-accent);
@@ -215,11 +248,13 @@
             font-size: 12px;
             letter-spacing: 1px;
         }
+
         .profile-value {
             color: var(--text-primary);
             line-height: 1.5;
             font-size: 15px;
         }
+
         .modal-actions {
             display: flex;
             gap: 15px;
@@ -227,6 +262,7 @@
             padding-top: 25px;
             border-top: 1px solid var(--glass-border);
         }
+
         .close-btn {
             background: none;
             border: none;
@@ -242,34 +278,41 @@
             border-radius: 50%;
             transition: all var(--animation-speed) ease;
         }
+
         .close-btn:hover {
             color: var(--text-primary);
             background: var(--glass-bg);
         }
+
         .confirm-input {
             width: 100%;
             padding: 15px;
             font-size: 14px;
             margin-top: 15px;
         }
+
         .danger-btn {
-            background: linear-gradient(135deg, rgba(220,53,69,0.8), rgba(200,30,50,0.8)) !important;
-            border: 1px solid rgba(220,53,69,0.6) !important;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 30, 50, 0.8)) !important;
+            border: 1px solid rgba(220, 53, 69, 0.6) !important;
         }
+
         .danger-btn:hover {
-            background: linear-gradient(135deg, rgba(220,53,69,1), rgba(200,30,50,1)) !important;
-            box-shadow: 0 4px 15px rgba(220,53,69,0.4) !important;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 1), rgba(200, 30, 50, 1)) !important;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4) !important;
         }
+
         .form-file {
             width: 100%;
             padding: 12px;
             font-size: 14px;
         }
+
         .form-description {
             color: var(--text-secondary);
             font-size: 13px;
             margin-bottom: 10px;
         }
+
         .music-list {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
@@ -280,20 +323,25 @@
             overflow-y: scroll;
             box-sizing: border-box;
         }
+
         .music-list::-webkit-scrollbar {
             width: 8px;
         }
+
         .music-list::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
         }
+
         .music-list::-webkit-scrollbar-thumb {
             background: var(--primary-blue);
             border-radius: 4px;
         }
+
         .music-list::-webkit-scrollbar-thumb:hover {
             background: var(--primary-cyan);
         }
+
         .music-item {
             padding: 15px 20px;
             display: flex;
@@ -304,9 +352,11 @@
             transition: all var(--animation-speed) ease;
             background: transparent;
         }
+
         .music-item:last-child {
             border-bottom: none;
         }
+
         .music-item::before {
             content: '';
             position: absolute;
@@ -314,15 +364,18 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
             transition: left 0.5s ease;
         }
+
         .music-item:hover::before {
             left: 100%;
         }
+
         .music-item:hover {
-            background: rgba(0,150,255,0.05);
+            background: rgba(0, 150, 255, 0.05);
         }
+
         .music-icon {
             width: 40px;
             height: 40px;
@@ -337,6 +390,7 @@
             position: relative;
             z-index: 1;
         }
+
         .music-info {
             flex: 1;
             display: flex;
@@ -345,6 +399,7 @@
             position: relative;
             z-index: 1;
         }
+
         .music-name {
             font-size: 16px;
             font-weight: 500;
@@ -352,6 +407,7 @@
             word-break: break-all;
             line-height: 1.4;
         }
+
         .music-actions {
             display: flex;
             gap: 10px;
@@ -359,6 +415,7 @@
             z-index: 1;
             flex-shrink: 0;
         }
+
         .music-btn {
             padding: 8px 16px;
             font-size: 14px;
@@ -369,21 +426,24 @@
             cursor: pointer;
             transition: all var(--animation-speed) ease;
         }
+
         .music-btn:hover {
             background: var(--primary-blue);
             border-color: var(--primary-cyan);
-            box-shadow: 0 0 10px rgba(0,150,255,0.3);
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
         }
+
         .music-btn.playing {
             background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
             color: white;
         }
+
         .music-btn.delete-confirm {
-            background: linear-gradient(135deg, rgba(220,53,69,0.8), rgba(200,30,50,0.8));
-            border-color: rgba(220,53,69,0.6);
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 30, 50, 0.8));
+            border-color: rgba(220, 53, 69, 0.6);
             color: white;
         }
-        
+
         /* 背景管理样式 */
         .backgrounds-grid {
             display: grid;
@@ -399,20 +459,25 @@
             background: var(--glass-bg);
             box-sizing: border-box;
         }
+
         .backgrounds-grid::-webkit-scrollbar {
             width: 8px;
         }
+
         .backgrounds-grid::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
         }
+
         .backgrounds-grid::-webkit-scrollbar-thumb {
             background: var(--primary-blue);
             border-radius: 4px;
         }
+
         .backgrounds-grid::-webkit-scrollbar-thumb:hover {
             background: var(--primary-cyan);
         }
+
         .background-item {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
@@ -425,6 +490,7 @@
             display: flex;
             flex-direction: column;
         }
+
         .background-item::before {
             content: '';
             position: absolute;
@@ -432,16 +498,19 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
             transition: left 0.5s ease;
         }
+
         .background-item:hover::before {
             left: 100%;
         }
+
         .background-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,150,255,0.2);
+            box-shadow: 0 8px 25px rgba(0, 150, 255, 0.2);
         }
+
         .background-thumbnail {
             width: 100%;
             height: 160px;
@@ -449,6 +518,7 @@
             display: block;
             flex-shrink: 0;
         }
+
         .background-info {
             padding: 15px;
             position: relative;
@@ -459,6 +529,7 @@
             justify-content: center;
             min-height: 60px;
         }
+
         .background-name {
             font-size: 16px;
             font-weight: 600;
@@ -469,20 +540,25 @@
             word-wrap: break-word;
             line-height: 1.3;
         }
+
         .background-desc {
             font-size: 14px;
             color: var(--text-secondary);
             line-height: 1.4;
             margin-bottom: 8px;
-            display: none; /* 隐藏描述，只在详情中显示 */
+            display: none;
+            /* 隐藏描述，只在详情中显示 */
         }
+
         .background-prompt {
             font-size: 12px;
             color: var(--text-accent);
             opacity: 0.8;
             font-style: italic;
-            display: none; /* 隐藏提示词，只在详情中显示 */
+            display: none;
+            /* 隐藏提示词，只在详情中显示 */
         }
+
         .background-actions {
             position: absolute;
             top: 10px;
@@ -492,15 +568,17 @@
             opacity: 0;
             transition: opacity var(--animation-speed) ease;
         }
+
         .background-item:hover .background-actions {
             opacity: 1;
         }
+
         .background-action-btn {
             width: 32px;
             height: 32px;
             border-radius: 50%;
             border: none;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             cursor: pointer;
             display: flex;
@@ -509,15 +587,18 @@
             font-size: 14px;
             transition: all var(--animation-speed) ease;
         }
+
         .background-action-btn:hover {
             background: var(--primary-blue);
             transform: scale(1.1);
         }
+
         .background-action-btn.delete:hover {
-            background: rgba(220,53,69,0.8);
+            background: rgba(220, 53, 69, 0.8);
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div id="resourceManagementPage" class="page active">
@@ -526,7 +607,7 @@
                 <a href="/" class="btn back-btn">首页</a>
                 <h2>资源管理</h2>
             </div>
-            
+
             <div style="padding: 50px 40px 40px;">
                 <!-- 选项卡 -->
                 <div class="resource-tabs">
@@ -541,7 +622,7 @@
                         <button id="importCharacterBtn" class="btn sci-fi-btn secondary">导入角色</button>
                         <button id="createCharacterBtn" class="btn sci-fi-btn primary">创建角色</button>
                     </div>
-                    
+
                     <div id="charactersList" class="character-list">
                         <!-- 角色列表将通过JavaScript动态加载 -->
                     </div>
@@ -549,13 +630,13 @@
 
                 <!-- 背景管理 -->
                 <div id="backgrounds-tab" class="tab-content">
-                    <p>此功能存在问题，暂时可能无法正常使用...</p>
                     <div class="character-actions">
                         <button id="addBackgroundBtn" class="btn sci-fi-btn primary">添加背景</button>
                         <button id="refreshBackgroundsBtn" class="btn sci-fi-btn secondary">刷新列表</button>
-                        <input type="file" id="hiddenBackgroundFileInput" style="display: none;" accept=".jpg,.jpeg,.png,.gif,.webp">
+                        <input type="file" id="hiddenBackgroundFileInput" style="display: none;"
+                            accept=".jpg,.jpeg,.png,.gif,.webp">
                     </div>
-                    
+
                     <div id="backgroundsList" class="backgrounds-grid">
                         <!-- 背景列表将通过JavaScript动态加载 -->
 
@@ -567,9 +648,10 @@
                     <div class="character-actions">
                         <button id="addMusicBtn" class="btn sci-fi-btn primary">添加音乐</button>
                         <button id="refreshMusicBtn" class="btn sci-fi-btn secondary">刷新列表</button>
-                        <input type="file" id="hiddenMusicFileInput" style="display: none;" accept=".mp3,.wav,.aac,.ogg,.m4a,.flac">
+                        <input type="file" id="hiddenMusicFileInput" style="display: none;"
+                            accept=".mp3,.wav,.aac,.ogg,.m4a,.flac">
                     </div>
-                    
+
                     <div id="musicList" class="music-list">
                         <!-- 音乐列表将通过JavaScript动态加载 -->
                     </div>
@@ -632,7 +714,7 @@
                 </div>
                 <div class="confirmation-step">
                     <p>请输入角色ID<strong id="confirmCharacterId"></strong>以确认删除：</p>
-                    <input type="text" id="confirmDeleteInput" class="sci-fi-input confirm-input danger-input" 
+                    <input type="text" id="confirmDeleteInput" class="sci-fi-input confirm-input danger-input"
                         placeholder="请输入上方显示的角色ID">
                     <div class="warning-hint">
                         <span>⚠️ 此操作无法撤销，请谨慎确认！</span>
@@ -678,7 +760,8 @@
             </div>
             <div class="modal-body">
                 <div class="character-detail">
-                    <img id="detailBackgroundImage" class="character-avatar" src="" alt="背景图片" style="width: 400px; height: 240px; object-fit: cover;">
+                    <img id="detailBackgroundImage" class="character-avatar" src="" alt="背景图片"
+                        style="width: 400px; height: 240px; object-fit: cover;">
                     <div class="character-profile">
                         <div class="profile-item">
                             <div class="profile-label">背景名称</div>
@@ -716,26 +799,30 @@
                         <label for="backgroundNameInput">背景名称 *</label>
                         <input type="text" id="backgroundNameInput" class="sci-fi-input" required placeholder="请输入背景名称">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="backgroundDescInput">背景描述</label>
-                        <textarea id="backgroundDescInput" class="sci-fi-input" placeholder="背景的简介描述（可选）" rows="3" style="width: 100%; min-height: 80px;"></textarea>
+                        <textarea id="backgroundDescInput" class="sci-fi-input" placeholder="背景的简介描述（可选）" rows="3"
+                            style="width: 100%; min-height: 80px;"></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="backgroundPromptInput">提示词</label>
-                        <textarea id="backgroundPromptInput" class="sci-fi-input" placeholder="用于AI生成的提示词（可选）" rows="4" style="width: 100%; min-height: 100px;"></textarea>
+                        <textarea id="backgroundPromptInput" class="sci-fi-input" placeholder="用于AI生成的提示词（可选）" rows="4"
+                            style="width: 100%; min-height: 100px;"></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="backgroundFileInput">背景图片（可选）</label>
                         <div class="form-description">选择背景图片文件（支持 JPG、PNG、GIF、WebP）。如果不选择文件，将创建带有背景名称的占位图片。</div>
-                        <input type="file" id="backgroundFileInput" class="sci-fi-input form-file" accept=".jpg,.jpeg,.png,.gif,.webp">
+                        <input type="file" id="backgroundFileInput" class="sci-fi-input form-file"
+                            accept=".jpg,.jpeg,.png,.gif,.webp">
                     </div>
-                    
+
                     <div class="modal-actions">
                         <button type="submit" id="confirmAddBackgroundBtn" class="btn sci-fi-btn primary">添加背景</button>
-                        <button type="button" class="btn sci-fi-btn secondary" onclick="closeAddBackgroundModal()">取消</button>
+                        <button type="button" class="btn sci-fi-btn secondary"
+                            onclick="closeAddBackgroundModal()">取消</button>
                     </div>
                 </form>
             </div>
@@ -769,11 +856,11 @@
     <script src="/static/js/resource-management.js"></script>
     <script>
         // 设置当前页面
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', function () {
             // 初始化TTS设置
             window.ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
             window.ttsVolume = parseFloat(localStorage.getItem('ttsVolume') || '80') / 100;
-            
+
             if (window.bgmService) {
                 window.bgmService.setCurrentPage('resource_management');
             }
@@ -783,4 +870,5 @@
     <script src="/static/js/sci-fi-effects.js"></script>
     <script type="module" src="/static/js/bgm-service.js"></script>
 </body>
+
 </html>

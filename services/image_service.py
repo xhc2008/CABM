@@ -350,6 +350,9 @@ class ImageService:
     
     def get_all_backgrounds(self) -> Dict[str, Any]:
         """获取所有背景信息"""
+        # 重新加载配置以确保数据最新
+        self.backgrounds = self._load_backgrounds()
+        
         # 检查文件是否存在，移除不存在的背景
         valid_backgrounds = {}
         for filename, info in self.backgrounds.items():
@@ -382,8 +385,26 @@ class ImageService:
                 with open(image_path, 'wb') as f:
                     f.write(image_data)
             else:
-                # 如果没有提供图片，生成一个占位图片
-                self._create_placeholder_image(filename, name)
+                # 如果没有提供图片且没有提示词，生成占位图片
+                if not prompt.strip():
+                    self._create_placeholder_image(filename, name)
+                else:
+                    # 如果有提示词，使用AI生成图片
+                    try:
+                        result = self.generate_background(prompt)
+                        if result.get('success') and result.get('image_path'):
+                            # 将生成的图片复制到背景目录
+                            import shutil
+                            generated_path = Path(result['image_path'])
+                            target_path = self.backgrounds_dir / filename
+                            shutil.copy2(generated_path, target_path)
+                        else:
+                            # 生成失败，创建占位图片
+                            self._create_placeholder_image(filename, name)
+                    except Exception as gen_error:
+                        print(f"AI生成背景失败: {gen_error}")
+                        # 生成失败，创建占位图片
+                        self._create_placeholder_image(filename, name)
             
             # 添加到配置
             self.backgrounds[filename] = {
@@ -475,6 +496,9 @@ class ImageService:
     def delete_background(self, filename: str) -> Dict[str, Any]:
         """删除背景"""
         try:
+            # 重新加载配置以确保数据最新
+            self.backgrounds = self._load_backgrounds()
+            
             if filename not in self.backgrounds:
                 return {
                     'success': False,
@@ -515,6 +539,9 @@ class ImageService:
                              desc: str = None, prompt: str = None) -> Dict[str, Any]:
         """更新背景信息"""
         try:
+            # 重新加载配置以确保数据最新
+            self.backgrounds = self._load_backgrounds()
+            
             if filename not in self.backgrounds:
                 return {
                     'success': False,

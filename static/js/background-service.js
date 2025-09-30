@@ -303,7 +303,13 @@ class BackgroundService {
         const originalText = submitBtn.textContent;
         
         submitBtn.disabled = true;
-        submitBtn.textContent = '生成中...';
+        
+        // 根据是否有提示词显示不同的状态
+        if (prompt.trim()) {
+            submitBtn.textContent = 'AI生成中...';
+        } else {
+            submitBtn.textContent = '创建中...';
+        }
 
         try {
             const response = await fetch('/api/background/add', {
@@ -320,7 +326,12 @@ class BackgroundService {
                 this.hideAddBackgroundModal();
                 // 重新加载背景列表
                 await this.loadBackgrounds();
-                this.showSuccess('背景添加成功');
+                
+                if (prompt.trim()) {
+                    this.showSuccess('背景添加成功（AI生成）');
+                } else {
+                    this.showSuccess('背景添加成功（占位图片）');
+                }
             } else {
                 this.showError('添加背景失败: ' + data.error);
             }

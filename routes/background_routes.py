@@ -32,7 +32,7 @@ def get_backgrounds():
 
 @bp.route('/add', methods=['POST'])
 def add_background():
-    """添加新背景"""
+    """添加新背景（不上传文件，使用AI生成或创建占位图）"""
     try:
         data = request.get_json()
         if not data:
@@ -51,6 +51,7 @@ def add_background():
                 'error': '背景名称不能为空'
             }), 400
         
+        # 这里不会重复调用AI生成，逻辑已在image_service中处理
         result = image_service.add_background(
             name=name,
             desc=desc,
