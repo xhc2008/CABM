@@ -76,17 +76,18 @@
 
         .character-list {
             display: grid;
-            gap: 30px;
+            gap: 20px;
             grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             padding: 20px;
             height: 500px;
             max-height: 500px;
-            overflow-y: scroll;
+            overflow-y: auto;
             overflow-x: hidden;
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             background: var(--glass-bg);
             box-sizing: border-box;
+            align-content: start;
         }
 
         .character-list::-webkit-scrollbar {
@@ -114,6 +115,10 @@
             justify-content: space-between;
             position: relative;
             overflow: hidden;
+            height: 120px;
+            min-height: 120px;
+            max-height: 120px;
+            flex-shrink: 0;
         }
 
         .character-item::before {
