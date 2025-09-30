@@ -7,6 +7,9 @@ let currentPlayingTrack = null;
 let currentBackgrounds = {};
 let currentBackgroundDetail = null;
 
+// 防止重复提交的标志
+let isSubmittingBackground = false;
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
     initResourceManagement();
@@ -110,7 +113,7 @@ function initButtons() {
     // 添加背景表单提交
     document.getElementById('addBackgroundForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        addBackground();
+        handleBackgroundFormSubmit();
     });
 }
 
@@ -643,8 +646,24 @@ function closeBackgroundDetail() {
     currentBackgroundDetail = null;
 }
 
+// 统一的背景表单提交处理
+async function handleBackgroundFormSubmit() {
+    // 检查是否是编辑模式
+    if (window.currentEditingFilename) {
+        await updateBackground(window.currentEditingFilename);
+    } else {
+        await addBackground();
+    }
+}
+
 // 添加背景
 async function addBackground() {
+    // 防止重复提交
+    if (isSubmittingBackground) {
+        console.log('正在提交中，忽略重复请求');
+        return;
+    }
+
     const name = document.getElementById('backgroundNameInput').value.trim();
     const desc = document.getElementById('backgroundDescInput').value.trim();
     const prompt = document.getElementById('backgroundPromptInput').value.trim();
@@ -654,6 +673,9 @@ async function addBackground() {
         showError('请输入背景名称');
         return;
     }
+
+    // 设置提交标志
+    isSubmittingBackground = true;
 
     const submitBtn = document.getElementById('confirmAddBackgroundBtn');
     const originalText = submitBtn.textContent;
@@ -720,6 +742,8 @@ async function addBackground() {
         console.error('添加背景失败:', error);
         showError('添加背景失败: ' + error.message);
     } finally {
+        // 重置提交标志和按钮状态
+        isSubmittingBackground = false;
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
     }
@@ -736,15 +760,14 @@ function resetAddBackgroundModal() {
     // 清空表单
     document.getElementById('addBackgroundForm').reset();
 
-    // 重置表单提交行为为添加模式
-    const form = document.getElementById('addBackgroundForm');
-    form.onsubmit = function (e) {
-        e.preventDefault();
-        addBackground();
-    };
-
     // 重置按钮文字
     document.getElementById('confirmAddBackgroundBtn').textContent = '添加背景';
+    
+    // 重置提交标志
+    isSubmittingBackground = false;
+    
+    // 清除编辑状态
+    window.currentEditingFilename = null;
 }
 
 // 编辑背景
@@ -760,19 +783,24 @@ function editBackground(filename) {
     // 显示模态框
     document.getElementById('addBackgroundModal').style.display = 'block';
 
-    // 修改表单提交行为为更新
-    const form = document.getElementById('addBackgroundForm');
-    form.onsubmit = function (e) {
-        e.preventDefault();
-        updateBackground(filename);
-    };
-
     // 修改按钮文字
     document.getElementById('confirmAddBackgroundBtn').textContent = '更新背景';
+    
+    // 重置提交标志
+    isSubmittingBackground = false;
+    
+    // 设置一个标志表示当前是编辑模式
+    window.currentEditingFilename = filename;
 }
 
 // 更新背景
 async function updateBackground(filename) {
+    // 防止重复提交
+    if (isSubmittingBackground) {
+        console.log('正在提交中，忽略重复请求');
+        return;
+    }
+
     const name = document.getElementById('backgroundNameInput').value.trim();
     const desc = document.getElementById('backgroundDescInput').value.trim();
     const prompt = document.getElementById('backgroundPromptInput').value.trim();
@@ -781,6 +809,9 @@ async function updateBackground(filename) {
         showError('请输入背景名称');
         return;
     }
+
+    // 设置提交标志
+    isSubmittingBackground = true;
 
     const submitBtn = document.getElementById('confirmAddBackgroundBtn');
     const originalText = submitBtn.textContent;
@@ -812,6 +843,8 @@ async function updateBackground(filename) {
         console.error('更新背景失败:', error);
         showError('更新背景失败: ' + error.message);
     } finally {
+        // 重置提交标志和按钮状态
+        isSubmittingBackground = false;
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
     }
