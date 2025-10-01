@@ -227,6 +227,15 @@ OPTION_SYSTEM_PROMPTS="""
 4. 不要输出解释、提示词或多余文字，只输出选项内容。
 /no_think
 """
+# TTS音频处理配置
+TTS_AUDIO_CONFIG = {
+    "trim_silence": True,  # 是否启用音频静音去除功能
+    "silence_threshold": -60.0, # 静音检测阈值（dB）
+    "silence_chunk_size": 10, # 静音检测块大小（毫秒）
+    "max_trim_ratio": 0.1,  # 最大裁剪比例（防止过度裁剪）
+    "min_silence_duration": 10,  # 最小静音时长（毫秒），低于此值不处理
+}
+
 # 应用配置
 APP_CONFIG = {
     "debug": get_env_var("DEBUG", "False").lower() == "true",
@@ -284,6 +293,10 @@ def get_option_system_prompt():
     """获取选项生成系统提示词"""
     return OPTION_SYSTEM_PROMPTS
 
+def get_tts_audio_config():
+    """获取TTS音频处理配置"""
+    return TTS_AUDIO_CONFIG.copy()
+
 def validate_config():
     """验证配置完整性"""
     # 验证对话模型配置
@@ -314,8 +327,12 @@ def validate_config():
     required_app_keys = ["debug", "port", "host", "image_cache_dir", "history_dir", "max_history_length", "show_scene_name", "clean_assistant_history"]
     missing_app_keys = [key for key in required_app_keys if key not in APP_CONFIG]
     
+    # 验证TTS音频配置
+    required_tts_keys = ["trim_silence", "silence_threshold", "silence_chunk_size", "max_trim_ratio", "min_silence_duration"]
+    missing_tts_keys = [key for key in required_tts_keys if key not in TTS_AUDIO_CONFIG]
+    
     # 合并所有缺失的配置项
-    all_missing = missing_chat_keys + missing_image_keys + missing_stream_keys + missing_memory_keys + missing_option_keys + missing_app_keys
+    all_missing = missing_chat_keys + missing_image_keys + missing_stream_keys + missing_memory_keys + missing_option_keys + missing_app_keys + missing_tts_keys
     
     if all_missing:
         raise ValueError(f"配置不完整，缺少以下配置项: {', '.join(all_missing)}")
@@ -335,5 +352,7 @@ if __name__ == "__main__":
             print(f"记忆检索top_k: {get_memory_config()['top_k']}")
             print(f"选项生成启用: {get_option_config()['enable_option_generation']}")
             print(f"选项生成模型: {get_option_config()['model']}")
+            print(f"TTS静音去除启用: {get_tts_audio_config()['trim_silence']}")
+            print(f"TTS静音阈值: {get_tts_audio_config()['silence_threshold']}dB")
     except ValueError as e:
         print(f"配置验证失败: {e}")

@@ -11,7 +11,7 @@
 
 ---
 
-## [项目网站](https://leletxh.github.io)
+## [项目网站(常年不更新)](https://leletxh.github.io)
 
 ## 项目简介
 CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式对话应用，用户可以与AI角色进行深度互动，体验类似视觉小说(Galgame)的情感化叙事。项目结合了大型语言模型、检索增强生成、语音合成等技术，提供：
@@ -83,7 +83,7 @@ CABM（Code Afflatus & Beyond Matter）是一个融合先进AI技术的沉浸式
 ## 安装说明
 
 ### 🎮方法一：无脑安装（仅限Windows）
-1. [点击下载安装包](https://github.com/leletxh/CABM-run/releases/download/V1.1.1/-V1.1.1-win-x64.zip)
+1. [点击下载安装包](https://github.com/leletxh/CABM-run/releases/download/V1.1.3/-V1.1.3-win-x64.zip)
 2. 解压
 3. 双击“启动器.exe”
 4. 去[硅基流动平台](https://cloud.siliconflow.cn/i/mVqMyTZk)申请你的API密钥

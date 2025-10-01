@@ -6,8 +6,90 @@ import re
 import requests
 from pathlib import Path
 from utils.env_utils import get_env_var
+from pydub import AudioSegment
+from pydub.silence import detect_leading_silence
+from io import BytesIO
+from config import get_tts_audio_config
 
 logger = logging.getLogger(__name__)
+
+def trim_audio_silence(audio_data, silence_threshold=None, chunk_size=None):
+    """
+    去除音频开头和结尾的静音部分
+    
+    Args:
+        audio_data: 音频数据 (bytes)
+        silence_threshold: 静音阈值 (dB)，默认从配置读取
+        chunk_size: 检测块大小 (ms)，默认从配置读取
+    
+    Returns:
+        处理后的音频数据 (bytes)
+    """
+    # 获取TTS音频配置
+    tts_config = get_tts_audio_config()
+    
+    # 检查是否启用静音去除功能
+    if not tts_config["trim_silence"]:
+        return audio_data
+    
+    # 从配置获取参数
+    if silence_threshold is None:
+        silence_threshold = tts_config["silence_threshold"]
+    if chunk_size is None:
+        chunk_size = tts_config["silence_chunk_size"]
+    
+    try:
+        # 将字节数据转换为AudioSegment对象
+        audio_io = BytesIO(audio_data)
+        audio_segment = AudioSegment.from_file(audio_io, format="wav")
+        
+        # 检测开头静音长度
+        start_trim = detect_leading_silence(audio_segment, silence_threshold, chunk_size)
+        
+        # 检测结尾静音长度（通过反转音频）
+        end_trim = detect_leading_silence(audio_segment.reverse(), silence_threshold, chunk_size)
+        
+        # 计算音频总长度
+        duration = len(audio_segment)
+        
+        # 如果检测到的静音时间过长，保留一些静音避免过度裁剪
+        max_trim = duration * tts_config["max_trim_ratio"]
+        start_trim = min(start_trim, max_trim)
+        end_trim = min(end_trim, max_trim)
+        
+        # 确保裁剪后还有音频内容
+        if start_trim + end_trim >= duration:
+            logger.warning("检测到的静音时间过长，跳过裁剪")
+            return audio_data
+        
+        # 如果没有检测到明显的静音，直接返回原音频
+        min_silence = tts_config["min_silence_duration"]
+        if start_trim < min_silence and end_trim < min_silence:
+            return audio_data
+        
+        # 裁剪音频
+        trimmed_audio = audio_segment[start_trim:duration-end_trim]
+        
+        # 转换回字节数据
+        output_io = BytesIO()
+        trimmed_audio.export(output_io, format="wav")
+        output_io.seek(0)
+        
+        trimmed_data = output_io.read()
+        
+        # 记录处理结果
+        original_duration = duration / 1000.0  # 转换为秒
+        trimmed_duration = len(trimmed_audio) / 1000.0
+        saved_time = original_duration - trimmed_duration
+        
+        if saved_time > 0.01:  # 只有节省超过10ms才记录
+            logger.info(f"音频静音处理: 原长度 {original_duration:.3f}s -> 处理后 {trimmed_duration:.3f}s (节省 {saved_time:.3f}s)")
+        
+        return trimmed_data
+        
+    except Exception as e:
+        logger.warning(f"音频静音处理失败，返回原音频: {e}")
+        return audio_data
 if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
     class ttsService:
         def __init__(self):
@@ -301,7 +383,10 @@ if get_env_var("TTS_SERVICE_METHOD", "siliconflow").lower() == "siliconflow":
             try:
                 response = requests.post(url, json=params, headers=self.headers)
                 if response.status_code == 200:
-                    return response.content
+                    # 对音频进行静音处理
+                    raw_audio = response.content
+                    processed_audio = trim_audio_silence(raw_audio)
+                    return processed_audio
                 else:
                     logger.error(f"TTS 请求失败: {response.status_code}, {response.text}")
                     response.raise_for_status()
@@ -362,7 +447,10 @@ else:
             response = requests.post(url, json=params)
 
             if response.status_code == 200:
-                return response.content
+                # 对音频进行静音处理
+                raw_audio = response.content
+                processed_audio = trim_audio_silence(raw_audio)
+                return processed_audio
             else:
                 response.raise_for_status()
         def running(self):
