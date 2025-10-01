@@ -42,6 +42,7 @@ class BGMService {
         this.lastPlayTime = 0;
         this.playCooldown = 2000; // 2秒冷却时间
         this.playingPromise = null; // 跟踪播放状态
+        this.lastRandomTrack = null; // 记录上一首随机播放的歌曲
 
         // 存储单例实例
         window.bgmServiceInstance = this;
@@ -266,7 +267,27 @@ class BGMService {
             this.buffer = await this.fetchAndDecode(trackName);
             this.source = this.ctx.createBufferSource();
             this.source.buffer = this.buffer;
-            this.source.loop = true;
+            
+            // 检查当前页面配置是否为随机播放
+            const config = this.pageConfigs[this.currentPage];
+            const isRandomMode = config && config.track === 'random';
+            
+            if (isRandomMode) {
+                // 随机模式下不循环，播放完毕后播放下一首
+                this.source.loop = false;
+                // 监听播放结束事件
+                this.source.onended = () => {
+                    if (this.isPlaying && this.enabled) {
+                        console.log(`BGM Service: ${trackName} 播放完毕，播放下一首随机歌曲`);
+                        setTimeout(() => {
+                            this.playRandom();
+                        }, 500); // 短暂延迟避免快速切换
+                    }
+                };
+            } else {
+                // 非随机模式下循环播放
+                this.source.loop = true;
+            }
 
             this.gainNode = this.ctx.createGain();
             this.gainNode.gain.value = this.volume;
@@ -276,7 +297,7 @@ class BGMService {
             this.isPlaying = true;
             this.currentTrack = trackName;
             this.lastPlayTime = Date.now();
-            console.log(`BGM Service: 开始播放 ${trackName}`);
+            console.log(`BGM Service: 开始播放 ${trackName} (循环: ${this.source.loop})`);
         } catch (error) {
             console.error('BGM Service: 播放失败:', error);
             this.isPlaying = false;
@@ -296,8 +317,29 @@ class BGMService {
 
     async playRandom() {
         if (!this.enabled || !this.tracks.length) return;
-        const r = Math.floor(Math.random() * this.tracks.length);
-        await this.playTrack(this.tracks[r]);
+        
+        // 如果只有一首歌，直接播放
+        if (this.tracks.length === 1) {
+            await this.playTrack(this.tracks[0]);
+            return;
+        }
+        
+        // 选择一首与上次不同的随机歌曲
+        let randomTrack;
+        let attempts = 0;
+        const maxAttempts = 10; // 防止无限循环
+        
+        do {
+            const randomIndex = Math.floor(Math.random() * this.tracks.length);
+            randomTrack = this.tracks[randomIndex];
+            attempts++;
+        } while (randomTrack === this.lastRandomTrack && attempts < maxAttempts);
+        
+        // 记录这次播放的歌曲
+        this.lastRandomTrack = randomTrack;
+        
+        console.log(`BGM Service: 随机选择歌曲 ${randomTrack} (上次: ${this.currentTrack})`);
+        await this.playTrack(randomTrack);
     }
 
     pause() {
