@@ -61,7 +61,7 @@
 
         .tab-content {
             display: none;
-            padding: 40px 0 20px 0;
+            padding: 0px 0 20px 0;
         }
 
         .tab-content.active {
@@ -807,19 +807,19 @@
 
                     <div class="form-group">
                         <label for="backgroundDescInput">背景描述</label>
-                        <textarea id="backgroundDescInput" class="sci-fi-input" placeholder="背景的简介描述（可选）" rows="3"
+                        <textarea id="backgroundDescInput" class="sci-fi-input" placeholder="背景的简介描述" rows="3"
                             style="width: 100%; min-height: 80px;"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="backgroundPromptInput">提示词</label>
-                        <textarea id="backgroundPromptInput" class="sci-fi-input" placeholder="用于AI生成的提示词（可选）" rows="4"
+                        <textarea id="backgroundPromptInput" class="sci-fi-input" placeholder="客观地描述这张图片" rows="4"
                             style="width: 100%; min-height: 100px;"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label for="backgroundFileInput">背景图片（可选）</label>
-                        <div class="form-description">选择背景图片文件（支持 JPG、PNG、GIF、WebP）。如果不选择文件，将创建带有背景名称的占位图片。</div>
+                        <label for="backgroundFileInput">背景图片</label>
+                        <div class="form-description">上传背景图片文件（支持 JPG、PNG、GIF、WebP）。如果上传图片，则使用AI生成</div>
                         <input type="file" id="backgroundFileInput" class="sci-fi-input form-file"
                             accept=".jpg,.jpeg,.png,.gif,.webp">
                     </div>

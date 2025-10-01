@@ -175,7 +175,7 @@ python start.py --host 127.0.0.1 --port 8080 --debug --no-browser
 直接在资源管理里上传，支持音频类型文件
 
 ### 自定义背景
-在data/backgrounds/中修改，支持图片类型文件。同时需要在background.json同步图片名称、描述等
+直接在资源管理里上传，支持图片类型文件
 
 ## 其他注意事项
 - 手机可以访问，但是排版会有问题
