@@ -329,7 +329,7 @@ async function importCharacter(file) {
 
     try {
         // 显示上传进度提示
-        showSuccess('正在导入角色，请稍候...');
+        // showSuccess('正在导入角色，请稍候...');
 
         const response = await fetch('/api/import-character', {
             method: 'POST',

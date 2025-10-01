@@ -190,22 +190,25 @@ class StreamProcessor {
 
         // 如果是角色切换标记
         if (item.type === 'SWITCH_CHARACTER') {
-            console.log('StreamProcessor: 发现角色切换标记，等待暂停后执行:', item.characterName);
+            console.log('StreamProcessor: 发现角色切换标记，立即执行角色切换:', item.characterName);
+            
+            // 立即执行角色切换，不等待暂停
+            if (window.switchToCharacter) {
+                window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
+            }
+            
+            // 立即更新UI中的角色名显示
+            if (window.updateCurrentCharacterDisplay) {
+                window.updateCurrentCharacterDisplay(item.characterID, item.characterName);
+            }
             
             // 检查当前段落是否有内容需要暂停
             if (this.currentParagraph) {
                 // 有内容，触发暂停
                 this.handlePause();
-                // 将角色切换标记放回缓冲区开头，暂停后再处理
-                this.buffer.unshift(item);
                 return;
             } else {
-                // 没有内容需要暂停，立即执行角色切换
-                console.log('StreamProcessor: 立即执行角色切换:', item.characterName);
-                if (window.switchToCharacter) {
-                    window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
-                }
-                // 继续处理下一个项目
+                // 没有内容，继续处理下一个项目
                 this.processingTimeout = setTimeout(() => {
                     this.processingTimeout = null;
                     this.processBuffer();
@@ -317,6 +320,10 @@ class StreamProcessor {
                 // 执行角色切换
                 if (window.switchToCharacter) {
                     window.switchToCharacter(item.characterID, item.characterName, item.characterMood);
+                }
+                // 立即更新UI中的角色名显示
+                if (window.updateCurrentCharacterDisplay) {
+                    window.updateCurrentCharacterDisplay(item.characterID, item.characterName);
                 }
             }
 

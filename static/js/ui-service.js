@@ -168,6 +168,26 @@ function updateCharacterDisplay(name, color, role) {
     lastDisplayedCharacterName = name;
 }
 
+// 立即更新当前角色显示（用于多角色模式的即时更新）
+export function updateCurrentCharacterDisplay(characterId, characterName) {
+    console.log("立即更新角色显示：", characterName);
+    
+    // 立即更新UI显示
+    updateCharacterDisplay(characterName, '#ffeb3b', characterId);
+    
+    // 异步获取完整角色信息以更新颜色等详细信息
+    if (window.getCharacterById) {
+        window.getCharacterById(characterId).then(character => {
+            if (character && character.color) {
+                updateCharacterDisplay(character.name, character.color, characterId);
+                console.log("异步更新角色颜色：", character.name, character.color);
+            }
+        }).catch(error => {
+            console.error('异步获取角色信息失败:', error);
+        });
+    }
+}
+
 // 添加消息到历史记录
 export function addToHistory(role, content, customName = null) {
     messageHistory.push({
@@ -481,3 +501,4 @@ export function resetCharacterDisplayCache() {
 // 暴露给全局使用
 window.hideOptionButtons = hideOptionButtons;
 window.resetCharacterDisplayCache = resetCharacterDisplayCache;
+window.updateCurrentCharacterDisplay = updateCurrentCharacterDisplay;

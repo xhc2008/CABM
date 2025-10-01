@@ -126,6 +126,11 @@ export function initMultiCharacterService() {
 export function switchToCharacter(characterId, characterName, characterMood = null) {
     console.log(`切换到角色: ${characterName} (${characterId}), 心情: ${characterMood}`);
     
+    // 立即更新UI中的角色名显示，避免延迟
+    if (window.updateCurrentCharacterDisplay) {
+        window.updateCurrentCharacterDisplay(characterId, characterName);
+    }
+    
     // 检查是否已经是当前说话角色
     const currentSpeakingChar = findCurrentSpeakingCharacter();
     if (currentSpeakingChar && currentSpeakingChar.id === characterId) {
@@ -138,6 +143,16 @@ export function switchToCharacter(characterId, characterName, characterMood = nu
         }
         return;
     }
+    
+    // 先从缓存中尝试获取角色信息，如果有缓存则立即设置
+    if (characterCache.has(characterId)) {
+        const cachedCharacter = characterCache.get(characterId);
+        console.log("从缓存获取角色信息并立即设置", cachedCharacter);
+        setCurrentCharacter(cachedCharacter);
+        showCharacter(characterId, cachedCharacter, characterName, characterMood);
+        return;
+    }
+    
     // 获取角色配置
     fetch(`/api/characters/${characterId}`)
         .then(response => response.json())
@@ -147,6 +162,9 @@ export function switchToCharacter(characterId, characterName, characterMood = nu
                 console.log("更新current角色", character);
                 setCurrentCharacter(character);
                 showCharacter(characterId, character, characterName, characterMood);
+                
+                // 缓存角色信息
+                characterCache.set(characterId, character);
             }
         })
         .catch(error => {
