@@ -626,6 +626,7 @@
                     <div class="character-actions">
                         <button id="createCharacterBtn" class="btn sci-fi-btn primary">创建角色</button>
                         <button id="importCharacterBtn" class="btn sci-fi-btn secondary">导入角色</button>
+                        <input type="file" id="hiddenCharacterFileInput" style="display: none;" accept=".zip">
                     </div>
 
                     <div id="charactersList" class="character-list">
@@ -735,26 +736,7 @@
         </div>
     </div>
 
-    <!-- 导入角色模态框 -->
-    <div id="importModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>导入角色</h3>
-                <button class="close-btn" onclick="closeImportModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="importCharacterFile">角色文件</label>
-                    <div class="form-description">选择要导入的角色zip文件</div>
-                    <input type="file" id="importCharacterFile" class="sci-fi-input form-file" accept=".zip">
-                </div>
-                <div class="modal-actions">
-                    <button id="confirmImportBtn" class="btn sci-fi-btn primary">导入</button>
-                    <button class="btn sci-fi-btn secondary" onclick="closeImportModal()">取消</button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 背景详情模态框 -->
     <div id="backgroundDetailModal" class="modal">

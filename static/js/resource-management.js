@@ -9,6 +9,10 @@ let currentBackgroundDetail = null;
 
 // 防止重复提交的标志
 let isSubmittingBackground = false;
+let isImportingCharacter = false;
+
+// 防止重复绑定事件的标志
+let isEventsBound = false;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
@@ -65,9 +69,14 @@ function initTabs() {
 
 // 初始化按钮事件
 function initButtons() {
-    // 导入角色按钮
+    // 防止重复绑定事件
+    if (isEventsBound) {
+        return;
+    }
+
+    // 导入角色按钮 - 直接触发文件选择
     document.getElementById('importCharacterBtn').addEventListener('click', function () {
-        document.getElementById('importModal').style.display = 'block';
+        document.getElementById('hiddenCharacterFileInput').click();
     });
 
     // 创建角色按钮
@@ -75,8 +84,14 @@ function initButtons() {
         window.location.href = '/custom_character';
     });
 
-    // 确认导入按钮
-    document.getElementById('confirmImportBtn').addEventListener('click', importCharacter);
+    // 隐藏角色文件输入变化事件
+    document.getElementById('hiddenCharacterFileInput').addEventListener('change', function (e) {
+        if (e.target.files.length > 0) {
+            importCharacter(e.target.files[0]);
+            // 清空文件输入，允许重复选择同一文件
+            e.target.value = '';
+        }
+    });
 
     // 导出角色按钮
     document.getElementById('exportCharacterBtn').addEventListener('click', exportCurrentCharacter);
@@ -98,6 +113,8 @@ function initButtons() {
     document.getElementById('hiddenMusicFileInput').addEventListener('change', function (e) {
         if (e.target.files.length > 0) {
             addMusic(e.target.files[0]);
+            // 清空文件输入，允许重复选择同一文件
+            e.target.value = '';
         }
     });
 
@@ -115,6 +132,9 @@ function initButtons() {
         e.preventDefault();
         handleBackgroundFormSubmit();
     });
+
+    // 标记事件已绑定
+    isEventsBound = true;
 }
 
 // 加载角色列表
@@ -284,9 +304,12 @@ async function deleteCurrentCharacter() {
 }
 
 // 导入角色
-async function importCharacter() {
-    const fileInput = document.getElementById('importCharacterFile');
-    const file = fileInput.files[0];
+async function importCharacter(file) {
+    // 防止重复导入
+    if (isImportingCharacter) {
+        console.log('正在导入中，忽略重复请求');
+        return;
+    }
 
     if (!file) {
         showError('请选择要导入的文件');
@@ -298,10 +321,16 @@ async function importCharacter() {
         return;
     }
 
+    // 设置导入标志
+    isImportingCharacter = true;
+
     const formData = new FormData();
     formData.append('characterFile', file);
 
     try {
+        // 显示上传进度提示
+        showSuccess('正在导入角色，请稍候...');
+
         const response = await fetch('/api/import-character', {
             method: 'POST',
             body: formData
@@ -311,7 +340,8 @@ async function importCharacter() {
 
         if (data.success) {
             showSuccess('角色导入成功');
-            closeImportModal();
+            // 清空文件输入
+            document.getElementById('hiddenCharacterFileInput').value = '';
             loadCharacters(); // 重新加载角色列表
         } else {
             showError('导入失败: ' + data.error);
@@ -319,14 +349,13 @@ async function importCharacter() {
     } catch (error) {
         console.error('导入角色失败:', error);
         showError('导入角色失败: ' + error.message);
+    } finally {
+        // 重置导入标志
+        isImportingCharacter = false;
     }
 }
 
-// 关闭导入模态框
-function closeImportModal() {
-    document.getElementById('importModal').style.display = 'none';
-    document.getElementById('importCharacterFile').value = '';
-}
+
 
 // 显示成功消息
 function showSuccess(message) {
