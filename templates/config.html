@@ -5,11 +5,54 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>环境变量配置</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
 <div class="container mt-5 mb-5">
 	<h2 class="mb-4">环境变量配置表单</h2>
+	
+	<!-- 简易填写方式 -->
+	<div class="card mb-4">
+		<div class="card-header bg-primary text-white">
+			<h4 class="mb-0">🚀 简易填写 API 密钥</h4>
+		</div>
+		<div class="card-body">
+			<div class="alert alert-info">
+				<h6>获取 API 密钥步骤：</h6>
+				<ol class="mb-0">
+					<li><a href="https://cloud.siliconflow.cn/i/mVqMyTZk" target="_blank" class="text-decoration-none">点击这里</a>，然后注册账号</li>
+					<li>点击左下角的"API密钥"</li>
+					<li>点击左上角的"新建API密钥"</li>
+					<li>描述随便写，然后点击"新建密钥"</li>
+					<li>点击密钥进行复制</li>
+				</ol>
+			</div>
+			<form action="/config/simple" method="post" class="mb-0">
+				<div class="mb-3">
+					<label for="simple_api_key" class="form-label fw-bold">填写 API 密钥</label>
+					<input type="text" class="form-control form-control-lg" id="simple_api_key" name="simple_api_key" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+					<div class="form-text">此密钥将应用到所有 API 配置项，使用默认推荐配置</div>
+				</div>
+				<button type="submit" class="btn btn-success btn-lg">
+					<i class="bi bi-check-circle"></i> 确定
+				</button>
+			</form>
+		</div>
+	</div>
+
+	<!-- 分隔线 -->
+	<div class="text-center mb-4">
+		<hr class="my-4">
+		<span class="badge bg-secondary fs-6">或者使用详细配置</span>
+		<hr class="my-4">
+	</div>
+
 	<form action="/config" method="post">
+		<div class="alert alert-warning">
+			<h6>📝 详细配置说明：</h6>
+			<p class="mb-0">如果您需要使用不同的 API 服务商或自定义配置，可以使用下面的详细配置方式。每个模块可以单独配置不同的 API 密钥和服务地址。</p>
+		</div>
+		
 		<!-- 对话API配置 -->
 		<fieldset class="border p-3 mb-4 rounded">
 			<legend class="float-none w-auto px-2">对话API配置</legend>
