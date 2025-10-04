@@ -1,7 +1,6 @@
 name: Build Executables with Nuitka (Multi-Arch)
 
-# 添加 schedule 触发器，这里设置为每天（UTC 时间）凌晨 2 点执行
-# 您可以根据需要调整 cron 表达式
+# 添加 schedule 触发器，这里设置为每周一 UTC 时间早上 7 点执行（对应北京时间 15:00）
 on:
   workflow_dispatch:
     inputs:
@@ -17,10 +16,8 @@ on:
         description: '构建描述 (optional)'
         required: true
         default: '支持 Windows/Linux/macOS 多架构'
-  # --- 新增的定时触发器 ---
   schedule:
-    - cron: '0 7 * * 1' 
-  # -----------------------
+    - cron: '0 7 * * 1'
 
 permissions:
   contents: write
@@ -64,13 +61,25 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
           pip install rank_bm25 jieba tqdm
-          # 安装 CPU-only 版本的 PyTorch
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🖥️ Build Windows executable
         shell: pwsh
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --mingw64 --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          $jiebaDict = python -c "import jieba; import os; print(os.path.join(os.path.dirname(jieba.__file__), 'dict.txt'))"
+          python -m nuitka `
+            --assume-yes-for-downloads `
+            --standalone `
+            --mingw64 `
+            --enable-plugin=pylint-warnings `
+            --include-package=services `
+            --include-package=utils `
+            --include-package=utils.RAG `
+            --include-package=utils.RAG.Multi_Recall `
+            --include-package=utils.RAG.Reranker `
+            --include-package=rtoml `
+            --include-data-file="$jiebaDict=jieba/dict.txt" `
+            --output-dir=dist start.py
 
           if (Test-Path "characters") { Copy-Item -Path "characters" -Destination "dist\start.dist\characters" -Recurse -Force }
           if (Test-Path "data")       { Copy-Item -Path "data"       -Destination "dist\start.dist\data"       -Recurse -Force }
@@ -287,12 +296,23 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
           pip install rank_bm25 jieba tqdm
-          # 安装 CPU-only 版本的 PyTorch
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🐧 Build Linux executable
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          JIEBA_DICT=$(python -c "import jieba; import os; print(os.path.join(os.path.dirname(jieba.__file__), 'dict.txt'))")
+          python -m nuitka \
+            --assume-yes-for-downloads \
+            --standalone \
+            --enable-plugin=pylint-warnings \
+            --include-package=services \
+            --include-package=utils \
+            --include-package=utils.RAG \
+            --include-package=utils.RAG.Multi_Recall \
+            --include-package=utils.RAG.Reranker \
+            --include-package=rtoml \
+            --include-data-file="$JIEBA_DICT=jieba/dict.txt" \
+            --output-dir=dist start.py
 
           mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
           [ -d characters ] && cp -r characters dist/start.dist/
@@ -309,17 +329,10 @@ jobs:
 
       - name: 📦 Package Linux release
         run: |
-          # 删除可能冲突的目录
           rm -rf characters data static templates config
-
-          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
-
-          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
-
-          # 压缩为 zip
           zip -r Linux-x64-Full-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
@@ -362,7 +375,17 @@ jobs:
 
       - name: 🐧 Build Linux executable
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          python -m nuitka \
+            --assume-yes-for-downloads \
+            --standalone \
+            --enable-plugin=pylint-warnings \
+            --include-package=services \
+            --include-package=utils \
+            --include-package=utils.RAG \
+            --include-package=utils.RAG.Multi_Recall \
+            --include-package=utils.RAG.Reranker \
+            --include-package=rtoml \
+            --output-dir=dist start.py
 
           mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
           [ -d characters ] && cp -r characters dist/start.dist/
@@ -379,17 +402,10 @@ jobs:
 
       - name: 📦 Package Linux release
         run: |
-          # 删除可能冲突的目录
           rm -rf characters data static templates config
-
-          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
-
-          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
-
-          # 压缩为 zip
           zip -r Linux-x64-Lite-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
@@ -431,12 +447,23 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
           pip install rank_bm25 jieba tqdm
-          # 安装 CPU-only 版本的 PyTorch
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🍏 Build macOS executable
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          JIEBA_DICT=$(python -c "import jieba; import os; print(os.path.join(os.path.dirname(jieba.__file__), 'dict.txt'))")
+          python -m nuitka \
+            --assume-yes-for-downloads \
+            --standalone \
+            --enable-plugin=pylint-warnings \
+            --include-package=services \
+            --include-package=utils \
+            --include-package=utils.RAG \
+            --include-package=utils.RAG.Multi_Recall \
+            --include-package=utils.RAG.Reranker \
+            --include-package=rtoml \
+            --include-data-file="$JIEBA_DICT=jieba/dict.txt" \
+            --output-dir=dist start.py
 
           mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
           [ -d characters ] && cp -r characters dist/start.dist/
@@ -453,17 +480,10 @@ jobs:
 
       - name: 📦 Package macOS release
         run: |
-          # 删除可能冲突的目录
           rm -rf characters data static templates config
-
-          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
-
-          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
-
-          # 压缩为 zip
           zip -r macOS-x64-Full-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
@@ -506,7 +526,17 @@ jobs:
 
       - name: 🍏 Build macOS executable
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          python -m nuitka \
+            --assume-yes-for-downloads \
+            --standalone \
+            --enable-plugin=pylint-warnings \
+            --include-package=services \
+            --include-package=utils \
+            --include-package=utils.RAG \
+            --include-package=utils.RAG.Multi_Recall \
+            --include-package=utils.RAG.Reranker \
+            --include-package=rtoml \
+            --output-dir=dist start.py
 
           mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
           [ -d characters ] && cp -r characters dist/start.dist/
@@ -523,17 +553,10 @@ jobs:
 
       - name: 📦 Package macOS release
         run: |
-          # 删除可能冲突的目录
           rm -rf characters data static templates config
-
-          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
-
-          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
-
-          # 压缩为 zip
           zip -r macOS-x64-Lite-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
@@ -574,12 +597,23 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
           pip install rank_bm25 jieba tqdm
-          # 安装 CPU-only 版本的 PyTorch
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: 🍏 Build macOS executable
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          JIEBA_DICT=$(python -c "import jieba; import os; print(os.path.join(os.path.dirname(jieba.__file__), 'dict.txt'))")
+          python -m nuitka \
+            --assume-yes-for-downloads \
+            --standalone \
+            --enable-plugin=pylint-warnings \
+            --include-package=services \
+            --include-package=utils \
+            --include-package=utils.RAG \
+            --include-package=utils.RAG.Multi_Recall \
+            --include-package=utils.RAG.Reranker \
+            --include-package=rtoml \
+            --include-data-file="$JIEBA_DICT=jieba/dict.txt" \
+            --output-dir=dist start.py
 
           mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
           [ -d characters ] && cp -r characters dist/start.dist/
@@ -596,17 +630,10 @@ jobs:
 
       - name: 📦 Package macOS release
         run: |
-          # 删除可能冲突的目录
           rm -rf characters data static templates config
-
-          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
-
-          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
-
-          # 压缩为 zip
           zip -r macOS-ARM64-Full-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
@@ -649,7 +676,17 @@ jobs:
 
       - name: 🍏 Build macOS executable
         run: |
-          python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=pylint-warnings --include-package=services --include-package=utils --include-package=utils.RAG --include-package=utils.RAG.Multi_Recall --include-package=utils.RAG.Reranker --include-package=rtoml --output-dir=dist start.py
+          python -m nuitka \
+            --assume-yes-for-downloads \
+            --standalone \
+            --enable-plugin=pylint-warnings \
+            --include-package=services \
+            --include-package=utils \
+            --include-package=utils.RAG \
+            --include-package=utils.RAG.Multi_Recall \
+            --include-package=utils.RAG.Reranker \
+            --include-package=rtoml \
+            --output-dir=dist start.py
 
           mkdir -p dist/start.dist/characters dist/start.dist/data dist/start.dist/static dist/start.dist/templates dist/start.dist/config
           [ -d characters ] && cp -r characters dist/start.dist/
@@ -666,17 +703,10 @@ jobs:
 
       - name: 📦 Package macOS release
         run: |
-          # 删除可能冲突的目录
           rm -rf characters data static templates config
-
-          # 移动 app 内容到根目录
           mv app/* ./
           rmdir app
-
-          # 重命名可执行文件（如果存在）
           [ -f start ] && mv start app
-
-          # 压缩为 zip
           zip -r macOS-ARM64-Lite-Release-${{ inputs.version }}.zip . -x "*.git*" -x "*.zip"
 
       - name: 📤 Upload Artifact
@@ -688,7 +718,6 @@ jobs:
 
   # ==================== PUBLISH ALL ====================
   publish-release:
-    # 为定时任务添加一个条件，使其不执行（因为定时任务会触发自己的发布）
     if: github.event_name == 'workflow_dispatch'
     needs:
       - build-windows-x64-full
@@ -724,9 +753,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd artifacts
-          # Flatten all zip files to current dir
           find . -type f -name "*.zip" -exec mv {} . \; 2>/dev/null || true
-          # Remove any left empty dirs
           find . -type d -empty -delete
 
           gh release create "${{ inputs.version }}" \
@@ -744,24 +771,22 @@ jobs:
 
   # ==================== SCHEDULED BUILD JOB ====================
   scheduled-build:
-    # 确保此任务只在 schedule 触发时运行
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 10 # 此任务本身应该很快
+    timeout-minutes: 10
     outputs:
       new_version: ${{ steps.generate_version.outputs.new_version }}
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
         with:
-          # 需要获取 token 以允许后续步骤推送更改
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🔍 Read current version from /api/tag
         id: read_version
         run: |
           if [ -f /api/tag ]; then
-            CURRENT_VERSION=$(cat /api/tag | xargs) # xargs 去除可能的前后空格
+            CURRENT_VERSION=$(cat /api/tag | xargs)
             echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
             echo "Found current version: $CURRENT_VERSION"
           else
@@ -773,10 +798,7 @@ jobs:
         id: generate_version
         run: |
           CURRENT="${{ steps.read_version.outputs.current_version }}"
-          # 假设版本格式为 x.y.z
-          # 提取数字部分，例如 0.4.8 -> 0 4 8
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          # 尝试从 PATCH 部分的末尾提取数字，如果没有，则默认为 0
           if [[ $PATCH =~ ^([0-9]+)([0-9]*)$ ]]; then
               BASE_NUM="${BASH_REMATCH[1]}"
               SUFFIX_NUM="${BASH_REMATCH[2]:-0}"
@@ -784,7 +806,6 @@ jobs:
               BASE_NUM="$PATCH"
               SUFFIX_NUM="0"
           fi
-          # 生成新版本号，例如 0.4.8 -> 0.4.81 -> 0.4.82
           NEW_VERSION="${MAJOR}.${MINOR}.${BASE_NUM}${SUFFIX_NUM}1"
           echo "Generated new version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -802,13 +823,11 @@ jobs:
           inputs: '{"version": "${{ steps.generate_version.outputs.new_version }}", "release_name": "Scheduled Build ${{ steps.generate_version.outputs.new_version }}", "release_text": "Automated build triggered by schedule. Version based on /api/tag."}'
           ref: ${{ github.ref }}
 
-  # ==================== SCHEDULED PUBLISH JOB (NEW) ====================
-  # 新增一个发布任务，专门用于定时构建后的发布和文件更新
+  # ==================== SCHEDULED PUBLISH JOB ====================
   publish-scheduled-release:
     needs: scheduled-build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # 确保此任务只在 schedule 触发时运行
     if: github.event_name == 'schedule'
     steps:
       - name: 🛒 Checkout code (for tag update)
@@ -836,9 +855,7 @@ jobs:
         run: |
           NEW_VERSION="${{ needs.scheduled-build.outputs.new_version }}"
           cd artifacts
-          # Flatten all zip files to current dir
           find . -type f -name "*.zip" -exec mv {} . \; 2>/dev/null || true
-          # Remove any left empty dirs
           find . -type d -empty -delete
 
           gh release create "$NEW_VERSION" \
@@ -861,4 +878,4 @@ jobs:
           git config --local user.name "GitHub Action"
           git add /api/tag
           git commit -m "Update /api/tag to $NEW_VERSION [skip ci]" || echo "No changes to commit"
-          git push origin HEAD:${{ github.ref_name }} # Push to the current branch (e.g., main)
+          git push origin HEAD:${{ github.ref_name }}
