@@ -1,0 +1,589 @@
+/* 资源管理页面特有样式 */
+.resource-tabs {
+    display: flex;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    margin: 20px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 150, 255, 0.1);
+}
+
+.resource-tab {
+    flex: 1;
+    padding: 15px 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--animation-speed) ease;
+    font-size: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.resource-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.resource-tab:hover::before {
+    left: 100%;
+}
+
+.resource-tab.active {
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
+    color: var(--text-primary);
+    box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.resource-tab:hover {
+    background: rgba(0, 150, 255, 0.15);
+    color: var(--text-primary);
+}
+
+.tab-content {
+    display: none;
+    padding: 0px 0 20px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.character-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.character-list {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    padding: 20px;
+    height: calc(100dvh - 280px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--glass-bg);
+    box-sizing: border-box;
+    align-content: start;
+}
+
+.character-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.character-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.character-list::-webkit-scrollbar-thumb {
+    background: var(--primary-blue);
+    border-radius: 4px;
+}
+
+.character-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-cyan);
+}
+
+.character-item {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
+    flex-shrink: 0;
+}
+
+.character-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.character-item:hover::before {
+    left: 100%;
+}
+
+.character-item:hover {
+    transform: translateY(-3px);
+}
+
+.character-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.character-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    text-shadow: 0 0 10px currentColor;
+}
+
+.character-id {
+    font-size: 14px;
+    opacity: 0.7;
+    color: var(--text-secondary);
+}
+
+.character-actions-btn {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(30, 35, 45, 0.95), rgba(20, 25, 35, 0.95));
+    backdrop-filter: blur(10px);
+    margin: 3% auto;
+    padding: 0;
+    border-radius: 15px;
+    width: 95%;
+    height: 100%;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), var(--glow-size) rgba(0, 255, 255, 0.2);
+}
+
+.modal-header {
+    padding: 25px 30px;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(40, 50, 65, 0.8), rgba(30, 40, 55, 0.8));
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 22px;
+    text-shadow: 0 0 10px var(--primary-cyan);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.character-detail {
+    display: flex;
+    gap: 25px;
+    align-items: flex-start;
+}
+
+.character-avatar {
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid var(--glass-border);
+    box-shadow: var(--glow-size) rgba(0, 255, 255, 0.2);
+}
+
+.character-profile {
+    flex: 1;
+}
+
+.profile-item {
+    margin-bottom: 18px;
+}
+
+.profile-label {
+    font-weight: 600;
+    color: var(--text-accent);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+.profile-value {
+    color: var(--text-primary);
+    line-height: 1.5;
+    font-size: 15px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all var(--animation-speed) ease;
+}
+
+.close-btn:hover {
+    color: var(--text-primary);
+    background: var(--glass-bg);
+}
+
+.confirm-input {
+    width: 100%;
+    padding: 15px;
+    font-size: 14px;
+    margin-top: 15px;
+}
+
+.danger-btn {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 30, 50, 0.8)) !important;
+    border: 1px solid rgba(220, 53, 69, 0.6) !important;
+}
+
+.danger-btn:hover {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 1), rgba(200, 30, 50, 1)) !important;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4) !important;
+}
+
+.form-file {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.form-description {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.music-list {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    height: calc(100dvh - 280px);
+    overflow-y: scroll;
+    box-sizing: border-box;
+}
+
+.music-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.music-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.music-list::-webkit-scrollbar-thumb {
+    background: var(--primary-blue);
+    border-radius: 4px;
+}
+
+.music-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-cyan);
+}
+
+.music-item {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    border-bottom: 1px solid var(--glass-border);
+    transition: all var(--animation-speed) ease;
+    background: transparent;
+}
+
+.music-item:last-child {
+    border-bottom: none;
+}
+
+.music-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.music-item:hover::before {
+    left: 100%;
+}
+
+.music-item:hover {
+    background: rgba(0, 150, 255, 0.05);
+}
+
+.music-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.music-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.music-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+.music-actions {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.music-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--animation-speed) ease;
+}
+
+.music-btn:hover {
+    background: var(--primary-blue);
+    border-color: var(--primary-cyan);
+    box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+}
+
+.music-btn.playing {
+    background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+    color: white;
+}
+
+.music-btn.delete-confirm {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 30, 50, 0.8));
+    border-color: rgba(220, 53, 69, 0.6);
+    color: white;
+}
+
+/* 背景管理样式 */
+.backgrounds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    height: calc(100dvh - 280px);
+    overflow-y: scroll;
+    overflow-x: hidden;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--glass-bg);
+    box-sizing: border-box;
+}
+
+.backgrounds-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.backgrounds-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.backgrounds-grid::-webkit-scrollbar-thumb {
+    background: var(--primary-blue);
+    border-radius: 4px;
+}
+
+.backgrounds-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-cyan);
+}
+
+.background-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all var(--animation-speed) ease;
+    cursor: pointer;
+    position: relative;
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+}
+
+.background-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.background-item:hover::before {
+    left: 100%;
+}
+
+.background-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 150, 255, 0.2);
+}
+
+.background-thumbnail {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
+}
+
+.background-info {
+    padding: 15px;
+    position: relative;
+    z-index: 1;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 60px;
+}
+
+.background-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    text-shadow: 0 0 10px currentColor;
+    text-align: center;
+    word-wrap: break-word;
+    line-height: 1.3;
+}
+
+.background-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 8px;
+    display: none;
+    /* 隐藏描述，只在详情中显示 */
+}
+
+.background-prompt {
+    font-size: 12px;
+    color: var(--text-accent);
+    opacity: 0.8;
+    font-style: italic;
+    display: none;
+    /* 隐藏提示词，只在详情中显示 */
+}
+
+.background-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity var(--animation-speed) ease;
+}
+
+.background-item:hover .background-actions {
+    opacity: 1;
+}
+
+.background-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all var(--animation-speed) ease;
+}
+
+.background-action-btn:hover {
+    background: var(--primary-blue);
+    transform: scale(1.1);
+}
+
+.background-action-btn.delete:hover {
+    background: rgba(220, 53, 69, 0.8);
+}
