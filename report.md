@@ -66,11 +66,11 @@
 **问题分类**: 🔄 复杂度问题:2, ⚠️ 其他问题:3
 
 **主要问题**:
-- 函数 handle_next_speaker_recursively 的循环复杂度过高 (36)，考虑重构
 - 函数 'handle_next_speaker_recursively' () 极度过长 (217 行)，必须拆分
 - 函数 'handle_next_speaker_recursively' () 复杂度严重过高 (36)，必须简化
 - 函数 'generate_options_after_recursion' () 较长 (62 行)，可考虑重构
 - 函数 'multi_character_chat_stream' () 较长 (63 行)，可考虑重构
+- 函数 handle_next_speaker_recursively 的循环复杂度过高 (36)，考虑重构
 
 ### 5. /home/runner/work/CABM/CABM/services/multi_character_service.py (得分: 49.06)
 **问题分类**: 🔄 复杂度问题:6, ⚠️ 其他问题:3
