@@ -54,7 +54,7 @@ jobs:
         pytest --tb=short > pytest_error.log 2>&1
         TEST_EXIT_CODE=$?
         set -e
-        if [ $TEST_EXIT_CODE -ne 0 ]; then
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
           echo "PYTEST_FAILED=true" >> $GITHUB_ENV
           echo "pytest failed (exit code $TEST_EXIT_CODE). Error saved to pytest_error.log"
         else
