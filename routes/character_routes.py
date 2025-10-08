@@ -13,6 +13,7 @@ import shutil
 import io
 from pathlib import Path
 from flask import Blueprint, request, render_template, jsonify, send_file
+from pydub import AudioSegment
 import sys
 
 project_root = Path(__file__).resolve().parent.parent
