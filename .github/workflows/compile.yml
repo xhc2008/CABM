@@ -16,11 +16,7 @@ on:
         description: '构建描述 (optional)'
         required: true
         default: '支持 Windows/Linux/macOS 多架构'
-  schedule:
-    - cron: '0 7 * * 1'
 
-permissions:
-  contents: write
 
 jobs:
   # ==================== WINDOWS JOBS ====================
