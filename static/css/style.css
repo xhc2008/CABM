@@ -293,6 +293,20 @@ body {
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
 }
+
+/* 只在chat和story_chat页面应用悬停隐藏效果 */
+#chatPage .chat-header {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* 鼠标悬停在顶部区域时显示横幅 */
+#chatPage .chat-header:hover,
+#chatPage .chat-header.show {
+    opacity: 1;
+    pointer-events: auto;
+}
 .chat-header h2 {
     margin: 0 auto;
     font-size: 1.5rem;
