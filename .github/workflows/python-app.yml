@@ -28,24 +28,45 @@ jobs:
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    # ✅ Lint: 捕获错误但不退出（始终返回 0）
+      # ✅ Lint: 捕获错误但不退出（始终返回 0）
     - name: Lint with flake8
       run: |
         echo "Running strict flake8 check..."
+        # 记录开始时间
+        START_TIME=$(date '+%Y-%m-%d %H:%M:%S %Z')
+        
         # 运行严格检查，保存输出，但不因失败退出
         set +e
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics > flake8_error.log 2>&1
         LINT_EXIT_CODE=$?
         set -e
+    
+        # 记录结束时间
+        END_TIME=$(date '+%Y-%m-%d %H:%M:%S %Z')
+        
+        # 获取运行环境信息
+        PYTHON_VERSION=$(python --version 2>&1)
+        OS_INFO=$(uname -a 2>/dev/null || echo "OS info not available")
+    
+        # 将运行时间和环境信息追加到日志末尾
+        {
+          echo ""
+          echo "=== Lint Run Metadata ==="
+          echo "Start time: $START_TIME"
+          echo "End time: $END_TIME"
+          echo "Python version: $PYTHON_VERSION"
+          echo "Operating system: $OS_INFO"
+          echo "Exit code: $LINT_EXIT_CODE"
+        } >> flake8_error.log
+    
+        # 设置环境变量供后续步骤使用
         if [ $LINT_EXIT_CODE -ne 0 ]; then
           echo "LINT_FAILED=true" >> $GITHUB_ENV
           echo "flake8 failed (exit code $LINT_EXIT_CODE). Error saved to flake8_error.log"
         else
           echo "LINT_FAILED=false" >> $GITHUB_ENV
+          echo "flake8 passed. Details saved to flake8_error.log"
         fi
-        # 继续运行宽松检查（可选）
-        echo "Running lenient flake8 check..."
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     # ✅ Test: 捕获错误但不退出
     - name: Test with pytest
