@@ -33,8 +33,10 @@ jobs:
       run: |
         echo "Running strict flake8 check..."
         # 运行严格检查，保存输出，但不因失败退出
+        set +e
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics > flake8_error.log 2>&1
         LINT_EXIT_CODE=$?
+        set -e
         if [ $LINT_EXIT_CODE -ne 0 ]; then
           echo "LINT_FAILED=true" >> $GITHUB_ENV
           echo "flake8 failed (exit code $LINT_EXIT_CODE). Error saved to flake8_error.log"
@@ -48,8 +50,10 @@ jobs:
     # ✅ Test: 捕获错误但不退出
     - name: Test with pytest
       run: |
+        set +e
         pytest --tb=short > pytest_error.log 2>&1
         TEST_EXIT_CODE=$?
+        set -e
         if [ $TEST_EXIT_CODE -ne 0 ]; then
           echo "PYTEST_FAILED=true" >> $GITHUB_ENV
           echo "pytest failed (exit code $TEST_EXIT_CODE). Error saved to pytest_error.log"
