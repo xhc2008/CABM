@@ -1,7 +1,7 @@
 name: Docker Build and Push
 
-# 完全手动触发的工作流
 on:
+  # 手动触发
   workflow_dispatch:
     inputs:
       tag:
@@ -15,8 +15,16 @@ on:
         default: true
         type: boolean
 
+  # 定时触发：每天 UTC 时间 2:00 执行（可按需调整）
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨 2 点 UTC
+
+  # 推送触发：仅在 main 分支有推送时触发（避免 PR 或其他分支频繁构建）
+  push:
+    branches:
+      - main
+
 env:
-  # Docker镜像名称，基于仓库名称
   IMAGE_NAME: cabm
   GHCR_REGISTRY: ghcr.io
 
@@ -30,16 +38,16 @@ jobs:
       actions: read
       security-events: write
       attestations: write
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+
     - name: Log in to GitHub Container Registry
-      if: ${{ inputs.push_to_registry }}
+      if: ${{ inputs.push_to_registry || github.event_name != 'workflow_dispatch' }}
       uses: docker/login-action@v3
       with:
         registry: ${{ env.GHCR_REGISTRY }}
@@ -55,7 +63,7 @@ jobs:
       id: image-name
       run: |
         echo "image_name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-        
+
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -63,30 +71,30 @@ jobs:
         images: |
           ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}
         tags: |
-          type=raw,value=${{ inputs.tag }}
+          type=raw,value=${{ inputs.tag || 'latest' }}
           type=raw,value=latest,enable={{is_default_branch}}
           type=sha,prefix={{branch}}-
           type=ref,event=branch
-          
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm64
-        push: ${{ inputs.push_to_registry }}
+        push: ${{ inputs.push_to_registry || github.event_name != 'workflow_dispatch' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        
+
     - name: Generate deployment info
-      if: ${{ inputs.push_to_registry }}
+      if: ${{ inputs.push_to_registry || github.event_name != 'workflow_dispatch' }}
       run: |
         echo "## 🚀 Docker 镜像部署信息" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📦 镜像信息" >> $GITHUB_STEP_SUMMARY
-        echo "- **GitHub Container Registry**: \`${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **GitHub Container Registry**: \`${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag || 'latest' }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **构建时间**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
         echo "- **Git SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **分支**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
@@ -101,7 +109,7 @@ jobs:
         echo "  -v \$(pwd)/data:/app/data \\" >> $GITHUB_STEP_SUMMARY
         echo "  -v \$(pwd)/static/images/cache:/app/static/images/cache \\" >> $GITHUB_STEP_SUMMARY
         echo "  --restart unless-stopped \\" >> $GITHUB_STEP_SUMMARY
-        echo "  ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "  ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag || 'latest' }}" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "#### Docker Compose" >> $GITHUB_STEP_SUMMARY
@@ -109,7 +117,7 @@ jobs:
         echo "version: '3.8'" >> $GITHUB_STEP_SUMMARY
         echo "services:" >> $GITHUB_STEP_SUMMARY
         echo "  cabm:" >> $GITHUB_STEP_SUMMARY
-        echo "    image: ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "    image: ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag || 'latest' }}" >> $GITHUB_STEP_SUMMARY
         echo "    container_name: cabm-app" >> $GITHUB_STEP_SUMMARY
         echo "    ports:" >> $GITHUB_STEP_SUMMARY
         echo "      - \"5000:5000\"" >> $GITHUB_STEP_SUMMARY
@@ -126,17 +134,17 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📋 配置说明" >> $GITHUB_STEP_SUMMARY
         echo "使用前请先配置 \`.env\` 文件，参考 \`.env.example\` 模板" >> $GITHUB_STEP_SUMMARY
-        
+
     - name: Image vulnerability scan
-      if: ${{ inputs.push_to_registry }}
+      if: ${{ inputs.push_to_registry || github.event_name != 'workflow_dispatch' }}
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag }}
+        image-ref: ${{ env.GHCR_REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ inputs.tag || 'latest' }}
         format: 'sarif'
         output: 'trivy-results.sarif'
-        
+
     - name: Upload Trivy scan results
-      if: ${{ inputs.push_to_registry }}
+      if: ${{ inputs.push_to_registry || github.event_name != 'workflow_dispatch' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
