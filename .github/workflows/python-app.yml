@@ -1,6 +1,3 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: Python application
 
 on:
@@ -11,29 +8,64 @@ on:
 
 permissions:
   contents: read
+  issues: write  # 必须！用于创建 Issue
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
     - name: Lint with flake8
+      id: lint
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        echo "Running strict flake8 check..."
+        if ! flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics > flake8_error.log 2>&1; then
+          echo "LINT_FAILED=true" >> $GITHUB_ENV
+          exit 1
+        fi
+        echo "Running lenient flake8 check..."
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Test with pytest
+      id: test
       run: |
-        pytest
+        if ! pytest --tb=short > pytest_error.log 2>&1; then
+          echo "PYTEST_FAILED=true" >> $GITHUB_ENV
+          exit 1
+        fi
+
+    # ========== 自动创建 GitHub Issue（仅当失败时）==========
+    - name: Create GitHub Issue for lint failure
+      if: env.LINT_FAILED == 'true'
+      uses: peter-evans/create-issue-from-file@v4
+      with:
+        title: "CI Lint Failed on ${{ github.ref_name }} @ ${{ github.sha }}"
+        content-filepath: ./flake8_error.log
+        labels: ci-failure,lint
+        assignees: ''  # 可选：指定 assignee
+
+    - name: Create GitHub Issue for test failure
+      if: env.PYTEST_FAILED == 'true'
+      uses: peter-evans/create-issue-from-file@v4
+      with:
+        title: "CI Test Failed on ${{ github.ref_name }} @ ${{ github.sha }}"
+        content-filepath: ./pytest_error.log
+        labels: ci-failure,test
+        assignees: ''
+
+    # ========== 可选：防止重复 Issue（进阶）==========
+    # 如果你希望避免重复创建，可以先用 github-script 检查是否有 open issue
+    # 但为简洁起见，这里使用简单方案（每次失败都创建）
