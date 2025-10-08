@@ -1,11 +1,9 @@
 name: Analyze Code with Fuck-U-Code
 
 on:
-  # 根据需要选择触发条件
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # 每周触发一次（每周一 UTC 时间 00:00）
+  schedule:
+    - cron: '0 0 * * 1'
   workflow_dispatch: # 允许手动触发
 permissions:
   contents: write
