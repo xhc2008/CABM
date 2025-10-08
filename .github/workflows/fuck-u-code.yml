@@ -1,0 +1,33 @@
+name: Analyze Code with Fuck-U-Code
+
+on:
+  # 根据需要选择触发条件
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest  # 使用 Ubuntu 运行器运行 Linux 二进制文件
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download fuck-u-code binary
+        run: |
+          curl -L -o fuck-u-code https://github.com/Done-0/fuck-u-code/releases/download/v1.0.0-beta.1/fuck-u-code-linux-amd64
+          chmod +x fuck-u-code
+      
+      - name: Run code analysis
+        run: |
+          ./fuck-u-code analyze --markdown > report.md
+      
+      - name: Commit and push report
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add report.md
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update code analysis report" && git push)
