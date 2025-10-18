@@ -2,6 +2,8 @@ name: Build Executables with Nuitka (Multi-Arch)
 
 # 添加 schedule 触发器，这里设置为每周一 UTC 时间早上 7 点执行（对应北京时间 15:00）
 on:
+  schedule:
+      - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       version:
