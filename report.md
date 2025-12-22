@@ -30,7 +30,6 @@
 **Issue Categories**: 🔄 Complexity Issues:8, 📝 Comment Issues:1, ⚠️ Other Issues:4
 
 **Main Issues**:
-- Code comment ratio is low (9.28%), consider adding more comments
 - Function list_stories has very high cyclomatic complexity (19), consider refactoring
 - Function create_story has very high cyclomatic complexity (44), consider refactoring
 - Function story_chat_stream has very high cyclomatic complexity (37), consider refactoring
@@ -43,6 +42,7 @@
 - Function 'story_chat_stream' () complexity is severely high (37), must be simplified
 - Function 'generate' () is extremely long (172 lines), must be split
 - Function 'generate' () complexity is severely high (31), must be simplified
+- Code comment ratio is low (9.28%), consider adding more comments
 
 ### 3. /home/runner/work/CABM/CABM/routes/chat_routes.py (Score: 53.70)
 **Issue Categories**: 🔄 Complexity Issues:7, 📝 Comment Issues:1, ⚠️ Other Issues:5
