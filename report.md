@@ -30,6 +30,10 @@
 **Issue Categories**: 🔄 Complexity Issues:8, 📝 Comment Issues:1, ⚠️ Other Issues:4
 
 **Main Issues**:
+- Function list_stories has very high cyclomatic complexity (19), consider refactoring
+- Function create_story has very high cyclomatic complexity (44), consider refactoring
+- Function story_chat_stream has very high cyclomatic complexity (37), consider refactoring
+- Function generate has very high cyclomatic complexity (31), consider refactoring
 - Function 'list_stories' () is too long (81 lines), consider splitting
 - Function 'list_stories' () complexity is severely high (19), must be simplified
 - Function 'create_story' () is extremely long (211 lines), must be split
@@ -39,10 +43,6 @@
 - Function 'generate' () is extremely long (172 lines), must be split
 - Function 'generate' () complexity is severely high (31), must be simplified
 - Code comment ratio is low (9.28%), consider adding more comments
-- Function list_stories has very high cyclomatic complexity (19), consider refactoring
-- Function create_story has very high cyclomatic complexity (44), consider refactoring
-- Function story_chat_stream has very high cyclomatic complexity (37), consider refactoring
-- Function generate has very high cyclomatic complexity (31), consider refactoring
 
 ### 3. /home/runner/work/CABM/CABM/routes/chat_routes.py (Score: 53.70)
 **Issue Categories**: 🔄 Complexity Issues:7, 📝 Comment Issues:1, ⚠️ Other Issues:5
@@ -66,11 +66,11 @@
 **Issue Categories**: 🔄 Complexity Issues:2, ⚠️ Other Issues:3
 
 **Main Issues**:
+- Function handle_next_speaker_recursively has very high cyclomatic complexity (36), consider refactoring
 - Function 'handle_next_speaker_recursively' () is extremely long (217 lines), must be split
 - Function 'handle_next_speaker_recursively' () complexity is severely high (36), must be simplified
 - Function 'generate_options_after_recursion' () is rather long (62 lines), consider refactoring
 - Function 'multi_character_chat_stream' () is rather long (63 lines), consider refactoring
-- Function handle_next_speaker_recursively has very high cyclomatic complexity (36), consider refactoring
 
 ### 5. /home/runner/work/CABM/CABM/services/multi_character_service.py (Score: 49.06)
 **Issue Categories**: 🔄 Complexity Issues:6, ⚠️ Other Issues:3
