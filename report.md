@@ -66,11 +66,11 @@
 **Issue Categories**: 🔄 Complexity Issues:2, ⚠️ Other Issues:3
 
 **Main Issues**:
-- Function handle_next_speaker_recursively has very high cyclomatic complexity (36), consider refactoring
 - Function 'handle_next_speaker_recursively' () is extremely long (217 lines), must be split
 - Function 'handle_next_speaker_recursively' () complexity is severely high (36), must be simplified
 - Function 'generate_options_after_recursion' () is rather long (62 lines), consider refactoring
 - Function 'multi_character_chat_stream' () is rather long (63 lines), consider refactoring
+- Function handle_next_speaker_recursively has very high cyclomatic complexity (36), consider refactoring
 
 ### 5. /home/runner/work/CABM/CABM/services/multi_character_service.py (Score: 49.06)
 **Issue Categories**: 🔄 Complexity Issues:6, ⚠️ Other Issues:3
