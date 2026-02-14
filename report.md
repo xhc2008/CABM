@@ -1,97 +1,97 @@
-# 🌸 屎山代码分析报告 🌸
+# 🌸 Code Quality Analysis Report 🌸
 
-## 总体评估
+## Overall Assessment
 
-- **质量评分**: 38.50/100
-- **质量等级**: 😐 微臭青年 - 略有异味，建议适量通风
-- **分析文件数**: 68
-- **代码总行数**: 20562
+- **Quality Score**: 38.50/100
+- **Quality Level**: 😐 Slightly stinky youth - A faint whiff, open a window and hope for the best.
+- **Analyzed Files**: 68
+- **Total Lines**: 20562
 
-## 质量指标
+## Quality Metrics
 
-| 指标 | 得分 | 权重 | 状态 |
+| Metric | Score | Weight | Status |
 |------|------|------|------|
-| 状态管理 | 17.62 | 0.20 | ✓✓ |
-| 错误处理 | 25.00 | 0.10 | ✓ |
-| 注释覆盖率 | 27.75 | 0.15 | ✓ |
-| 代码结构 | 30.00 | 0.15 | ✓ |
-| 代码重复度 | 35.00 | 0.15 | ○ |
-| 循环复杂度 | 68.30 | 0.30 | ⚠ |
+| State Management | 17.62 | 0.20 | ✓✓ |
+| Error Handling | 25.00 | 0.10 | ✓ |
+| Comment Ratio | 27.75 | 0.15 | ✓ |
+| Code Structure | 30.00 | 0.15 | ✓ |
+| Code Duplication | 35.00 | 0.15 | ○ |
+| Cyclomatic Complexity | 68.30 | 0.30 | ⚠ |
 
-## 问题文件 (Top 5)
+## Problem Files (Top 5)
 
-### 1. /home/runner/work/CABM/CABM/utils/RAG/Reranker/Reranker_Model.py (得分: 57.10)
-**问题分类**: 📝 注释问题:1
+### 1. /home/runner/work/CABM/CABM/utils/RAG/Reranker/Reranker_Model.py (Score: 57.10)
+**Issue Categories**: 📝 Comment Issues:1
 
-**主要问题**:
-- 代码注释率极低 (0.00%)，几乎没有注释
+**Main Issues**:
+- Code comment ratio is extremely low (0.00%), almost no comments
 
-### 2. /home/runner/work/CABM/CABM/routes/story_routes.py (得分: 56.05)
-**问题分类**: 🔄 复杂度问题:8, 📝 注释问题:1, ⚠️ 其他问题:4
+### 2. /home/runner/work/CABM/CABM/routes/story_routes.py (Score: 56.05)
+**Issue Categories**: 🔄 Complexity Issues:8, 📝 Comment Issues:1, ⚠️ Other Issues:4
 
-**主要问题**:
-- 代码注释率较低 (9.28%)，建议增加注释
-- 函数 list_stories 的循环复杂度过高 (19)，考虑重构
-- 函数 create_story 的循环复杂度过高 (44)，考虑重构
-- 函数 story_chat_stream 的循环复杂度过高 (37)，考虑重构
-- 函数 generate 的循环复杂度过高 (31)，考虑重构
-- 函数 'list_stories' () 过长 (81 行)，建议拆分
-- 函数 'list_stories' () 复杂度严重过高 (19)，必须简化
-- 函数 'create_story' () 极度过长 (211 行)，必须拆分
-- 函数 'create_story' () 复杂度严重过高 (44)，必须简化
-- 函数 'story_chat_stream' () 极度过长 (209 行)，必须拆分
-- 函数 'story_chat_stream' () 复杂度严重过高 (37)，必须简化
-- 函数 'generate' () 极度过长 (172 行)，必须拆分
-- 函数 'generate' () 复杂度严重过高 (31)，必须简化
+**Main Issues**:
+- Function list_stories has very high cyclomatic complexity (19), consider refactoring
+- Function create_story has very high cyclomatic complexity (44), consider refactoring
+- Function story_chat_stream has very high cyclomatic complexity (37), consider refactoring
+- Function generate has very high cyclomatic complexity (31), consider refactoring
+- Function 'list_stories' () is too long (81 lines), consider splitting
+- Function 'list_stories' () complexity is severely high (19), must be simplified
+- Function 'create_story' () is extremely long (211 lines), must be split
+- Function 'create_story' () complexity is severely high (44), must be simplified
+- Function 'story_chat_stream' () is extremely long (209 lines), must be split
+- Function 'story_chat_stream' () complexity is severely high (37), must be simplified
+- Function 'generate' () is extremely long (172 lines), must be split
+- Function 'generate' () complexity is severely high (31), must be simplified
+- Code comment ratio is low (9.28%), consider adding more comments
 
-### 3. /home/runner/work/CABM/CABM/routes/chat_routes.py (得分: 53.70)
-**问题分类**: 🔄 复杂度问题:7, 📝 注释问题:1, ⚠️ 其他问题:5
+### 3. /home/runner/work/CABM/CABM/routes/chat_routes.py (Score: 53.70)
+**Issue Categories**: 🔄 Complexity Issues:7, 📝 Comment Issues:1, ⚠️ Other Issues:5
 
-**主要问题**:
-- 函数 chat_page 的循环复杂度过高 (17)，考虑重构
-- 函数 chat_stream 的循环复杂度过高 (24)，考虑重构
-- 函数 generate 的循环复杂度过高 (21)，考虑重构
-- 函数 add_background 的循环复杂度较高 (12)，建议简化
-- 函数 'chat_page' () 较长 (61 行)，可考虑重构
-- 函数 'chat_page' () 复杂度过高 (17)，建议简化
-- 函数 'chat_stream' () 过长 (113 行)，建议拆分
-- 函数 'chat_stream' () 复杂度严重过高 (24)，必须简化
-- 函数 'generate' () 过长 (93 行)，建议拆分
-- 函数 'generate' () 复杂度严重过高 (21)，必须简化
-- 函数 'get_initial_background' () 较长 (49 行)，可考虑重构
-- 函数 'add_background' () 较长 (59 行)，可考虑重构
-- 代码注释率较低 (9.68%)，建议增加注释
+**Main Issues**:
+- Function chat_page has very high cyclomatic complexity (17), consider refactoring
+- Function chat_stream has very high cyclomatic complexity (24), consider refactoring
+- Function generate has very high cyclomatic complexity (21), consider refactoring
+- Function add_background has high cyclomatic complexity (12), consider simplifying
+- Function 'chat_page' () is rather long (61 lines), consider refactoring
+- Function 'chat_page' () complexity is high (17), consider simplifying
+- Function 'chat_stream' () is too long (113 lines), consider splitting
+- Function 'chat_stream' () complexity is severely high (24), must be simplified
+- Function 'generate' () is too long (93 lines), consider splitting
+- Function 'generate' () complexity is severely high (21), must be simplified
+- Function 'get_initial_background' () is rather long (49 lines), consider refactoring
+- Function 'add_background' () is rather long (59 lines), consider refactoring
+- Code comment ratio is low (9.68%), consider adding more comments
 
-### 4. /home/runner/work/CABM/CABM/routes/multi_character_routes.py (得分: 49.53)
-**问题分类**: 🔄 复杂度问题:2, ⚠️ 其他问题:3
+### 4. /home/runner/work/CABM/CABM/routes/multi_character_routes.py (Score: 49.53)
+**Issue Categories**: 🔄 Complexity Issues:2, ⚠️ Other Issues:3
 
-**主要问题**:
-- 函数 'handle_next_speaker_recursively' () 极度过长 (217 行)，必须拆分
-- 函数 'handle_next_speaker_recursively' () 复杂度严重过高 (36)，必须简化
-- 函数 'generate_options_after_recursion' () 较长 (62 行)，可考虑重构
-- 函数 'multi_character_chat_stream' () 较长 (63 行)，可考虑重构
-- 函数 handle_next_speaker_recursively 的循环复杂度过高 (36)，考虑重构
+**Main Issues**:
+- Function handle_next_speaker_recursively has very high cyclomatic complexity (36), consider refactoring
+- Function 'handle_next_speaker_recursively' () is extremely long (217 lines), must be split
+- Function 'handle_next_speaker_recursively' () complexity is severely high (36), must be simplified
+- Function 'generate_options_after_recursion' () is rather long (62 lines), consider refactoring
+- Function 'multi_character_chat_stream' () is rather long (63 lines), consider refactoring
 
-### 5. /home/runner/work/CABM/CABM/services/multi_character_service.py (得分: 49.06)
-**问题分类**: 🔄 复杂度问题:6, ⚠️ 其他问题:3
+### 5. /home/runner/work/CABM/CABM/services/multi_character_service.py (Score: 49.06)
+**Issue Categories**: 🔄 Complexity Issues:6, ⚠️ Other Issues:3
 
-**主要问题**:
-- 函数 format_messages_for_character 的循环复杂度过高 (32)，考虑重构
-- 函数 build_character_system_prompt 的循环复杂度过高 (22)，考虑重构
-- 函数 call_director_model 的循环复杂度过高 (17)，考虑重构
-- 函数 'format_messages_for_character' () 极度过长 (130 行)，必须拆分
-- 函数 'format_messages_for_character' () 复杂度严重过高 (32)，必须简化
-- 函数 'build_character_system_prompt' () 过长 (105 行)，建议拆分
-- 函数 'build_character_system_prompt' () 复杂度严重过高 (22)，必须简化
-- 函数 'call_director_model' () 极度过长 (121 行)，必须拆分
-- 函数 'call_director_model' () 复杂度过高 (17)，建议简化
+**Main Issues**:
+- Function format_messages_for_character has very high cyclomatic complexity (32), consider refactoring
+- Function build_character_system_prompt has very high cyclomatic complexity (22), consider refactoring
+- Function call_director_model has very high cyclomatic complexity (17), consider refactoring
+- Function 'format_messages_for_character' () is extremely long (130 lines), must be split
+- Function 'format_messages_for_character' () complexity is severely high (32), must be simplified
+- Function 'build_character_system_prompt' () is too long (105 lines), consider splitting
+- Function 'build_character_system_prompt' () complexity is severely high (22), must be simplified
+- Function 'call_director_model' () is extremely long (121 lines), must be split
+- Function 'call_director_model' () complexity is high (17), consider simplifying
 
-## 改进建议
+## Improvement Suggestions
 
-### 高优先级
-- 继续保持当前的代码质量标准
+### High Priority
+- Keep up the clean code standards, don't let the mess creep in
 
-### 中优先级
-- 可以考虑进一步优化性能和可读性
-- 完善文档和注释，便于团队协作
+### Medium Priority
+- Go further—optimize for performance and readability, just because you can
+- Polish your docs and comments, make your team love you even more
 
