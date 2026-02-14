@@ -1,19 +1,17 @@
 import json
 import os
-import signal
 import logging
 from datetime import datetime
 import traceback
+import threading
+import concurrent.futures
 from .RAG import RAG
 import sys
 sys.path.append(r'utils\RAG')
+
 class TimeoutError(Exception):
     """超时异常"""
     pass
-
-def timeout_handler(signum, frame):
-    """超时处理函数"""
-    raise TimeoutError("操作超时")
 
 class ChatHistoryVectorDB:
     def __init__(self, RAG_config: dict, model: str = None, character_name: str = "default", is_story: bool = False):
@@ -62,9 +60,23 @@ class ChatHistoryVectorDB:
         """
         self.rag.add(text)
     
+    def _perform_search(self, query: str, top_k: int = 5):
+        """执行实际的搜索操作"""
+        # 获取最相似的top_k个结果
+        top_indices = self.rag.req(query=query, top_k=top_k)
+        
+        results = []
+        for text in top_indices:
+            result = {
+                'text': text
+            }
+            results.append(result)
+        
+        return results
+    
     def search(self, query: str, top_k: int = 5, timeout: int = 10):
         """
-        搜索与查询文本最相似的文本（带超时）
+        搜索与查询文本最相似的文本（带超时，线程安全）
         
         参数:
             query: 查询文本
@@ -77,22 +89,26 @@ class ChatHistoryVectorDB:
         异常:
             TimeoutError: 当操作超时时
         """
-        
-        # 设置超时处理（仅在非Windows系统上）
-        if os.name != 'nt':  # 非Windows系统
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(timeout)
+        results = []
         
         try:
-            # 获取最相似的top_k个结果
-            top_indices = self.rag.req(query=query, top_k=top_k)
-            
-            results = []
-            for text in top_indices:
-                result = {  #TODO 去除了<相似度>键, 多路召回后不是都有相似度
-                    'text': text
-                }
-                results.append(result)
+            # 使用 ThreadPoolExecutor 实现超时控制（线程安全）
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                # 提交搜索任务
+                future = executor.submit(self._perform_search, query, top_k)
+                
+                try:
+                    # 等待结果，带超时
+                    results = future.result(timeout=timeout)
+                except concurrent.futures.TimeoutError:
+                    # 超时处理
+                    self.logger.warning(f"记忆检索超时 ({timeout}秒)")
+                    future.cancel()  # 取消任务
+                    return []
+                except Exception as e:
+                    # 其他异常
+                    self.logger.error(f"记忆检索出错: {e}")
+                    return []
             
             # 记录检索结果到日志
             if results:
@@ -105,13 +121,10 @@ class ChatHistoryVectorDB:
                 
             return results
             
-        except TimeoutError:
-            self.logger.warning(f"记忆检索超时 ({timeout}秒)")
+        except Exception as e:
+            self.logger.error(f"搜索过程发生错误: {e}")
+            traceback.print_exc()
             return []
-        finally:
-            # 取消超时设置（仅在非Windows系统上）
-            if os.name != 'nt':
-                signal.alarm(0)
     
     def save_to_file(self, file_path: str = None):
         """
@@ -161,50 +174,7 @@ class ChatHistoryVectorDB:
             self.logger.info(f"向量数据库加载完成，角色: {self.character_name}")
         except Exception as e:
             self.logger.error(f"加载数据库失败: {e}")
-
-    #TODO 未使用的函数
-    # def load_from_log(self, file_path: str, incremental: bool = True):
-    #     """
-    #     从日志文件加载数据并生成向量（构建知识库，支持增量加载）
-        
-    #     参数:
-    #         file_path: 日志文件路径
-    #         incremental: 是否增量加载（只处理新内容）
-    #     """
-    #     if not os.path.exists(file_path):
-    #         raise FileNotFoundError(f"文件 {file_path} 不存在")
-            
-    #     with open(file_path, 'r', encoding='utf-8') as f:
-    #         for line in f:
-    #             try:
-    #                 entry = json.loads(line.strip())
-    #                 content = entry.get('content', '')
-    #                 if not content or len(content.strip()) < 1:
-    #                     continue
-                        
-    #                 # 增量加载模式下，跳过已处理的文本
-    #                 if incremental and content in self.loaded_texts:
-    #                     continue
-                        
-    #                 # 获取嵌入向量（使用缓存机制）
-    #                 vector = self._get_embedding(content)
-    #                 if vector is None:
-    #                     continue
-                        
-    #                 # 存储数据和元数据
-    #                 self.vectors.append(vector)
-    #                 metadata = {
-    #                     'text': content,
-    #                     'timestamp': entry.get('timestamp', ''),
-    #                     'role': entry.get('role', '')
-    #                 }
-    #                 self.metadata.append(metadata)
-    #                 self.text_to_index[content].append(len(self.vectors) - 1)
-    #                 self.loaded_texts.add(content)
-                    
-    #             except json.JSONDecodeError:
-    #                 print(f"跳过无法解析的行: {line}")
-    #                 continue
+            traceback.print_exc()
     
     def add_chat_turn(self, user_message: str, assistant_message: str, timestamp: str = None):
         """
